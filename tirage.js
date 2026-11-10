@@ -48,7 +48,7 @@ export function getEspece(id) {
 }
 
 export function getImageUrl(id) {
-  return `/images/MonkeysRarities/${id}.png`;
+  return `/images/MonkeysIcons/${id}.png`;
 }
 
 export function getNiveau(rarete, amount) {
