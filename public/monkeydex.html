@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monkeydex</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1e1b2e;
+      color: #f2f2f2;
+      margin: 0;
+      padding: 30px 20px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1000px;
+      margin: 0 auto 20px;
+    }
+    h1 { margin: 0; }
+    a.retour {
+      color: #f2f2f2;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: #2a2640;
+      border: 1px solid #444;
+    }
+    #total { max-width: 1000px; margin: 0 auto 20px; color: #bbb; }
+    #grille {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .carte {
+      background: #2a2640;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 6px;
+    }
+    .carte img { width: 90px; height: 90px; object-fit: contain; }
+    .carte h3 { margin: 0; font-size: 15px; }
+    .rarete {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px 2px 3px;
+      border-radius: 999px;
+      border: 1.5px solid;
+      font-size: 11px;
+      font-weight: bold;
+      background: #1e1b2e;
+    }
+    .rarete img { width: 14px; height: 14px; object-fit: contain; }
+    .niv { color: #ffb86b; font-size: 12px; }
+    .stats { color: #bbb; font-size: 11px; }
+    .pagination {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      margin-top: 24px;
+    }
+    .pagination button {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #2a2640;
+      color: #fff;
+      cursor: pointer;
+    }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Monkeydex</h1>
+    <a href="/tirage.html" class="retour">← Retour</a>
+  </header>
+
+  <p id="total"></p>
+  <div id="grille"></div>
+
+  <div class="pagination">
+    <button id="precedent">◀</button>
+    <span id="page"></span>
+    <button id="suivant">▶</button>
+  </div>
+
+  <script>
+    const RARETES_AFFICHAGE = {
+      common:    { label: "Commun",     couleur: "#060ee4" },
+      uncommon:  { label: "Non-commun", couleur: "#1af3c3" },
+      rare:      { label: "Rare",       couleur: "#1cc22a" },
+      epic:      { label: "Epic",       couleur: "#a831eb" },
+      legendary: { label: "Légendaire", couleur: "#fe9308" },
+    };
+
+    const PAR_PAGE = 12;
+    const pseudo = localStorage.getItem("pseudo");
+    if (!pseudo) window.location.replace("/");
+
+    let singes = [];
+    let page = 0;
+    const grille = document.getElementById("grille");
+
+    function carteHTML(s) {
+      const r = RARETES_AFFICHAGE[s.espece.rarete] ?? { label: s.espece.rarete, couleur: "#777" };
+      const couleur = "#" + r.couleur.replace("#", "");
+      return `
+        <div class="carte">
+          <img src="${s.image}" alt="">
+          <h3>${s.espece.nom} <small>×${s.amount}</small></h3>
+          <span class="rarete" style="border-color:${couleur}; color:${couleur}">
+            <img src="/images/MonkeysRarities/rarity_${s.espece.rarete}.png" alt="">
+            ${r.label}
+          </span>
+          <div class="niv">Lvl ${s.niveau.niveau} (${s.niveau.progression}/${s.niveau.prochain})</div>
+          <div class="stats">HP ${s.stats.hp} · ATK ${s.stats.atk} · DEF ${s.stats.def}</div>
+        </div>`;
+    }
+
+    function afficher() {
+      const totalPages = Math.max(1, Math.ceil(singes.length / PAR_PAGE));
+      const debut = page * PAR_PAGE;
+      const morceau = singes.slice(debut, debut + PAR_PAGE);
+
+      grille.innerHTML = morceau.length
+        ? morceau.map(carteHTML).join("")
+        : "<p>Aucun singe trouvé.</p>";
+
+      document.getElementById("page").textContent = `Page ${page + 1}/${totalPages}`;
+      document.getElementById("precedent").disabled = page === 0;
+      document.getElementById("suivant").disabled = page >= totalPages - 1;
+    }
+
+    document.getElementById("precedent").addEventListener("click", () => {
+      if (page > 0) { page--; afficher(); }
+    });
+    document.getElementById("suivant").addEventListener("click", () => { page++; afficher(); });
+
+    // Chargement immédiat
+    (async () => {
+      const reponse = await fetch("/monkeydex?pseudo=" + encodeURIComponent(pseudo));
+      const data = await reponse.json();
+      singes = data.singes;
+      document.getElementById("total").textContent = `Nombre total de singes : ${data.total}`;
+      afficher();
+    })();
+  </script>
+</body>
+</html>

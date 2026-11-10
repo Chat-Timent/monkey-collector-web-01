@@ -1,0 +1,699 @@
+{
+  "basic_monkey": {
+    "id": 1,
+    "nom": "Basic Monkey",
+    "description": "Just a monkey.",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 450,
+      "atk": 350,
+      "def": 277
+    },
+    "croissance": {
+      "hp": 20,
+      "atk": 20,
+      "def": 20
+    }
+  },
+  "joy_monkey": {
+    "id": 2,
+    "nom": "Joy Monkey",
+    "description": "He is always willing to laugh at your jokes.",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 445,
+      "atk": 360,
+      "def": 272
+    },
+    "croissance": {
+      "hp": 15,
+      "atk": 25,
+      "def": 20
+    }
+  },
+  "crying_monkey": {
+    "id": 3,
+    "nom": "Crying Monkey",
+    "description": "Oh no monkey is crying...",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 470,
+      "atk": 310,
+      "def": 297
+    },
+    "croissance": {
+      "hp": 13,
+      "atk": 30,
+      "def": 17
+    }
+  },
+  "kissing_monkey": {
+    "id": 4,
+    "nom": "Kissing Monkey",
+    "description": "SMACK 💋",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 400,
+      "atk": 367,
+      "def": 310
+    },
+    "croissance": {
+      "hp": 20,
+      "atk": 30,
+      "def": 10
+    }
+  },
+  "love_monkey": {
+    "id": 5,
+    "nom": "Love Monkey",
+    "description": "Monkey has a girlfriend now.",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 410,
+      "atk": 370,
+      "def": 297
+    },
+    "croissance": {
+      "hp": 25,
+      "atk": 20,
+      "def": 15
+    }
+  },
+  "smirking_monkey": {
+    "id": 6,
+    "nom": "Smirking Monkey",
+    "description": "Hey girl, can I take you to a date?",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 412,
+      "atk": 375,
+      "def": 290
+    },
+    "croissance": {
+      "hp": 15,
+      "atk": 35,
+      "def": 10
+    }
+  },
+  "laughing_monkey": {
+    "id": 17,
+    "nom": "Laughing Monkey",
+    "description": "A monkey who loves to laugh.",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 547,
+      "atk": 310,
+      "def": 230
+    },
+    "croissance": {
+      "hp": 30,
+      "atk": 15,
+      "def": 15
+    }
+  },
+  "rofl_monkey": {
+    "id": 19,
+    "nom": "ROFL Monkey",
+    "description": "ROFL Monkey.",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 490,
+      "atk": 330,
+      "def": 257
+    },
+    "croissance": {
+      "hp": 28,
+      "atk": 18,
+      "def": 14
+    }
+  },
+  "sweating_monkey": {
+    "id": 18,
+    "nom": "Sweating Monkey",
+    "description": "Embarassing...",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 457,
+      "atk": 310,
+      "def": 310
+    },
+    "croissance": {
+      "hp": 18,
+      "atk": 12,
+      "def": 30
+    }
+  },
+  "inlove_monkey": {
+    "id": 20,
+    "nom": "In Love Monkey",
+    "description": "A monkey who is ... in love 👉 👈 ❤",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 487,
+      "atk": 320,
+      "def": 270
+    },
+    "croissance": {
+      "hp": 25,
+      "atk": 23,
+      "def": 12
+    }
+  },
+  "relieved_monkey": {
+    "id": 24,
+    "nom": "Relieved Monkey",
+    "description": "I aspire to be as relaxed as him to be honest...",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 520,
+      "atk": 320,
+      "def": 237
+    },
+    "croissance": {
+      "hp": 10,
+      "atk": 19,
+      "def": 31
+    }
+  },
+  "nomouth_monkey": {
+    "id": 26,
+    "nom": "No Mouth Monkey",
+    "description": "Blud got nothing to say anymore.",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 392,
+      "atk": 375,
+      "def": 310
+    },
+    "croissance": {
+      "hp": 32,
+      "atk": 17,
+      "def": 11
+    }
+  },
+  "expressionless_monkey": {
+    "id": 28,
+    "nom": "Expressionless Monkey",
+    "description": "He is so done with this.",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 425,
+      "atk": 362,
+      "def": 290
+    },
+    "croissance": {
+      "hp": 27,
+      "atk": 14,
+      "def": 19
+    }
+  },
+  "pensive_monkey": {
+    "id": 29,
+    "nom": "Pensive Monkey",
+    "description": "Poor monkey... What happened ?",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 530,
+      "atk": 317,
+      "def": 230
+    },
+    "croissance": {
+      "hp": 14,
+      "atk": 32,
+      "def": 14
+    }
+  },
+  "smiling_monkey": {
+    "id": 16,
+    "nom": "Smiling Monkey",
+    "description": "A super happy monkey.",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 520,
+      "atk": 322,
+      "def": 235
+    },
+    "croissance": {
+      "hp": 18,
+      "atk": 25,
+      "def": 17
+    }
+  },
+  "sad_monkey": {
+    "id": 8,
+    "nom": "Sad Monkey",
+    "description": "Who made monkey sad!?",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1495,
+      "atk": 635,
+      "def": 570
+    },
+    "croissance": {
+      "hp": 60,
+      "atk": 60,
+      "def": 80
+    }
+  },
+  "flushed_monkey": {
+    "id": 7,
+    "nom": "Flushed Monkey",
+    "description": "Don't say such nasty things!",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1250,
+      "atk": 800,
+      "def": 650
+    },
+    "croissance": {
+      "hp": 66,
+      "atk": 66,
+      "def": 68
+    }
+  },
+  "surprised_monkey": {
+    "id": 9,
+    "nom": "Surprised Monkey",
+    "description": "Oooooohhhhhhhhh",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1150,
+      "atk": 850,
+      "def": 700
+    },
+    "croissance": {
+      "hp": 85,
+      "atk": 55,
+      "def": 60
+    }
+  },
+  "hugging_monkey": {
+    "id": 21,
+    "nom": "Hugging Monkey",
+    "description": "Everyone needs a hug from time to time, even you stranger!",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1300,
+      "atk": 650,
+      "def": 750
+    },
+    "croissance": {
+      "hp": 70,
+      "atk": 60,
+      "def": 70
+    }
+  },
+  "reverse_monkey": {
+    "id": 22,
+    "nom": "Reverse Monkey",
+    "description": "¿ ʎǝʞuoɯ",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 975,
+      "atk": 925,
+      "def": 800
+    },
+    "croissance": {
+      "hp": 120,
+      "atk": 40,
+      "def": 40
+    }
+  },
+  "blushing_monkey": {
+    "id": 23,
+    "nom": "Blushing Monkey",
+    "description": "why is bro so happy 💔",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1000,
+      "atk": 925,
+      "def": 775
+    },
+    "croissance": {
+      "hp": 100,
+      "atk": 40,
+      "def": 60
+    }
+  },
+  "winking_monkey": {
+    "id": 25,
+    "nom": "Winking Monkey",
+    "description": "Take a hint !",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1400,
+      "atk": 650,
+      "def": 650
+    },
+    "croissance": {
+      "hp": 70,
+      "atk": 90,
+      "def": 40
+    }
+  },
+  "handovermouth_monkey": {
+    "id": 27,
+    "nom": "Hand Over Mouth Monkey",
+    "description": "Blud wont say anything.",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1380,
+      "atk": 720,
+      "def": 600
+    },
+    "croissance": {
+      "hp": 75,
+      "atk": 45,
+      "def": 85
+    }
+  },
+  "yummy_monkey": {
+    "id": 30,
+    "nom": "Yummy Monkey",
+    "description": "Yum yum !.. Or something like that.",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1150,
+      "atk": 800,
+      "def": 750
+    },
+    "croissance": {
+      "hp": 90,
+      "atk": 60,
+      "def": 50
+    }
+  },
+  "exploding_monkey": {
+    "id": 10,
+    "nom": "Exploding Monkey",
+    "description": "BOOM 💥",
+    "rarete": "rare",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 2100,
+      "atk": 1200,
+      "def": 900
+    },
+    "croissance": {
+      "hp": 200,
+      "atk": 150,
+      "def": 150
+    }
+  },
+  "rich_monkey": {
+    "id": 11,
+    "nom": "Rich Monkey",
+    "description": "Mon(k)ey mon(k)ey mon(k)ey...",
+    "rarete": "rare",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 2200,
+      "atk": 1150,
+      "def": 850
+    },
+    "croissance": {
+      "hp": 175,
+      "atk": 125,
+      "def": 200
+    }
+  },
+  "cowboy_monkey": {
+    "id": 12,
+    "nom": "Cowboy Monkey",
+    "description": "Yee Haw ! (What's a cowboy monkey even supposed to say)",
+    "rarete": "rare",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 2100,
+      "atk": 1080,
+      "def": 1020
+    },
+    "croissance": {
+      "hp": 200,
+      "atk": 150,
+      "def": 150
+    }
+  },
+  "crazy_monkey": {
+    "id": 31,
+    "nom": "Crazy Monkey",
+    "description": "So crazyyyyy love her!",
+    "rarete": "rare",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1900,
+      "atk": 1400,
+      "def": 900
+    },
+    "croissance": {
+      "hp": 150,
+      "atk": 250,
+      "def": 100
+    }
+  },
+  "raisedeyebrow_monkey": {
+    "id": 33,
+    "nom": "Raised Eyebrow Monkey",
+    "description": "What did you just say ?",
+    "rarete": "rare",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 2050,
+      "atk": 1350,
+      "def": 1000
+    },
+    "croissance": {
+      "hp": 125,
+      "atk": 200,
+      "def": 175
+    }
+  },
+  "monocle_monkey": {
+    "id": 34,
+    "nom": "Monocle Monkey",
+    "description": "Class.",
+    "rarete": "rare",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 2300,
+      "atk": 1100,
+      "def": 800
+    },
+    "croissance": {
+      "hp": 250,
+      "atk": 100,
+      "def": 150
+    }
+  },
+  "angry_monkey": {
+    "id": 13,
+    "nom": "Angry Monkey",
+    "description": "GRRRRRRRRRRR",
+    "rarete": "epic",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 2380,
+      "atk": 2300,
+      "def": 1020
+    },
+    "croissance": {
+      "hp": 300,
+      "atk": 450,
+      "def": 250
+    }
+  },
+  "sick_monkey": {
+    "id": 14,
+    "nom": "Sick Monkey",
+    "description": "Back to sender ^^",
+    "rarete": "epic",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 2700,
+      "atk": 1900,
+      "def": 1100
+    },
+    "croissance": {
+      "hp": 500,
+      "atk": 250,
+      "def": 250
+    }
+  },
+  "thinking_monkey": {
+    "id": 32,
+    "nom": "Thinking Monkey",
+    "description": "An over 143 IQ!",
+    "rarete": "epic",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 2300,
+      "atk": 1900,
+      "def": 1500
+    },
+    "croissance": {
+      "hp": 250,
+      "atk": 400,
+      "def": 350
+    }
+  },
+  "sexy_monkey": {
+    "id": 15,
+    "nom": "Sexy Monkey",
+    "description": "Now that's some HOT monkey",
+    "rarete": "legendary",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 4000,
+      "atk": 3500,
+      "def": 1500
+    },
+    "croissance": {
+      "hp": 500,
+      "atk": 1000,
+      "def": 500
+    }
+  },
+  "definitely_not_monkey": {
+    "id": 45,
+    "nom": "Definitely not monkey",
+    "description": "A monkey ? Where ??",
+    "rarete": "legendary",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 4300,
+      "atk": 2700,
+      "def": 2000
+    },
+    "croissance": {
+      "hp": 1000,
+      "atk": 400,
+      "def": 600
+    }
+  },
+  "pleading_monkey": {
+    "id": 35,
+    "nom": "Pleading Monkey",
+    "description": "\"Oh dear lord\" aah monkey 😭🔥",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 400,
+      "atk": 400,
+      "def": 277
+    },
+    "croissance": {
+      "hp": 30,
+      "atk": 10,
+      "def": 20
+    }
+  },
+  "unamused_monkey": {
+    "id": 36,
+    "nom": "Unamused Monkey",
+    "description": "Okay that's not funny anymore",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 420,
+      "atk": 360,
+      "def": 297
+    },
+    "croissance": {
+      "hp": 25,
+      "atk": 15,
+      "def": 15
+    }
+  },
+  "triumph_monkey": {
+    "id": 37,
+    "nom": "Triumph Monkey",
+    "description": "HMPH 😤",
+    "rarete": "uncommon",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1300,
+      "atk": 900,
+      "def": 500
+    },
+    "croissance": {
+      "hp": 50,
+      "atk": 50,
+      "def": 100
+    }
+  },
+  "weary_monkey": {
+    "id": 39,
+    "nom": "Weary Monkey",
+    "description": "AUUGHH",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 500,
+      "atk": 177,
+      "def": 400
+    },
+    "croissance": {
+      "hp": 10,
+      "atk": 35,
+      "def": 5
+    }
+  },
+  "yawning_monkey": {
+    "id": 41,
+    "nom": "Yawning Monkey",
+    "description": "Shush, he's tired...",
+    "rarete": "common",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 500,
+      "atk": 350,
+      "def": 227
+    },
+    "croissance": {
+      "hp": 10,
+      "atk": 20,
+      "def": 20
+    }
+  },
+  "drooling_monkey": {
+    "id": 40,
+    "nom": "Drooling Monkey",
+    "description": "Pro gooner boy",
+    "rarete": "rare",
+    "categorie": "Basic Monkeys",
+    "base": {
+      "hp": 1200,
+      "atk": 2200,
+      "def": 800
+    },
+    "croissance": {
+      "hp": 140,
+      "atk": 250,
+      "def": 160
+    }
+  }
+}

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gacha Monkey</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1e1b2e;
+      color: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 30px 20px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    h1 { margin: 0 0 20px; }
+    .controles { display: flex; gap: 10px; margin-bottom: 30px; }
+    .bouton {
+      padding: 14px 24px;
+      border-radius: 10px;
+      border: 1px solid #444;
+      background: #2a2640;
+      color: #f2f2f2;
+      font-size: 18px;
+      font-weight: bold;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    #tirer {
+      border: none;
+      background: linear-gradient(135deg, #ff8a3d, #e5447a);
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    #tirer:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(229, 68, 122, 0.4);
+    }
+    #tirer:active { transform: translateY(0); }
+    #carte {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      background: #2a2640;
+      border-radius: 16px;
+      padding: 30px;
+      width: 340px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    #nom { font-size: 32px; font-weight: bold; margin: 0 0 10px; }
+    .rarete {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 14px 4px 6px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+      background: #2a2640;
+      border: 2px solid;
+      margin-bottom: 14px;
+    }
+    .rarete img { width: 24px; height: 24px; object-fit: contain; }
+    #description { font-size: 15px; font-style: italic; color: #bbb; margin: 0 0 16px; }
+    #niveau { color: #ffb86b; margin-bottom: 16px; }
+    #image { width: 200px; height: 200px; object-fit: contain; }
+    #stats {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      border-top: 1px solid #444;
+      margin-top: 20px;
+      padding-top: 16px;
+    }
+    .stat span { display: block; font-size: 12px; color: #999; }
+    .stat strong { display: block; font-size: 18px; }
+    .stat small { color: #7fdc9a; font-size: 12px; }
+    #message { color: #ffb86b; }
+  </style>
+</head>
+<body>
+  <h1>Gacha Monkey</h1>
+
+  <div class="controles">
+    <button id="tirer" class="bouton">Tirer un singe</button>
+    <a href="/monkeydex.html" class="bouton">Monkeydex</a>
+  </div>
+
+  <p id="message"></p>
+
+  <div id="carte">
+    <h2 id="nom"></h2>
+    <div id="rarete" class="rarete"></div>
+    <p id="description"></p>
+    <div id="niveau"></div>
+    <img id="image" alt="">
+    <div id="stats">
+      <div class="stat"><span>HP</span><strong id="hp"></strong><small id="hp-croissance"></small></div>
+      <div class="stat"><span>ATK</span><strong id="atk"></strong><small id="atk-croissance"></small></div>
+      <div class="stat"><span>DEF</span><strong id="def"></strong><small id="def-croissance"></small></div>
+    </div>
+  </div>
+
+  <script>
+    const pseudo = localStorage.getItem("pseudo");
+    if (!pseudo) window.location.replace("/");
+
+    const RARETES_AFFICHAGE = {
+      common:    { label: "Commun",     couleur: "#060ee4" },
+      uncommon:  { label: "Non-commun", couleur: "#1af3c3" },
+      rare:      { label: "Rare",       couleur: "#1cc22a" },
+      epic:      { label: "Epic",       couleur: "#a831eb" },
+      legendary: { label: "Légendaire", couleur: "#fe9308" },
+    };
+
+    document.getElementById("tirer").addEventListener("click", async () => {
+      const reponse = await fetch("/tirage?pseudo=" + encodeURIComponent(pseudo));
+      const data = await reponse.json();
+      const { espece, niveau, image } = data;
+
+      const calcul = (cle) => espece.base[cle] + espece.croissance[cle] * (niveau.niveau - 1);
+      const rarete = RARETES_AFFICHAGE[espece.rarete] ?? { label: espece.rarete, couleur: "#777" };
+      const couleur = "#" + rarete.couleur.replace("#", "");
+
+      const elRarete = document.getElementById("rarete");
+      elRarete.innerHTML = "";
+      elRarete.style.borderColor = couleur;
+      elRarete.style.color = couleur;
+      const icone = document.createElement("img");
+      icone.src = `/images/MonkeysRarities/rarity_${espece.rarete}.png`;
+      icone.alt = "";
+      elRarete.appendChild(icone);
+      elRarete.appendChild(document.createTextNode(rarete.label));
+
+      document.getElementById("nom").textContent = espece.nom;
+      document.getElementById("description").textContent = espece.description ?? "";
+      document.getElementById("niveau").textContent =
+        `Niveau ${niveau.niveau} — ${niveau.progression}/${niveau.prochain} vers le suivant`;
+      document.getElementById("image").src = image;
+
+      for (const cle of ["hp", "atk", "def"]) {
+        document.getElementById(cle).textContent = calcul(cle);
+        document.getElementById(cle + "-croissance").textContent = `+${espece.croissance[cle]} / niv.`;
+      }
+
+      document.getElementById("carte").style.display = "flex";
+    });
+  </script>
+</body>
+</html>
