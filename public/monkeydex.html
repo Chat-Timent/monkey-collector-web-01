@@ -80,6 +80,14 @@
       cursor: pointer;
     }
     .pagination button:disabled { opacity: 0.4; cursor: default; }
+
+    .compteur { display: flex; gap: 10px; flex-wrap: wrap; max-width: 1000px; margin: 0 auto 20px; }
+    .compteur span {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px;
+      background: #2a2640; border: 1.5px solid; font-size: 13px; font-weight: bold;
+    }
+    .compteur img { width: 16px; height: 16px; }
   </style>
 </head>
 <body>
@@ -89,6 +97,7 @@
   </header>
 
   <p id="total"></p>
+  <div id="compteur" class="compteur"></div>
   <div id="grille"></div>
 
   <div class="pagination">
@@ -155,6 +164,17 @@
       const data = await reponse.json();
       singes = data.singes;
       document.getElementById("total").textContent = `Nombre total de singes : ${data.total}`;
+      const zoneCompteur = document.getElementById("compteur");
+      zoneCompteur.innerHTML = "";
+      for (const c of data.compteur) {
+        const r = RARETES_AFFICHAGE[c.nom];
+        const couleur = "#" + r.couleur.replace("#", "");
+        const pastille = document.createElement("span");
+        pastille.style.borderColor = couleur;
+        pastille.style.color = couleur;
+        pastille.innerHTML = `<img src="/images/MonkeysRarities/rarity_${c.nom}.png" alt=""> ${c.total}`;
+        zoneCompteur.appendChild(pastille);
+      }
       afficher();
     })();
   </script>

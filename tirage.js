@@ -116,3 +116,19 @@ export function getMonkeydex(pseudo) {
     })
     .sort((a, b) => b.rang - a.rang);
 }
+
+export function getCompteurRarete(pseudo) {
+  const collection = lireCollection(pseudo);
+  const compteur = {};
+
+  for (const [id, { amount }] of Object.entries(collection.singes)) {
+    const espece = SINGES[id];
+    if (!espece) continue;
+    compteur[espece.rarete] = (compteur[espece.rarete] ?? 0) + amount;
+  }
+
+  return RARETES.map((r) => ({
+    nom: r.nom,
+    total: compteur[r.nom] ?? 0,
+  }));
+}

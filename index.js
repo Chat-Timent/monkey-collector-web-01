@@ -35,7 +35,8 @@ app.get("/monkeydex", (req, res) => {
 
   const singes = getMonkeydex(pseudo);
   const total = singes.reduce((somme, s) => somme + s.amount, 0);
-  res.json({ total, singes });
+  const compteur = getCompteurRarete(pseudo);
+  res.json({ total, compteur, singes });
 });
 
 const PORT = process.env.PORT || 3000;
