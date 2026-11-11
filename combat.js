@@ -1,6 +1,5 @@
 // Fonction pure : aucun accès base de données ni Express.
-// Les équipes sont des tableaux de 6 entrées : un singe préparé ou null.
-// Un singe préparé : { nom, hp, atk, def, spd, prec, esq, crit, critdmg, perk? }
+// Équipes : tableaux de 6 entrées, singe préparé ou null.
 
 const MAX_TOURS = 200;
 
@@ -8,8 +7,7 @@ function estVivant(s) {
   return s.pv > 0;
 }
 
-// Singes vivants du groupe actif d'un camp.
-// Groupe 1 (slots 1-3) tant qu'il a des vivants, sinon groupe 2 (slots 4-6).
+// Singes vivants du groupe actif : groupe 1 (slots 1-3) tant qu'il a des vivants, sinon groupe 2.
 function rotationActive(camp) {
   const groupe1 = camp.slice(0, 3).filter((s) => s && estVivant(s));
   if (groupe1.length > 0) return groupe1;
@@ -20,25 +18,20 @@ function tousVivants(camp) {
   return camp.filter((s) => s && estVivant(s));
 }
 
-// Cible : taunt si un singe du groupe actif le possède (le tank du slot 1 est forcé),
-// sinon tirage aléatoire parmi les vivants du groupe actif.
+// Taunt présent dans le groupe actif : la cible est forcée sur le slot 1 du groupe.
+// Sinon, tirage aléatoire parmi les vivants du groupe actif.
 function choisirCible(camp, hasard) {
   const actifs = rotationActive(camp);
   if (actifs.length === 0) return null;
-
-  const taunt = actifs.find((s) => s.perk?.name === "taunt");
-  const slot1 = actifs[0];
-  if (taunt && slot1.perk?.name !== "taunt" && estVivant(taunt)) {
-    return slot1;
-  }
-  if (taunt) return taunt;
-
+  if (actifs.some((s) => s.perk?.name === "taunt")) return actifs[0];
   return actifs[Math.floor(hasard() * actifs.length)];
 }
 
+// Quasi toujours 100 % de toucher. La précision et l'esquive ne retirent
+// qu'au maximum 15 points, donc elles n'interviennent que occasionnellement.
 function chanceTouche(attaquant, cible) {
-  const brut = 50 + (attaquant.prec - cible.esq) / 2;
-  return Math.min(95, Math.max(5, brut));
+  const brut = 95 + (attaquant.prec - cible.esq) / 10;
+  return Math.min(100, Math.max(85, brut));
 }
 
 export function combat(equipeA, equipeB, hasard = Math.random) {
@@ -52,46 +45,43 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
   for (let tour = 1; tour <= MAX_TOURS; tour++) {
     if (tousVivants(A).length === 0 || tousVivants(B).length === 0) break;
 
-    // Seuls les singes des groupes actifs agissent, triés par SPD décroissant
-    const ordre = [...rotationActive(A), ...rotationActive(B)].sort(
-      (x, y) => y.spd - x.spd || x.slot - y.slot
-    );
-
     journal.push({ type: "tour", numero: tour });
 
-    for (const attaquant of ordre) {
-      if (!estVivant(attaquant)) continue;
+    // Ordre fixe : slot 1 A, slot 1 B, slot 2 A, slot 2 B, etc.
+    for (let i = 0; i < 6; i++) {
+      for (const [camp, adverses] of [[A, B], [B, A]]) {
+        const attaquant = camp[i];
+        if (!attaquant || !estVivant(attaquant)) continue;
+        if (!rotationActive(camp).includes(attaquant)) continue;
 
-      const adverses = attaquant.camp === "A" ? B : A;
-      const cible = choisirCible(adverses, hasard);
-      if (!cible) break;
+        const cible = choisirCible(adverses, hasard);
+        if (!cible) continue;
 
-      const touche = hasard() * 100 < chanceTouche(attaquant, cible);
-      if (!touche) {
+        const touche = hasard() * 100 < chanceTouche(attaquant, cible);
+        if (!touche) {
+          journal.push({
+            type: "rate", tour,
+            de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
+            sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
+          });
+          continue;
+        }
+
+        const critique = hasard() * 100 < attaquant.crit;
+        let degats = Math.max(1, attaquant.atk - cible.def);
+        if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
+
+        cible.pv = Math.max(0, cible.pv - degats);
         journal.push({
-          type: "rate", tour,
+          type: "degats", tour,
           de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
           sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
+          degats, critique, pvRestants: cible.pv,
         });
-        continue;
-      }
 
-
-      const critique = hasard() * 100 < attaquant.crit;
-      let degats = Math.max(1, attaquant.atk - cible.def);
-      if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
-
-      cible.pv = Math.max(0, cible.pv - degats);
-      cible.pv = Math.max(0, cible.pv - degats);
-      journal.push({
-        type: "degats", tour,
-        de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
-        sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
-        degats, critique, pvRestants: cible.pv,
-      });
-
-      if (!estVivant(cible)) {
-        journal.push({ type: "KO", tour, nom: cible.nom, camp: cible.camp, slot: cible.slot });
+        if (!estVivant(cible)) {
+          journal.push({ type: "KO", tour, nom: cible.nom, camp: cible.camp, slot: cible.slot });
+        }
       }
     }
   }

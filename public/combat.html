@@ -15,14 +15,15 @@
       box-sizing: border-box;
     }
     header {
+      max-width: 1200px;
+      margin: 0 auto 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      max-width: 1000px;
-      margin: 0 auto 24px;
     }
     h1 { margin: 0; }
-    h2 { max-width: 1000px; margin: 30px auto 12px; font-size: 18px; color: #bbb; }
+    h2 { font-size: 16px; color: #bbb; margin: 0 0 12px; }
+    h3 { font-size: 13px; color: #888; margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 1px; }
     .lien {
       color: #f2f2f2;
       text-decoration: none;
@@ -33,25 +34,67 @@
       margin-left: 8px;
     }
 
-    #equipe {
-      max-width: 1000px;
+    .page {
+      max-width: 1200px;
       margin: 0 auto;
       display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 800px) {
+      .page { grid-template-columns: 1fr; }
+    }
+
+    /* Colonne joueurs */
+    aside {
+      position: sticky;
+      top: 20px;
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .colonne { display: flex; flex-direction: column; gap: 6px; }
+    .joueur {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #242424;
+      font-size: 14px;
+    }
+    .joueur .pseudo { flex: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .point { width: 9px; height: 9px; border-radius: 50%; background: #555; flex-shrink: 0; }
+    .point.en-ligne { background: #4caf50; }
+
+    /* Zone principale */
+    main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+    .panneau {
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    /* Équipe */
+    #equipe {
+      display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
+      gap: 12px;
     }
     @media (max-width: 640px) {
       #equipe { grid-template-columns: repeat(2, 1fr); }
     }
-
     .slot { position: relative; }
     .slot-bouton {
       width: 100%;
-      min-height: 170px;
+      min-height: 150px;
       background: #242424;
       border: 1px dashed #444;
       border-radius: 12px;
-      padding: 12px;
+      padding: 10px;
       color: #f2f2f2;
       font: inherit;
       cursor: pointer;
@@ -63,9 +106,9 @@
     }
     .slot-bouton.plein { border: 1px solid #333; }
     .slot-bouton:hover { border-color: #ff8a3d; }
-    .slot-bouton img { width: 80px; height: 80px; object-fit: contain; }
-    .slot-bouton .nom { font-weight: bold; font-size: 14px; }
-    .slot-bouton .vide { color: #777; font-size: 14px; }
+    .slot-bouton img { width: 70px; height: 70px; object-fit: contain; }
+    .slot-bouton .nom { font-weight: bold; font-size: 13px; }
+    .slot-bouton .vide { color: #777; font-size: 13px; }
     .slot-bouton .sous { font-size: 12px; color: #ffb86b; }
 
     .pastille {
@@ -119,56 +162,60 @@
     .option .sous { font-size: 12px; color: #bbb; }
     .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
 
-    .liste {
-      max-width: 1000px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .ligne-joueur {
+    /* Lignes et boutons génériques */
+    .ligne {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       background: #242424;
-      border: 1px solid #333;
-      border-radius: 10px;
-      padding: 10px 14px;
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-size: 14px;
     }
-    .point {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #555;
-      flex-shrink: 0;
-    }
-    .point.en-ligne { background: #4caf50; }
-    .ligne-joueur .pseudo { flex: 1; font-weight: bold; }
-    .ligne-joueur .etat { font-size: 12px; color: #999; }
+    .ligne .pseudo { flex: 1; font-weight: bold; }
+    .compte { font-size: 12px; color: #999; }
+    .vide { color: #777; font-size: 13px; }
+
     .bouton-defi {
-      padding: 7px 14px;
+      padding: 6px 12px;
       border-radius: 8px;
       border: none;
       background: linear-gradient(135deg, #ff8a3d, #e5447a);
       color: #fff;
       font-weight: bold;
+      font-size: 13px;
       cursor: pointer;
       text-decoration: none;
+      white-space: nowrap;
     }
     .bouton-defi:disabled { background: #333; color: #888; cursor: default; }
     .bouton-secondaire {
-      padding: 7px 14px;
+      padding: 6px 12px;
       border-radius: 8px;
       border: 1px solid #444;
       background: #2a2640;
       color: #f2f2f2;
+      font-size: 13px;
       cursor: pointer;
     }
-    .bouton-secondaire:disabled { opacity: 0.5; cursor: default; }
-    .vide-liste { color: #777; font-size: 14px; }
-    .lien-combat { color: #ffb86b; }
 
-    #message { max-width: 1000px; margin: 20px auto 0; color: #ffb86b; }
+    /* Badges d'issue */
+    .badge {
+      min-width: 92px;
+      text-align: center;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+    .badge.victoire { background: #1f8a3e; color: #fff; }
+    .badge.defaite { background: #b02a2a; color: #fff; }
+    .badge.nul { background: #555; color: #fff; }
+    .badge.encours { background: #f0a020; color: #161616; }
+
+    #message { min-height: 1.2em; color: #ffb86b; margin: 10px 0 0; font-size: 14px; }
+    .lien-combat { color: #ffb86b; }
   </style>
 </head>
 <body>
@@ -181,18 +228,35 @@
     </div>
   </header>
 
-  <h2>Ton équipe</h2>
-  <div id="equipe"></div>
-  <p id="message"></p>
+  <div class="page">
+    <aside>
+      <h2>Joueurs</h2>
+      <div id="joueurs" class="colonne"></div>
+    </aside>
 
-  <h2>Joueurs</h2>
-  <div id="joueurs" class="liste"></div>
+    <main>
+      <section class="panneau">
+        <h2>Ton équipe</h2>
+        <div id="equipe"></div>
+        <p id="message"></p>
+      </section>
 
-  <h2>Défis reçus</h2>
-  <div id="defis-recus" class="liste"></div>
+      <section class="panneau">
+        <h2>Défis en attente</h2>
+        <div id="defis"></div>
+      </section>
 
-  <h2>Combats</h2>
-  <div id="combats" class="liste"></div>
+      <section class="panneau">
+        <h2>Combat en cours</h2>
+        <div id="en-cours" class="colonne"></div>
+      </section>
+
+      <section class="panneau">
+        <h2>Historique</h2>
+        <div id="historique" class="colonne"></div>
+      </section>
+    </main>
+  </div>
 
   <script>
     const NB_SLOTS = 6;
@@ -212,11 +276,13 @@
     let defisEnvoyes = [];
     let defisRecus = [];
 
-    const zone = document.getElementById("equipe");
-    const message = document.getElementById("message");
-    const zoneJoueurs = document.getElementById("joueurs");
-    const zoneDefisRecus = document.getElementById("defis-recus");
-    const zoneCombats = document.getElementById("combats");
+    const $ = (id) => document.getElementById(id);
+    const zone = $("equipe");
+    const message = $("message");
+    const zoneJoueurs = $("joueurs");
+    const zoneDefis = $("defis");
+    const zoneEnCours = $("en-cours");
+    const zoneHistorique = $("historique");
 
     // ---------- Équipe ----------
 
@@ -238,15 +304,12 @@
 
     function construireOptions(index) {
       const dejaUtilises = equipe.filter((id, i) => id && i !== index);
-      const slotOccupe = equipe[index] !== null;
-
       let html = "";
-      if (slotOccupe) {
+      if (equipe[index] !== null) {
         html += `<button class="option retirer" data-id="">✕ Retirer du slot</button>`;
       }
       if (possedes.length === 0) {
-        html += `<p style="padding:8px;color:#bbb">Aucun singe possédé.</p>`;
-        return html;
+        return html + `<p style="padding:8px;color:#bbb">Aucun singe possédé.</p>`;
       }
       for (const s of possedes) {
         const dispo = !dejaUtilises.includes(s.id);
@@ -268,7 +331,6 @@
       const dejaOuvert = menu.classList.contains("ouvert");
       fermerMenus();
       if (dejaOuvert) return;
-
       menu.innerHTML = construireOptions(index);
       menu.classList.add("ouvert");
       menu.querySelectorAll(".option").forEach((btn) => {
@@ -284,7 +346,6 @@
       equipe[index] = id;
       afficherSlots();
       message.textContent = "Sauvegarde…";
-
       try {
         const reponse = await fetch("/equipe", {
           method: "POST",
@@ -331,7 +392,7 @@
       await fetch("/presence", { method: "POST" });
     }
 
-    // ---------- Joueurs et défis ----------
+    // ---------- Joueurs (colonne de gauche) ----------
 
     function normaliserDefi(d) {
       return { ...d, fin: Date.now() + d.secondes_restantes * 1000 };
@@ -343,28 +404,23 @@
 
     function afficherJoueurs(joueurs) {
       if (joueurs.length === 0) {
-        zoneJoueurs.innerHTML = `<p class="vide-liste">Aucun autre joueur pour l'instant.</p>`;
+        zoneJoueurs.innerHTML = `<p class="vide">Aucun autre joueur.</p>`;
         return;
       }
-
       zoneJoueurs.innerHTML = joueurs.map((j) => {
         const envoye = defisEnvoyes.find((d) => d.vers_user === j.id);
         let action;
         if (envoye) {
-          action = `<button class="bouton-secondaire" disabled>
-                      Défi envoyé · <span data-fin="${envoye.fin}">${tempsRestant(envoye.fin)}</span>s
-                    </button>`;
+          action = `<span class="compte"><span data-fin="${envoye.fin}">${tempsRestant(envoye.fin)}</span>s</span>`;
         } else if (!j.en_ligne) {
-          action = `<button class="bouton-defi" disabled>Hors ligne</button>`;
+          action = `<span class="compte">hors ligne</span>`;
         } else {
           action = `<button class="bouton-defi" data-defier="${j.id}">Défier</button>`;
         }
-
         return `
-          <div class="ligne-joueur">
+          <div class="joueur">
             <span class="point ${j.en_ligne ? "en-ligne" : ""}"></span>
             <span class="pseudo">${j.pseudo}</span>
-            <span class="etat">${j.en_ligne ? "En ligne" : "Hors ligne"}</span>
             ${action}
           </div>`;
       }).join("");
@@ -374,24 +430,34 @@
       });
     }
 
-    function afficherDefisRecus() {
-      if (defisRecus.length === 0) {
-        zoneDefisRecus.innerHTML = `<p class="vide-liste">Aucun défi reçu.</p>`;
-        return;
-      }
+    // ---------- Défis en attente ----------
 
-      zoneDefisRecus.innerHTML = defisRecus.map((d) => `
-        <div class="ligne-joueur">
-          <span class="pseudo">${d.de_pseudo} te défie</span>
-          <span class="etat">expire dans <span data-fin="${d.fin}">${tempsRestant(d.fin)}</span>s</span>
-          <button class="bouton-defi" data-accepter="${d.id}">Accepter</button>
-          <button class="bouton-secondaire" data-refuser="${d.id}">Refuser</button>
-        </div>`).join("");
+    function afficherDefis() {
+      const recus = defisRecus.length
+        ? defisRecus.map((d) => `
+            <div class="ligne">
+              <span class="pseudo">${d.de_pseudo} te défie</span>
+              <span class="compte">expire dans <span data-fin="${d.fin}">${tempsRestant(d.fin)}</span>s</span>
+              <button class="bouton-defi" data-accepter="${d.id}">Accepter</button>
+              <button class="bouton-secondaire" data-refuser="${d.id}">Refuser</button>
+            </div>`).join("")
+        : `<p class="vide">Aucun défi reçu.</p>`;
 
-      zoneDefisRecus.querySelectorAll("[data-accepter]").forEach((btn) => {
+      const envoyes = defisEnvoyes.length
+        ? defisEnvoyes.map((d) => `
+            <div class="ligne">
+              <span class="pseudo">Défi à ${d.vers_pseudo}</span>
+              <span class="compte">expire dans <span data-fin="${d.fin}">${tempsRestant(d.fin)}</span>s</span>
+            </div>`).join("")
+        : `<p class="vide">Aucun défi envoyé.</p>`;
+
+      zoneDefis.innerHTML = `<h3>Reçus</h3><div class="colonne">${recus}</div>
+                             <h3>Envoyés</h3><div class="colonne">${envoyes}</div>`;
+
+      zoneDefis.querySelectorAll("[data-accepter]").forEach((btn) => {
         btn.addEventListener("click", () => repondreDefi(btn.dataset.accepter, true));
       });
-      zoneDefisRecus.querySelectorAll("[data-refuser]").forEach((btn) => {
+      zoneDefis.querySelectorAll("[data-refuser]").forEach((btn) => {
         btn.addEventListener("click", () => repondreDefi(btn.dataset.refuser, false));
       });
     }
@@ -431,34 +497,46 @@
     async function rafraichirJoueurs() {
       const [rj, rd] = await Promise.all([fetch("/joueurs"), fetch("/defis")]);
       if (!rj.ok || !rd.ok) return;
-
       const { joueurs } = await rj.json();
       const defis = await rd.json();
       defisEnvoyes = defis.envoyes.map(normaliserDefi);
       defisRecus = defis.recus.map(normaliserDefi);
-
       afficherJoueurs(joueurs);
-      afficherDefisRecus();
+      afficherDefis();
     }
 
     // ---------- Combats ----------
+
+    function badgeIssue(issue) {
+      if (issue === "victoire") return `<span class="badge victoire">VICTOIRE</span>`;
+      if (issue === "défaite") return `<span class="badge defaite">DÉFAITE</span>`;
+      return `<span class="badge nul">NUL</span>`;
+    }
+
+    function ligneCombat(c, badge) {
+      return `
+        <div class="ligne">
+          ${badge}
+          <span class="pseudo">Contre ${c.adversaire}</span>
+          <a class="bouton-defi" href="/combat-live.html?id=${c.id}">Voir</a>
+        </div>`;
+    }
 
     async function rafraichirCombats() {
       const r = await fetch("/combats");
       if (!r.ok) return;
       const { combats } = await r.json();
 
-      if (combats.length === 0) {
-        zoneCombats.innerHTML = `<p class="vide-liste">Aucun combat pour l'instant.</p>`;
-        return;
-      }
-      zoneCombats.innerHTML = combats.map((c) => `
-        <div class="ligne-joueur">
-          <span class="pseudo">Contre ${c.adversaire}</span>
-          ${c.recent ? '<span class="etat lien-combat">Nouveau</span>' : ""}
-          <span class="etat">${c.issue}</span>
-          <a class="bouton-defi" href="/combat-live.html?id=${c.id}">Voir</a>
-        </div>`).join("");
+      const enCours = combats.filter((c) => c.recent);
+      const historique = combats.filter((c) => !c.recent);
+
+      zoneEnCours.innerHTML = enCours.length
+        ? enCours.map((c) => ligneCombat(c, `<span class="badge encours">EN COURS</span>`)).join("")
+        : `<p class="vide">Aucun combat en cours.</p>`;
+
+      zoneHistorique.innerHTML = historique.length
+        ? historique.map((c) => ligneCombat(c, badgeIssue(c.issue))).join("")
+        : `<p class="vide">Aucun combat terminé.</p>`;
     }
 
     // ---------- Compte à rebours ----------

@@ -462,7 +462,7 @@ export async function combatsDuJoueur(userId) {
   const { rows } = await pool.query(
     `SELECT c.id, c.user_a, u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b,
             c.resultat->>'vainqueur' AS vainqueur,
-            c.created_at > now() - interval '2 minutes' AS recent
+            c.created_at > now() - interval '3 minutes' AS recent
      FROM combats c
      JOIN users u1 ON u1.id = c.user_a
      JOIN users u2 ON u2.id = c.user_b
