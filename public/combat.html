@@ -119,7 +119,6 @@
     .option .sous { font-size: 12px; color: #bbb; }
     .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
 
-    /* Joueurs et défis */
     .liste {
       max-width: 1000px;
       margin: 0 auto;
@@ -154,12 +153,9 @@
       color: #fff;
       font-weight: bold;
       cursor: pointer;
+      text-decoration: none;
     }
-    .bouton-defi:disabled {
-      background: #333;
-      color: #888;
-      cursor: default;
-    }
+    .bouton-defi:disabled { background: #333; color: #888; cursor: default; }
     .bouton-secondaire {
       padding: 7px 14px;
       border-radius: 8px;
@@ -168,7 +164,9 @@
       color: #f2f2f2;
       cursor: pointer;
     }
+    .bouton-secondaire:disabled { opacity: 0.5; cursor: default; }
     .vide-liste { color: #777; font-size: 14px; }
+    .lien-combat { color: #ffb86b; }
 
     #message { max-width: 1000px; margin: 20px auto 0; color: #ffb86b; }
   </style>
@@ -193,6 +191,9 @@
   <h2>Défis reçus</h2>
   <div id="defis-recus" class="liste"></div>
 
+  <h2>Combats</h2>
+  <div id="combats" class="liste"></div>
+
   <script>
     const NB_SLOTS = 6;
     const INTERVALLE_RAFRAICHISSEMENT_MS = 3000;
@@ -215,6 +216,7 @@
     const message = document.getElementById("message");
     const zoneJoueurs = document.getElementById("joueurs");
     const zoneDefisRecus = document.getElementById("defis-recus");
+    const zoneCombats = document.getElementById("combats");
 
     // ---------- Équipe ----------
 
@@ -331,8 +333,6 @@
 
     // ---------- Joueurs et défis ----------
 
-    // Stocke la date de fin en temps absolu pour que le compte à rebours
-    // se mette à jour entre deux rafraîchissements.
     function normaliserDefi(d) {
       return { ...d, fin: Date.now() + d.secondes_restantes * 1000 };
     }
@@ -416,14 +416,16 @@
         body: JSON.stringify({ accepter }),
       });
       const data = await reponse.json();
+
       if (!reponse.ok) {
         message.textContent = "Erreur : " + data.erreur;
+      } else if (accepter) {
+        message.innerHTML = `Défi accepté. <a class="lien-combat" href="/combat-live.html?id=${data.combatId}">Voir le combat</a>`;
       } else {
-        message.textContent = accepter
-          ? "Défi accepté. Le lancement du combat sera branché à l'étape suivante."
-          : "Défi refusé.";
+        message.textContent = "Défi refusé.";
       }
       await rafraichirJoueurs();
+      await rafraichirCombats();
     }
 
     async function rafraichirJoueurs() {
@@ -439,7 +441,28 @@
       afficherDefisRecus();
     }
 
-    // Met à jour les compteurs chaque seconde sans refaire toute la liste
+    // ---------- Combats ----------
+
+    async function rafraichirCombats() {
+      const r = await fetch("/combats");
+      if (!r.ok) return;
+      const { combats } = await r.json();
+
+      if (combats.length === 0) {
+        zoneCombats.innerHTML = `<p class="vide-liste">Aucun combat pour l'instant.</p>`;
+        return;
+      }
+      zoneCombats.innerHTML = combats.map((c) => `
+        <div class="ligne-joueur">
+          <span class="pseudo">Contre ${c.adversaire}</span>
+          ${c.recent ? '<span class="etat lien-combat">Nouveau</span>' : ""}
+          <span class="etat">${c.issue}</span>
+          <a class="bouton-defi" href="/combat-live.html?id=${c.id}">Voir</a>
+        </div>`).join("");
+    }
+
+    // ---------- Compte à rebours ----------
+
     setInterval(() => {
       document.querySelectorAll("[data-fin]").forEach((el) => {
         el.textContent = tempsRestant(Number(el.dataset.fin));
@@ -483,7 +506,9 @@
       }
 
       rafraichirJoueurs();
+      rafraichirCombats();
       setInterval(rafraichirJoueurs, INTERVALLE_RAFRAICHISSEMENT_MS);
+      setInterval(rafraichirCombats, INTERVALLE_RAFRAICHISSEMENT_MS);
     }
 
     init();

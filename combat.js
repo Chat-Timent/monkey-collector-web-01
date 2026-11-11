@@ -68,27 +68,30 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
 
       const touche = hasard() * 100 < chanceTouche(attaquant, cible);
       if (!touche) {
-        journal.push({ type: "rate", tour, de: attaquant.nom, sur: cible.nom });
+        journal.push({
+          type: "rate", tour,
+          de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
+          sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
+        });
         continue;
       }
+
 
       const critique = hasard() * 100 < attaquant.crit;
       let degats = Math.max(1, attaquant.atk - cible.def);
       if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
 
       cible.pv = Math.max(0, cible.pv - degats);
+      cible.pv = Math.max(0, cible.pv - degats);
       journal.push({
-        type: "degats",
-        tour,
-        de: attaquant.nom,
-        sur: cible.nom,
-        degats,
-        critique,
-        pvRestants: cible.pv,
+        type: "degats", tour,
+        de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
+        sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
+        degats, critique, pvRestants: cible.pv,
       });
 
       if (!estVivant(cible)) {
-        journal.push({ type: "KO", tour, nom: cible.nom, camp: cible.camp });
+        journal.push({ type: "KO", tour, nom: cible.nom, camp: cible.camp, slot: cible.slot });
       }
     }
   }

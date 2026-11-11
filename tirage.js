@@ -3,6 +3,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import pg from "pg";
 import bcrypt from "bcryptjs";
+import { combat } from "./combat.js";
 
 const SINGES = JSON.parse(fs.readFileSync("./monkeys.json", "utf8"));
 
@@ -370,14 +371,117 @@ export async function defisDuJoueur(userId) {
   };
 }
 
+// Combats
+
+// Prépare les 6 slots d'un joueur au format attendu par combat()
+async function preparerEquipe(userId) {
+  const equipe = await getEquipe(userId);
+  const collection = await lireCollection(userId);
+  const slots = Array(6).fill(null);
+
+  for (const { slot, espece } of equipe) {
+    const e = SINGES[espece];
+    const amount = collection.singes[espece]?.amount ?? 1;
+    const niveau = getNiveau(e.rarete, amount).niveau;
+    const s = statsFinales(e, niveau);
+    slots[slot - 1] = {
+      id: espece,
+      nom: e.nom,
+      image: getImageUrl(espece),
+      rarete: e.rarete,
+      hp: s.hp, atk: s.atk, def: s.def,
+      spd: s.spd, prec: s.prec, esq: s.esq,
+      crit: s.crit, critdmg: s.critdmg,
+      perk: null,
+    };
+  }
+  return slots;
+}
+
+async function lancerCombat(defi, equipeA, equipeB) {
+  const resultat = combat(equipeA, equipeB);
+  resultat.equipeA = equipeA;
+  resultat.equipeB = equipeB;
+
+  const { rows } = await pool.query(
+    `INSERT INTO combats (defi_id, user_a, user_b, resultat)
+     VALUES ($1, $2, $3, $4) RETURNING id`,
+    [defi.id, defi.de_user, defi.vers_user, resultat]
+  );
+  return rows[0].id;
+}
+
 export async function repondreDefi(userId, defiId, accepter) {
   await expirerDefis();
+
   const { rows } = await pool.query(
-    `UPDATE defis SET statut = $3
-     WHERE id = $1 AND vers_user = $2 AND statut = 'en_attente'
-     RETURNING id`,
-    [defiId, userId, accepter ? "accepte" : "refuse"]
+    "SELECT id, de_user, vers_user FROM defis WHERE id = $1 AND vers_user = $2 AND statut = 'en_attente'",
+    [defiId, userId]
   );
   if (rows.length === 0) throw new Error("défi introuvable, expiré ou déjà traité");
-  return true;
+  const defi = rows[0];
+
+  let equipeA, equipeB;
+  if (accepter) {
+    // On vérifie les équipes avant de figer le défi
+    equipeA = await preparerEquipe(defi.de_user);
+    equipeB = await preparerEquipe(defi.vers_user);
+    if (!equipeA.some(Boolean)) throw new Error("le challenger n'a aucun singe dans son équipe");
+    if (!equipeB.some(Boolean)) throw new Error("tu n'as aucun singe dans ton équipe");
+  }
+
+  await pool.query("UPDATE defis SET statut = $2 WHERE id = $1", [
+    defi.id,
+    accepter ? "accepte" : "refuse",
+  ]);
+  if (!accepter) return null;
+
+  return lancerCombat(defi, equipeA, equipeB);
+}
+
+export async function getCombat(userId, combatId) {
+  const { rows } = await pool.query(
+    `SELECT c.user_a, c.user_b, c.resultat, u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b
+     FROM combats c
+     JOIN users u1 ON u1.id = c.user_a
+     JOIN users u2 ON u2.id = c.user_b
+     WHERE c.id = $1 AND (c.user_a = $2 OR c.user_b = $2)`,
+    [combatId, userId]
+  );
+  if (rows.length === 0) return null;
+  const r = rows[0];
+  return {
+    resultat: r.resultat,
+    pseudoA: r.pseudo_a,
+    pseudoB: r.pseudo_b,
+    monCamp: r.user_a === userId ? "A" : "B",
+  };
+}
+
+export async function combatsDuJoueur(userId) {
+  const { rows } = await pool.query(
+    `SELECT c.id, c.user_a, u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b,
+            c.resultat->>'vainqueur' AS vainqueur,
+            c.created_at > now() - interval '2 minutes' AS recent
+     FROM combats c
+     JOIN users u1 ON u1.id = c.user_a
+     JOIN users u2 ON u2.id = c.user_b
+     WHERE c.user_a = $1 OR c.user_b = $1
+     ORDER BY c.created_at DESC
+     LIMIT 10`,
+    [userId]
+  );
+
+  return rows.map((r) => {
+    const monCamp = r.user_a === userId ? "A" : "B";
+    let issue = "nul";
+    if (r.vainqueur === monCamp) issue = "victoire";
+    else if (r.vainqueur) issue = "défaite";
+    return {
+      id: r.id,
+      adversaire: monCamp === "A" ? r.pseudo_b : r.pseudo_a,
+      issue,
+      recent: r.recent,
+    };
+  });
 }

@@ -24,6 +24,8 @@ import {
   envoyerDefi,
   defisDuJoueur,
   repondreDefi,
+  getCombat,
+  combatsDuJoueur,
 } from "./tirage.js";
 
 const app = express();
@@ -174,11 +176,21 @@ app.post("/defis", authentifie, async (req, res) => {
 
 app.post("/defis/:id/repondre", authentifie, async (req, res) => {
   try {
-    await repondreDefi(req.userId, req.params.id, !!req.body.accepter);
-    res.json({ ok: true });
+    const combatId = await repondreDefi(req.userId, req.params.id, !!req.body.accepter);
+    res.json({ ok: true, combatId });
   } catch (err) {
     res.status(400).json({ erreur: err.message });
   }
+});
+
+app.get("/combats", authentifie, async (req, res) => {
+  res.json({ combats: await combatsDuJoueur(req.userId) });
+});
+
+app.get("/combats/:id", authentifie, async (req, res) => {
+  const combat = await getCombat(req.userId, req.params.id);
+  if (!combat) return res.status(404).json({ erreur: "combat introuvable" });
+  res.json(combat);
 });
 
 const PORT = process.env.PORT || 3000;
