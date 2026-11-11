@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Combat</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #161616;
+      color: #f2f2f2;
+      margin: 0;
+      padding: 30px 20px;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1000px;
+      margin: 0 auto 24px;
+    }
+    h1 { margin: 0; }
+    h2 { max-width: 1000px; margin: 0 auto 12px; font-size: 18px; color: #bbb; }
+    .lien {
+      color: #f2f2f2;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: #242424;
+      border: 1px solid #333;
+      margin-left: 8px;
+    }
+
+    #equipe {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 640px) {
+      #equipe { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .slot { position: relative; }
+
+    .slot-bouton {
+      width: 100%;
+      min-height: 170px;
+      background: #242424;
+      border: 1px dashed #444;
+      border-radius: 12px;
+      padding: 12px;
+      color: #f2f2f2;
+      font: inherit;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .slot-bouton.plein { border: 1px solid #333; }
+    .slot-bouton:hover { border-color: #ff8a3d; }
+    .slot-bouton img { width: 80px; height: 80px; object-fit: contain; }
+    .slot-bouton .nom { font-weight: bold; font-size: 14px; }
+    .slot-bouton .vide { color: #777; font-size: 14px; }
+    .slot-bouton .sous { font-size: 12px; color: #ffb86b; }
+
+    .pastille {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px 2px 3px;
+      border-radius: 999px;
+      border: 1.5px solid;
+      font-size: 11px;
+      font-weight: bold;
+      background: #161616;
+    }
+    .pastille img { width: 14px; height: 14px; object-fit: contain; }
+
+    .menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 280px;
+      max-height: 340px;
+      overflow-y: auto;
+      background: #242424;
+      border: 1px solid #444;
+      border-radius: 12px;
+      padding: 6px;
+      z-index: 20;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .menu.ouvert { display: block; }
+
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 8px;
+      background: none;
+      border: none;
+      border-radius: 8px;
+      color: #f2f2f2;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .option:hover:not(:disabled) { background: #2f2f2f; }
+    .option:disabled { opacity: 0.4; cursor: default; }
+    .option img { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
+    .option .infos { display: flex; flex-direction: column; gap: 3px; }
+    .option .nom { font-weight: bold; font-size: 14px; }
+    .option .sous { font-size: 12px; color: #bbb; }
+    .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
+
+    #message { max-width: 1000px; margin: 20px auto 0; color: #ffb86b; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Combat</h1>
+    <div>
+      <a class="lien" href="/tirage.html">Tirage</a>
+      <a class="lien" href="/monkeydex.html">Monkeydex</a>
+    </div>
+  </header>
+
+  <h2>Ton équipe</h2>
+  <div id="equipe"></div>
+  <p id="message"></p>
+
+  <script>
+    const pseudo = localStorage.getItem("pseudo");
+    if (!pseudo) window.location.replace("/");
+
+    const NB_SLOTS = 6;
+
+    const RARETES_AFFICHAGE = {
+      common:    { label: "Commun",     couleur: "#060ee4" },
+      uncommon:  { label: "Non-commun", couleur: "#1af3c3" },
+      rare:      { label: "Rare",       couleur: "#1cc22a" },
+      epic:      { label: "Epic",       couleur: "#a831eb" },
+      legendary: { label: "Légendaire", couleur: "#fe9308" },
+    };
+
+    let possedes = [];                        // singes possédés (depuis /monkeydex)
+    let equipe = Array(NB_SLOTS).fill(null);  // identifiant par slot, ou null
+
+    const zone = document.getElementById("equipe");
+    const message = document.getElementById("message");
+
+    function pastilleHTML(rarete) {
+      const r = RARETES_AFFICHAGE[rarete] ?? { label: rarete, couleur: "#777" };
+      const c = "#" + r.couleur.replace("#", "");
+      return `<span class="pastille" style="border-color:${c};color:${c}">
+                <img src="/images/MonkeysRarities/rarity_${rarete}.png" alt="">${r.label}
+              </span>`;
+    }
+
+    function trouverSinge(id) {
+      return possedes.find((s) => s.id === id);
+    }
+
+    function fermerMenus() {
+      document.querySelectorAll(".menu.ouvert").forEach((m) => m.classList.remove("ouvert"));
+    }
+
+    function construireOptions(index) {
+      const dejaUtilises = equipe.filter((id, i) => id && i !== index);
+      const slotOccupe = equipe[index] !== null;
+
+      let html = "";
+      if (slotOccupe) {
+        html += `<button class="option retirer" data-id="">✕ Retirer du slot</button>`;
+      }
+
+      if (possedes.length === 0) {
+        html += `<p style="padding:8px;color:#bbb">Aucun singe possédé.</p>`;
+        return html;
+      }
+
+      for (const s of possedes) {
+        const dispo = !dejaUtilises.includes(s.id);
+        html += `
+          <button class="option" data-id="${s.id}" ${dispo ? "" : "disabled"}>
+            <img src="${s.image}" alt="">
+            <div class="infos">
+              <span class="nom">${s.espece.nom} <small>×${s.amount}</small></span>
+              ${pastilleHTML(s.espece.rarete)}
+              <span class="sous">Lvl ${s.niveau.niveau}${dispo ? "" : " · déjà dans l'équipe"}</span>
+            </div>
+          </button>`;
+      }
+      return html;
+    }
+
+    function ouvrirMenu(slot, index) {
+      const menu = slot.querySelector(".menu");
+      const dejaOuvert = menu.classList.contains("ouvert");
+      fermerMenus();
+      if (dejaOuvert) return;
+
+      menu.innerHTML = construireOptions(index);
+      menu.classList.add("ouvert");
+
+      menu.querySelectorAll(".option").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          choisir(index, btn.dataset.id || null);
+        });
+      });
+    }
+
+    async function choisir(index, id) {
+      const ancienne = equipe[index];
+      equipe[index] = id;
+      afficherSlots();
+      message.textContent = "Sauvegarde…";
+
+      try {
+        const reponse = await fetch("/equipe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pseudo, especes: equipe }),
+        });
+        const data = await reponse.json();
+        if (!reponse.ok) throw new Error(data.erreur);
+        message.textContent = "Équipe sauvegardée.";
+      } catch (err) {
+        equipe[index] = ancienne;
+        afficherSlots();
+        message.textContent = "Erreur : " + err.message;
+      }
+    }
+
+    function afficherSlots() {
+      zone.innerHTML = "";
+
+      equipe.forEach((id, index) => {
+        const singe = id ? trouverSinge(id) : null;
+
+        const slot = document.createElement("div");
+        slot.className = "slot";
+        slot.innerHTML = `
+          <button class="slot-bouton ${singe ? "plein" : ""}" type="button">
+            ${singe
+              ? `<img src="${singe.image}" alt="">
+                 <span class="nom">${singe.espece.nom}</span>
+                 ${pastilleHTML(singe.espece.rarete)}
+                 <span class="sous">Lvl ${singe.niveau.niveau}</span>`
+              : `<span class="vide">Slot ${index + 1} : vide</span>`}
+          </button>
+          <div class="menu"></div>`;
+
+        slot.querySelector(".slot-bouton").addEventListener("click", (e) => {
+          e.stopPropagation();
+          ouvrirMenu(slot, index);
+        });
+
+        zone.appendChild(slot);
+      });
+    }
+
+    document.addEventListener("click", fermerMenus);
+
+    async function init() {
+      const [resDex, resEquipe] = await Promise.all([
+        fetch("/monkeydex?pseudo=" + encodeURIComponent(pseudo)),
+        fetch("/equipe?pseudo=" + encodeURIComponent(pseudo)),
+      ]);
+      const dex = await resDex.json();
+      const eq = await resEquipe.json();
+
+      possedes = dex.singes;
+      for (const { slot, espece } of eq.equipe) {
+        equipe[slot - 1] = espece;
+      }
+      afficherSlots();
+    }
+
+    init();
+  </script>
+</body>
+</html>

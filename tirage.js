@@ -1,6 +1,6 @@
+import "dotenv/config";
 import fs from "node:fs";
 import pg from "pg";
-import "dotenv/config";
 
 const SINGES = JSON.parse(fs.readFileSync("./monkeys.json", "utf8"));
 
@@ -25,6 +25,19 @@ const RARETES = [
   { id: 5, nom: "legendary", poids: 1 / 140 },
 ];
 
+const RECOMPENSES = {
+  common: { xp: 5, coins: 1 },
+  uncommon: { xp: 25, coins: 10 },
+  rare: { xp: 100, coins: 60 },
+  epic: { xp: 500, coins: 150 },
+  legendary: { xp: 1250, coins: 500 },
+};
+
+const STARTERS = {
+  fire: { nom: "Fire monkey" },
+  ice: { nom: "Ice monkey" },
+};
+
 function tirerPondere(items) {
   const total = items.reduce((somme, it) => somme + it.poids, 0);
   let r = Math.random() * total;
@@ -48,7 +61,7 @@ export function getEspece(id) {
 }
 
 export function getImageUrl(id) {
-  return `/images/MonkeysIcons/${id}.png`;
+  return `/images/${id}.png`;
 }
 
 export function getNiveau(rarete, amount) {
@@ -66,7 +79,8 @@ export function getNiveau(rarete, amount) {
   return { niveau, progression: restant, prochain };
 }
 
-// Renvoie { pseudo, singes: { espece: { amount } } }, comme avant
+// Collection
+
 export async function lireCollection(pseudo) {
   const { rows } = await pool.query(
     "SELECT espece, amount FROM collections WHERE pseudo = $1",
@@ -79,7 +93,6 @@ export async function lireCollection(pseudo) {
   return { pseudo, singes };
 }
 
-// Incrémente la copie et renvoie le nouveau total
 export async function ajouterCopie(pseudo, id) {
   const { rows } = await pool.query(
     `INSERT INTO collections (pseudo, espece, amount)
@@ -134,53 +147,94 @@ export async function getCompteurRarete(pseudo) {
   }));
 }
 
-const STARTERS = {
-  fire: { nom: "Fire Monkey" },
-  ice: { nom: "Ice Monkey" },
-};
-
+// Starter
 
 export async function getStarter(pseudo) {
   const { rows } = await pool.query(
-    "SELECT nom, niveau, xp FROM starter WHERE pseudo = $1",
+    "SELECT nom, niveau, xp, coins FROM starter WHERE pseudo = $1",
     [pseudo]
   );
   return rows[0] ?? null;
 }
 
-
-export async function chooseStarter(pseudo, choix) {
-  if (!STARTERS[choix]) throw new Error("oula");
-
+export async function choisirStarter(pseudo, choix) {
+  if (!STARTERS[choix]) throw new Error("starter inconnu");
   await pool.query(
     `INSERT INTO starter (pseudo, nom) VALUES ($1, $2)
-    ON CONFLICT (pseudo) DO NOTHING`,
+     ON CONFLICT (pseudo) DO NOTHING`,
     [pseudo, STARTERS[choix].nom]
   );
   return getStarter(pseudo);
-};
+}
 
-
-export async function gagnerRecompense(pseudo, amount) {
+export async function gagnerRecompense(pseudo, rarete) {
+  const gains = RECOMPENSES[rarete];
+  if (!gains) return null;
 
   const starter = await getStarter(pseudo);
   if (!starter) return null;
 
-  let { niveau, xp } = starter;
-  xp += amount;
+  let niveau = starter.niveau;
+  let xp = starter.xp + gains.xp;
+  let coins = starter.coins + gains.coins;
 
-  let gainedLevels = 0;
+  let niveauxGagnes = 0;
   while (xp >= niveau * 100) {
     xp -= niveau * 100;
     niveau += 1;
-    gainedLevels += 1;
+    niveauxGagnes += 1;
   }
 
   await pool.query(
-    "UPDATE starter SET niveau = $2, xp = $3 WHERE pseudo = $1",
-    [pseudo, niveau, xp]
+    "UPDATE starter SET niveau = $2, xp = $3, coins = $4 WHERE pseudo = $1",
+    [pseudo, niveau, xp, coins]
   );
 
-  return { nom: starter.nom, niveau, xp, gainedLevels };
+  return { nom: starter.nom, niveau, xp, coins, niveauxGagnes };
+}
 
+// Équipe
+
+export async function getEquipe(pseudo) {
+  const { rows } = await pool.query(
+    "SELECT slot, espece FROM equipe WHERE pseudo = $1 ORDER BY slot",
+    [pseudo]
+  );
+  return rows;
+}
+
+export async function definirEquipe(pseudo, especes) {
+  // especes : tableau de 6 entrées, un identifiant ou null (slot vide)
+  if (!Array.isArray(especes) || especes.length !== 6) {
+    throw new Error("6 emplacements attendus");
+  }
+
+  const choisis = especes.filter((e) => e !== null);
+  if (new Set(choisis).size !== choisis.length) throw new Error("singe en double");
+
+  const possedes = await lireCollection(pseudo);
+  for (const e of choisis) {
+    if (!possedes.singes[e]) throw new Error(`singe non possédé : ${e}`);
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("DELETE FROM equipe WHERE pseudo = $1", [pseudo]);
+    for (let i = 0; i < especes.length; i++) {
+      if (especes[i] === null) continue;
+      await client.query(
+        "INSERT INTO equipe (pseudo, slot, espece) VALUES ($1, $2, $3)",
+        [pseudo, i + 1, especes[i]]
+      );
+    }
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+
+  return getEquipe(pseudo);
 }
