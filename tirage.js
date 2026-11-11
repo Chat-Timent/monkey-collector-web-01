@@ -177,7 +177,7 @@ export async function gagnerRecompense(pseudo, amount) {
   }
 
   await pool.query(
-    "UPDATE starter SET level = $2, xp = $3 WHERE pseudo = $1",
+    "UPDATE starter SET niveau = $2, xp = $3 WHERE pseudo = $1",
     [pseudo, niveau, xp]
   );
 
