@@ -58,6 +58,15 @@ app.get("/profil", async (req, res) => {
   res.json({ starter: await getStarter(pseudo) });
 });
 
+app.post("/starter", express.json(), async (req, res) => {
+  const { pseudo, choix } = req.body;
+  if (!pseudo || !choix) return res.status(400).json({ erreur: "pseudo et choix requis" });
+  try {
+    res.json(await choisirStarter(pseudo, choix));
+  } catch {
+    res.status(400).json({ erreur: "starter inconnu" });
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Serveur sur le port ${PORT}`));
