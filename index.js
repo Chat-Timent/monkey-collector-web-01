@@ -16,7 +16,8 @@ import {
   definirEquipe,
   creerCompte,
   connecter,
-  pseudoDepuisToken,
+  userIdDepuisToken,
+  getPseudo,
   deconnecter,
 } from "./tirage.js";
 
@@ -25,12 +26,16 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(express.static("public"));
 
-// Middleware : vérifie la session et remplit req.pseudo
+// Middleware : vérifie la session et remplit req.userId
 async function authentifie(req, res, next) {
-  const pseudo = await pseudoDepuisToken(req.cookies.session);
-  if (!pseudo) return res.status(401).json({ erreur: "non connecté" });
-  req.pseudo = pseudo;
-  next();
+  try {
+    const userId = await userIdDepuisToken(req.cookies.session);
+    if (!userId) return res.status(401).json({ erreur: "non connecté" });
+    req.userId = userId;
+    next();
+  } catch (err) {
+    next(err);
+  }
 }
 
 // Auth
@@ -65,25 +70,25 @@ app.post("/deconnexion", async (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/moi", authentifie, (req, res) => {
-  res.json({ pseudo: req.pseudo });
+app.get("/moi", authentifie, async (req, res) => {
+  res.json({ pseudo: await getPseudo(req.userId) });
 });
 
 // Tirage
 
 app.get("/tirage", authentifie, async (req, res) => {
-  const pseudo = req.pseudo;
+  const userId = req.userId;
 
-  const starterAvant = await getStarter(pseudo);
+  const starterAvant = await getStarter(userId);
   if (!starterAvant) {
     return res.status(400).json({ erreur: "aucun starter, choisis-en un d'abord" });
   }
 
   const id = tirer();
-  const amount = await ajouterCopie(pseudo, id);
+  const amount = await ajouterCopie(userId, id);
   const espece = getEspece(id);
   const niveau = getNiveau(espece.rarete, amount);
-  const starter = await gagnerRecompense(pseudo, espece.rarete);
+  const starter = await gagnerRecompense(userId, espece.rarete);
 
   res.json({
     id,
@@ -99,23 +104,23 @@ app.get("/tirage", authentifie, async (req, res) => {
 // Collection
 
 app.get("/monkeydex", authentifie, async (req, res) => {
-  const singes = await getMonkeydex(req.pseudo);
+  const singes = await getMonkeydex(req.userId);
   const total = singes.reduce((somme, s) => somme + s.amount, 0);
-  const compteur = await getCompteurRarete(req.pseudo);
+  const compteur = await getCompteurRarete(req.userId);
   res.json({ total, compteur, singes });
 });
 
 // Starter
 
 app.get("/profil", authentifie, async (req, res) => {
-  res.json({ starter: await getStarter(req.pseudo) });
+  res.json({ starter: await getStarter(req.userId) });
 });
 
 app.post("/starter", authentifie, async (req, res) => {
   const { choix } = req.body;
   if (!choix) return res.status(400).json({ erreur: "choix requis" });
   try {
-    res.json(await choisirStarter(req.pseudo, choix));
+    res.json(await choisirStarter(req.userId, choix));
   } catch (err) {
     console.error(err);
     res.status(500).json({ erreur: err.message });
@@ -125,7 +130,7 @@ app.post("/starter", authentifie, async (req, res) => {
 // Équipe
 
 app.get("/equipe", authentifie, async (req, res) => {
-  res.json({ equipe: await getEquipe(req.pseudo) });
+  res.json({ equipe: await getEquipe(req.userId) });
 });
 
 app.post("/equipe", authentifie, async (req, res) => {
@@ -134,7 +139,7 @@ app.post("/equipe", authentifie, async (req, res) => {
     return res.status(400).json({ erreur: "especes requis" });
   }
   try {
-    res.json({ equipe: await definirEquipe(req.pseudo, especes) });
+    res.json({ equipe: await definirEquipe(req.userId, especes) });
   } catch (err) {
     res.status(400).json({ erreur: err.message });
   }

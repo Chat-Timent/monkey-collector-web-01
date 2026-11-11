@@ -1,8 +1,8 @@
 import "dotenv/config";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import pg from "pg";
 import bcrypt from "bcryptjs";
-import crypto from "node:crypto";
 
 const SINGES = JSON.parse(fs.readFileSync("./monkeys.json", "utf8"));
 
@@ -90,34 +90,88 @@ export function statsFinales(espece, niveau) {
   return s;
 }
 
-// Collection
+// Comptes et sessions
 
-export async function lireCollection(pseudo) {
-  const { rows } = await pool.query(
-    "SELECT espece, amount FROM collections WHERE pseudo = $1",
-    [pseudo]
-  );
-  const singes = {};
-  for (const r of rows) {
-    singes[r.espece] = { amount: r.amount };
+export async function creerCompte(pseudo, motDePasse) {
+  if (!/^[\w-]{3,20}$/.test(pseudo)) {
+    throw new Error("pseudo invalide (3-20 caractères, lettres, chiffres, - ou _)");
   }
-  return { pseudo, singes };
+  if (!motDePasse || motDePasse.length < 6) {
+    throw new Error("mot de passe trop court (6 caractères minimum)");
+  }
+  const hash = await bcrypt.hash(motDePasse, 10);
+  try {
+    const { rows } = await pool.query(
+      "INSERT INTO users (pseudo, password_hash) VALUES ($1, $2) RETURNING id",
+      [pseudo, hash]
+    );
+    return rows[0].id;
+  } catch (err) {
+    if (err.code === "23505") throw new Error("ce pseudo est déjà pris");
+    throw err;
+  }
 }
 
-export async function ajouterCopie(pseudo, id) {
+export async function connecter(pseudo, motDePasse) {
   const { rows } = await pool.query(
-    `INSERT INTO collections (pseudo, espece, amount)
+    "SELECT id, password_hash FROM users WHERE pseudo = $1",
+    [pseudo]
+  );
+  const ok = rows[0] && (await bcrypt.compare(motDePasse, rows[0].password_hash));
+  if (!ok) throw new Error("pseudo ou mot de passe incorrect");
+
+  const token = crypto.randomBytes(32).toString("hex");
+  await pool.query(
+    "INSERT INTO sessions (token, user_id, expires_at) VALUES ($1, $2, now() + interval '30 days')",
+    [token, rows[0].id]
+  );
+  return token;
+}
+
+export async function userIdDepuisToken(token) {
+  if (!token) return null;
+  const { rows } = await pool.query(
+    "SELECT user_id FROM sessions WHERE token = $1 AND expires_at > now()",
+    [token]
+  );
+  return rows[0]?.user_id ?? null;
+}
+
+export async function getPseudo(userId) {
+  const { rows } = await pool.query("SELECT pseudo FROM users WHERE id = $1", [userId]);
+  return rows[0]?.pseudo ?? null;
+}
+
+export async function deconnecter(token) {
+  await pool.query("DELETE FROM sessions WHERE token = $1", [token]);
+}
+
+// Collection
+
+export async function lireCollection(userId) {
+  const { rows } = await pool.query(
+    "SELECT espece, amount FROM collections WHERE user_id = $1",
+    [userId]
+  );
+  const singes = {};
+  for (const r of rows) singes[r.espece] = { amount: r.amount };
+  return { userId, singes };
+}
+
+export async function ajouterCopie(userId, id) {
+  const { rows } = await pool.query(
+    `INSERT INTO collections (user_id, espece, amount)
      VALUES ($1, $2, 1)
-     ON CONFLICT (pseudo, espece)
+     ON CONFLICT (user_id, espece)
      DO UPDATE SET amount = collections.amount + 1
      RETURNING amount`,
-    [pseudo, id]
+    [userId, id]
   );
   return rows[0].amount;
 }
 
-export async function getMonkeydex(pseudo) {
-  const collection = await lireCollection(pseudo);
+export async function getMonkeydex(userId) {
+  const collection = await lireCollection(userId);
   const ordre = Object.fromEntries(RARETES.map((r) => [r.nom, r.id]));
 
   return Object.entries(collection.singes)
@@ -138,8 +192,8 @@ export async function getMonkeydex(pseudo) {
     .sort((a, b) => b.rang - a.rang);
 }
 
-export async function getCompteurRarete(pseudo) {
-  const collection = await lireCollection(pseudo);
+export async function getCompteurRarete(userId) {
+  const collection = await lireCollection(userId);
   const compteur = {};
 
   for (const [id, { amount }] of Object.entries(collection.singes)) {
@@ -156,29 +210,29 @@ export async function getCompteurRarete(pseudo) {
 
 // Starter
 
-export async function getStarter(pseudo) {
+export async function getStarter(userId) {
   const { rows } = await pool.query(
-    "SELECT nom, niveau, xp, coins FROM starter WHERE pseudo = $1",
-    [pseudo]
+    "SELECT nom, niveau, xp, coins FROM starter WHERE user_id = $1",
+    [userId]
   );
   return rows[0] ?? null;
 }
 
-export async function choisirStarter(pseudo, choix) {
+export async function choisirStarter(userId, choix) {
   if (!STARTERS[choix]) throw new Error("starter inconnu");
   await pool.query(
-    `INSERT INTO starter (pseudo, nom) VALUES ($1, $2)
-     ON CONFLICT (pseudo) DO NOTHING`,
-    [pseudo, STARTERS[choix].nom]
+    `INSERT INTO starter (user_id, nom) VALUES ($1, $2)
+     ON CONFLICT (user_id) DO NOTHING`,
+    [userId, STARTERS[choix].nom]
   );
-  return getStarter(pseudo);
+  return getStarter(userId);
 }
 
-export async function gagnerRecompense(pseudo, rarete) {
+export async function gagnerRecompense(userId, rarete) {
   const gains = RECOMPENSES[rarete];
   if (!gains) return null;
 
-  const starter = await getStarter(pseudo);
+  const starter = await getStarter(userId);
   if (!starter) return null;
 
   let niveau = starter.niveau;
@@ -193,8 +247,8 @@ export async function gagnerRecompense(pseudo, rarete) {
   }
 
   await pool.query(
-    "UPDATE starter SET niveau = $2, xp = $3, coins = $4 WHERE pseudo = $1",
-    [pseudo, niveau, xp, coins]
+    "UPDATE starter SET niveau = $2, xp = $3, coins = $4 WHERE user_id = $1",
+    [userId, niveau, xp, coins]
   );
 
   return { nom: starter.nom, niveau, xp, coins, niveauxGagnes };
@@ -202,16 +256,15 @@ export async function gagnerRecompense(pseudo, rarete) {
 
 // Équipe
 
-export async function getEquipe(pseudo) {
+export async function getEquipe(userId) {
   const { rows } = await pool.query(
-    "SELECT slot, espece FROM equipe WHERE pseudo = $1 ORDER BY slot",
-    [pseudo]
+    "SELECT slot, espece FROM equipe WHERE user_id = $1 ORDER BY slot",
+    [userId]
   );
   return rows;
 }
 
-export async function definirEquipe(pseudo, especes) {
-  // especes : tableau de 6 entrées, un identifiant ou null (slot vide)
+export async function definirEquipe(userId, especes) {
   if (!Array.isArray(especes) || especes.length !== 6) {
     throw new Error("6 emplacements attendus");
   }
@@ -219,7 +272,7 @@ export async function definirEquipe(pseudo, especes) {
   const choisis = especes.filter((e) => e !== null);
   if (new Set(choisis).size !== choisis.length) throw new Error("singe en double");
 
-  const possedes = await lireCollection(pseudo);
+  const possedes = await lireCollection(userId);
   for (const e of choisis) {
     if (!possedes.singes[e]) throw new Error(`singe non possédé : ${e}`);
   }
@@ -227,12 +280,12 @@ export async function definirEquipe(pseudo, especes) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query("DELETE FROM equipe WHERE pseudo = $1", [pseudo]);
+    await client.query("DELETE FROM equipe WHERE user_id = $1", [userId]);
     for (let i = 0; i < especes.length; i++) {
       if (especes[i] === null) continue;
       await client.query(
-        "INSERT INTO equipe (pseudo, slot, espece) VALUES ($1, $2, $3)",
-        [pseudo, i + 1, especes[i]]
+        "INSERT INTO equipe (user_id, slot, espece) VALUES ($1, $2, $3)",
+        [userId, i + 1, especes[i]]
       );
     }
     await client.query("COMMIT");
@@ -243,43 +296,5 @@ export async function definirEquipe(pseudo, especes) {
     client.release();
   }
 
-  return getEquipe(pseudo);
-}
-
-export async function creerCompte(pseudo, motDePasse) {
-  if (!/^[\w-]{3,20}$/.test(pseudo)) throw new Error("pseudo invalide (3-20 caractères, lettres, chiffres, - ou _)");
-  if (motDePasse.length < 6) throw new Error("mot de passe trop court (6 caractères minimum)");
-  const hash = await bcrypt.hash(motDePasse, 10);
-  try {
-    await pool.query("INSERT INTO users (pseudo, password_hash) VALUES ($1, $2)", [pseudo, hash]);
-  } catch (err) {
-    if (err.code === "23505") throw new Error("ce pseudo est déjà pris");
-    throw err;
-  }
-}
-
-export async function connecter(pseudo, motDePasse) {
-  const { rows } = await pool.query("SELECT password_hash FROM users WHERE pseudo = $1", [pseudo]);
-  const ok = rows[0] && (await bcrypt.compare(motDePasse, rows[0].password_hash));
-  if (!ok) throw new Error("pseudo ou mot de passe incorrect");
-
-  const token = crypto.randomBytes(32).toString("hex");
-  await pool.query(
-    "INSERT INTO sessions (token, pseudo, expires_at) VALUES ($1, $2, now() + interval '30 days')",
-    [token, pseudo]
-  );
-  return token;
-}
-
-export async function pseudoDepuisToken(token) {
-  if (!token) return null;
-  const { rows } = await pool.query(
-    "SELECT pseudo FROM sessions WHERE token = $1 AND expires_at > now()",
-    [token]
-  );
-  return rows[0]?.pseudo ?? null;
-}
-
-export async function deconnecter(token) {
-  await pool.query("DELETE FROM sessions WHERE token = $1", [token]);
+  return getEquipe(userId);
 }
