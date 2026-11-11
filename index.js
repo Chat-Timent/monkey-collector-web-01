@@ -12,6 +12,7 @@ const RECOMPENSES = {
 
 
 const app = express();
+app.use(express.json());
 app.use(express.static("public"));
 
 app.get("/tirage", async (req, res) => {
@@ -58,13 +59,14 @@ app.get("/profil", async (req, res) => {
   res.json({ starter: await getStarter(pseudo) });
 });
 
-app.post("/starter", express.json(), async (req, res) => {
+app.post("/starter", async (req, res) => {
   const { pseudo, choix } = req.body;
   if (!pseudo || !choix) return res.status(400).json({ erreur: "pseudo et choix requis" });
   try {
     res.json(await choisirStarter(pseudo, choix));
-  } catch {
-    res.status(400).json({ erreur: "starter inconnu" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ erreur: err.message });
   }
 });
 
