@@ -13,10 +13,26 @@
       flex-direction: column;
       align-items: center;
       margin: 0;
-      padding: 30px 20px;
+      padding: 90px 20px 30px;
       min-height: 100vh;
       box-sizing: border-box;
     }
+
+    #topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      background: #242424;
+      border-bottom: 1px solid #333;
+      z-index: 10;
+    }
+    #topbar img { width: 48px; height: 48px; object-fit: contain; }
+    #topbar strong { font-size: 16px; }
+    #topbar .detail { font-size: 13px; color: #bbb; }
+
     h1 { margin: 0 0 20px; }
     .controles { display: flex; gap: 10px; margin-bottom: 30px; }
     .bouton {
@@ -87,6 +103,16 @@
   </style>
 </head>
 <body>
+
+  <header id="topbar">
+    <img id="starter-img" alt="">
+    <div>
+      <strong id="starter-nom">Chargement…</strong>
+      <div id="starter-niveau" class="detail"></div>
+      <div id="starter-xp" class="detail"></div>
+    </div>
+  </header>
+
   <h1>Gacha Monkey</h1>
 
   <div class="controles">
@@ -110,15 +136,8 @@
   </div>
 
   <script>
-
     const pseudo = localStorage.getItem("pseudo");
     if (!pseudo) window.location.replace("/");
-
-
-  fetch("/profil?pseudo=" + encodeURIComponent(pseudo))
-    .then((r) => r.json())
-    .then((d) => { if (!d.starter) window.location.replace("/starter.html"); });
-
 
     const RARETES_AFFICHAGE = {
       common:    { label: "Commun",     couleur: "#060ee4" },
@@ -127,6 +146,28 @@
       epic:      { label: "Epic",       couleur: "#a831eb" },
       legendary: { label: "Légendaire", couleur: "#fe9308" },
     };
+
+    const IMAGES_STARTERS = {
+      "Fire monkey": "/images/starters/fire_starter.png",
+      "Ice monkey": "/images/starters/ice_starter.png",
+    };
+
+    // Met à jour la topbar avec les données réelles du serveur.
+    // Si le joueur n'a pas de starter, on le renvoie vers le choix.
+    async function chargerStarter() {
+      const reponse = await fetch("/profil?pseudo=" + encodeURIComponent(pseudo));
+      const { starter } = await reponse.json();
+      if (!starter) {
+        window.location.replace("/starter.html");
+        return;
+      }
+
+      document.getElementById("starter-img").src = IMAGES_STARTERS[starter.nom] ?? "";
+      document.getElementById("starter-nom").textContent = starter.nom;
+      document.getElementById("starter-niveau").textContent = `Niveau ${starter.niveau}`;
+      document.getElementById("starter-xp").textContent =
+        `XP ${starter.xp} / ${starter.niveau * 100} pour le niveau suivant`;
+    }
 
     document.getElementById("tirer").addEventListener("click", async () => {
       const reponse = await fetch("/tirage?pseudo=" + encodeURIComponent(pseudo));
@@ -159,7 +200,12 @@
       }
 
       document.getElementById("carte").style.display = "flex";
+
+      // Met à jour la topbar (XP et niveau du starter) après le tirage
+      await chargerStarter();
     });
+
+    chargerStarter();
   </script>
 </body>
 </html>
