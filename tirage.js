@@ -246,9 +246,6 @@ export async function definirEquipe(pseudo, especes) {
   return getEquipe(pseudo);
 }
 
-import bcrypt from "bcryptjs";
-import crypto from "node:crypto";
-
 export async function creerCompte(pseudo, motDePasse) {
   if (!/^[\w-]{3,20}$/.test(pseudo)) throw new Error("pseudo invalide (3-20 caractères, lettres, chiffres, - ou _)");
   if (motDePasse.length < 6) throw new Error("mot de passe trop court (6 caractères minimum)");
