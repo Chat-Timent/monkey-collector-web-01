@@ -1,5 +1,5 @@
 import express from "express";
-import { tirer, getEspece, getImageUrl, ajouterCopie, getNiveau, getMonkeydex, getCompteurRarete, getStarter, gagnerRecompense } from "./tirage.js";
+import { tirer, getEspece, getImageUrl, ajouterCopie, getNiveau, getMonkeydex, getCompteurRarete, getStarter, gagnerRecompense, choisirStarter, getNiveau } from "./tirage.js";
 
 
 const RECOMPENSES = {
