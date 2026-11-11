@@ -25,8 +25,7 @@ export async function ajouterCopie(userId, id) {
   return rows[0].amount;
 }
 
-export async function getMonkeydex(userId) {
-  const collection = await lireCollection(userId);
+function construireMonkeydex(collection) {
   const ordre = Object.fromEntries(RARETES.map((r) => [r.nom, r.id]));
 
   return Object.entries(collection.singes)
@@ -47,8 +46,7 @@ export async function getMonkeydex(userId) {
     .sort((a, b) => b.rang - a.rang);
 }
 
-export async function getCompteurRarete(userId) {
-  const collection = await lireCollection(userId);
+function compterRaretes(collection) {
   const compteur = {};
 
   for (const [id, { amount }] of Object.entries(collection.singes)) {
@@ -61,4 +59,23 @@ export async function getCompteurRarete(userId) {
     nom: r.nom,
     total: compteur[r.nom] ?? 0,
   }));
+}
+
+export async function getMonkeydex(userId) {
+  return construireMonkeydex(await lireCollection(userId));
+}
+
+export async function getCompteurRarete(userId) {
+  return compterRaretes(await lireCollection(userId));
+}
+
+// Le Monkeydex affiche ces trois informations simultanément : une seule lecture suffit.
+export async function getResumeMonkeydex(userId) {
+  const collection = await lireCollection(userId);
+  const singes = construireMonkeydex(collection);
+  return {
+    total: singes.reduce((somme, singe) => somme + singe.amount, 0),
+    compteur: compterRaretes(collection),
+    singes,
+  };
 }

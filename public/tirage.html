@@ -173,8 +173,8 @@
     });
     imgStarter.addEventListener("load", () => imgStarter.classList.remove("cachee"));
 
-    async function chargerStarter() {
-      const reponse = await fetch("/profil");
+    async function chargerStarter(reponseProfil) {
+      const reponse = reponseProfil ?? await fetch("/profil");
       if (!reponse.ok) return;
       const { starter } = await reponse.json();
       if (!starter) {
@@ -239,12 +239,12 @@
     });
 
     // Vérifie la session au chargement : sans cookie valide, retour à la connexion
-    fetch("/moi").then((r) => {
-      if (!r.ok) {
+    Promise.all([fetch("/moi"), fetch("/profil")]).then(([moi, profil]) => {
+      if (!moi.ok) {
         window.location.replace("/");
         return;
       }
-      chargerStarter();
+      chargerStarter(profil);
     });
   </script>
 </body>

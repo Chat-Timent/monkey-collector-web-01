@@ -160,13 +160,15 @@
     document.getElementById("suivant").addEventListener("click", () => { page++; afficher(); });
 
     (async () => {
-      const moi = await fetch("/moi");
+      const [moi, reponse] = await Promise.all([
+        fetch("/moi"),
+        fetch("/monkeydex"),
+      ]);
       if (!moi.ok) {
         window.location.replace("/");
         return;
       }
 
-      const reponse = await fetch("/monkeydex");
       const data = await reponse.json();
       singes = data.singes;
       document.getElementById("total").textContent = `Nombre total de singes : ${data.total}`;

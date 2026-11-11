@@ -19,11 +19,11 @@ export async function choisirStarter(userId, choix) {
   return getStarter(userId);
 }
 
-export async function gagnerRecompense(userId, rarete) {
+export async function gagnerRecompense(userId, rarete, starterDejaLu) {
   const gains = RECOMPENSES[rarete];
   if (!gains) return null;
 
-  const starter = await getStarter(userId);
+  const starter = starterDejaLu ?? await getStarter(userId);
   if (!starter) return null;
 
   let niveau = starter.niveau;

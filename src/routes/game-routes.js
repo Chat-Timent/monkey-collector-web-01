@@ -2,8 +2,7 @@ import { Router } from "express";
 import { authentifie } from "../middleware/authentifie.js";
 import {
   ajouterCopie,
-  getCompteurRarete,
-  getMonkeydex,
+  getResumeMonkeydex,
 } from "../services/collection-service.js";
 import { choisirStarter, gagnerRecompense, getStarter } from "../services/starter-service.js";
 import { definirEquipe, getEquipe } from "../services/team-service.js";
@@ -22,7 +21,7 @@ gameRoutes.get("/tirage", authentifie, async (req, res) => {
   const amount = await ajouterCopie(userId, id);
   const espece = getEspece(id);
   const niveau = getNiveau(espece.rarete, amount);
-  const starter = await gagnerRecompense(userId, espece.rarete);
+  const starter = await gagnerRecompense(userId, espece.rarete, starterAvant);
 
   res.json({
     id,
@@ -36,10 +35,7 @@ gameRoutes.get("/tirage", authentifie, async (req, res) => {
 });
 
 gameRoutes.get("/monkeydex", authentifie, async (req, res) => {
-  const singes = await getMonkeydex(req.userId);
-  const total = singes.reduce((somme, s) => somme + s.amount, 0);
-  const compteur = await getCompteurRarete(req.userId);
-  res.json({ total, compteur, singes });
+  res.json(await getResumeMonkeydex(req.userId));
 });
 
 gameRoutes.get("/profil", authentifie, async (req, res) => {
