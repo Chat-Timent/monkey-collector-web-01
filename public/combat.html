@@ -46,7 +46,6 @@
       .page { grid-template-columns: 1fr; }
     }
 
-    /* Colonne joueurs */
     aside {
       position: sticky;
       top: 20px;
@@ -69,7 +68,6 @@
     .point { width: 9px; height: 9px; border-radius: 50%; background: #555; flex-shrink: 0; }
     .point.en-ligne { background: #4caf50; }
 
-    /* Zone principale */
     main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
     .panneau {
       background: #1c1c1c;
@@ -78,7 +76,6 @@
       padding: 16px;
     }
 
-    /* Équipe */
     #equipe {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -162,7 +159,6 @@
     .option .sous { font-size: 12px; color: #bbb; }
     .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
 
-    /* Lignes et boutons génériques */
     .ligne {
       display: flex;
       align-items: center;
@@ -199,7 +195,6 @@
       cursor: pointer;
     }
 
-    /* Badges d'issue */
     .badge {
       min-width: 92px;
       text-align: center;
@@ -392,7 +387,7 @@
       await fetch("/presence", { method: "POST" });
     }
 
-    // ---------- Joueurs (colonne de gauche) ----------
+    // ---------- Joueurs ----------
 
     function normaliserDefi(d) {
       return { ...d, fin: Date.now() + d.secondes_restantes * 1000 };
@@ -430,7 +425,7 @@
       });
     }
 
-    // ---------- Défis en attente ----------
+    // ---------- Défis ----------
 
     function afficherDefis() {
       const recus = defisRecus.length
@@ -486,7 +481,8 @@
       if (!reponse.ok) {
         message.textContent = "Erreur : " + data.erreur;
       } else if (accepter) {
-        message.innerHTML = `Défi accepté. <a class="lien-combat" href="/combat-live.html?id=${data.combatId}">Voir le combat</a>`;
+        location.href = `/combat-live.html?id=${data.combatId}`;
+        return;
       } else {
         message.textContent = "Défi refusé.";
       }

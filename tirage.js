@@ -7,6 +7,13 @@ import { combat } from "./combat.js";
 
 const SINGES = JSON.parse(fs.readFileSync("./monkeys.json", "utf8"));
 
+// Doit être identique dans combat-live.html
+const DELAI_INITIAL_MS = 1000;
+const PAS_MS = 700;
+
+const DUREE_DEFI_SEC = 60;
+const SEUIL_EN_LIGNE_SEC = 45;
+
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
@@ -300,8 +307,7 @@ export async function definirEquipe(userId, especes) {
   return getEquipe(userId);
 }
 
-const DUREE_DEFI_SEC = 60;        // un défi expire après 60 s sans réponse
-const SEUIL_EN_LIGNE_SEC = 45;    // considéré en ligne si dernier signe < 45 s
+// Présence et défis
 
 async function expirerDefis() {
   await pool.query(
@@ -402,6 +408,7 @@ async function lancerCombat(defi, equipeA, equipeB) {
   const resultat = combat(equipeA, equipeB);
   resultat.equipeA = equipeA;
   resultat.equipeB = equipeB;
+  resultat.dureeMs = DELAI_INITIAL_MS + resultat.journal.length * PAS_MS;
 
   const { rows } = await pool.query(
     `INSERT INTO combats (defi_id, user_a, user_b, resultat)
@@ -423,7 +430,6 @@ export async function repondreDefi(userId, defiId, accepter) {
 
   let equipeA, equipeB;
   if (accepter) {
-    // On vérifie les équipes avant de figer le défi
     equipeA = await preparerEquipe(defi.de_user);
     equipeB = await preparerEquipe(defi.vers_user);
     if (!equipeA.some(Boolean)) throw new Error("le challenger n'a aucun singe dans son équipe");
@@ -441,7 +447,8 @@ export async function repondreDefi(userId, defiId, accepter) {
 
 export async function getCombat(userId, combatId) {
   const { rows } = await pool.query(
-    `SELECT c.user_a, c.user_b, c.resultat, u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b
+    `SELECT c.user_a, c.user_b, c.resultat, c.created_at,
+            u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b
      FROM combats c
      JOIN users u1 ON u1.id = c.user_a
      JOIN users u2 ON u2.id = c.user_b
@@ -455,6 +462,7 @@ export async function getCombat(userId, combatId) {
     pseudoA: r.pseudo_a,
     pseudoB: r.pseudo_b,
     monCamp: r.user_a === userId ? "A" : "B",
+    ecouleMs: Date.now() - new Date(r.created_at).getTime(),
   };
 }
 
@@ -462,7 +470,7 @@ export async function combatsDuJoueur(userId) {
   const { rows } = await pool.query(
     `SELECT c.id, c.user_a, u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b,
             c.resultat->>'vainqueur' AS vainqueur,
-            c.created_at > now() - interval '3 minutes' AS recent
+            (c.created_at + (COALESCE((c.resultat->>'dureeMs')::int, 0) * interval '1 millisecond') > now()) AS recent
      FROM combats c
      JOIN users u1 ON u1.id = c.user_a
      JOIN users u2 ON u2.id = c.user_b

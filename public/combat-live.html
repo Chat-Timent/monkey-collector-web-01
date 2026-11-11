@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Combat</title>
+  <title>Combat en direct</title>
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -102,23 +102,6 @@
       to { opacity: 0; top: -45px; }
     }
 
-    .controles {
-      max-width: 1000px;
-      margin: 0 auto 16px;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-    button, select {
-      padding: 8px 14px;
-      border-radius: 8px;
-      border: 1px solid #444;
-      background: #2a2640;
-      color: #f2f2f2;
-      cursor: pointer;
-    }
-    button:disabled { opacity: 0.4; cursor: default; }
-
     #resultat {
       max-width: 1000px;
       margin: 16px auto;
@@ -144,7 +127,7 @@
 </head>
 <body>
   <header>
-    <h1>Combat</h1>
+    <h1>Combat en direct</h1>
     <a class="lien" href="/combat.html">Retour</a>
   </header>
 
@@ -160,20 +143,14 @@
     <div id="grille-adv" class="grille"></div>
   </div>
 
-  <div class="controles">
-    <button id="play">Pause</button>
-    <button id="passer">Passer</button>
-    <select id="vitesse">
-      <option value="1500">Lent</option>
-      <option value="900" selected>Normal</option>
-      <option value="400">Rapide</option>
-    </select>
-  </div>
-
   <div id="resultat"></div>
   <div id="journal"></div>
 
   <script>
+    // Doit rester identique à tirage.js
+    const DELAI_INITIAL_MS = 1000;
+    const PAS_MS = 700;
+
     const idCombat = new URLSearchParams(location.search).get("id");
     const $ = (id) => document.getElementById(id);
 
@@ -187,10 +164,9 @@
     let etat = { A: [], B: [] };
     let journal = [];
     let index = 0;
-    let actif = null;   // { camp, slot } : singe qui agit
-    let fx = null;      // { camp, slot, type, texte } : bulle affichée sur une cible
+    let actif = null;
+    let fx = null;
     let timer = null;
-    let enPause = false;
 
     const adverse = () => (monCamp === "A" ? "B" : "A");
 
@@ -207,7 +183,8 @@
 
       const bulle = estCible ? `<div class="bulle ${fx.type}">${fx.texte}</div>` : "";
       const pct = Math.max(0, Math.round((m.pv / m.max) * 100));
-      const bordure = RARETES_COULEUR[m.rarete] ? `style="box-shadow: inset 0 3px 0 ${RARETES_COULEUR[m.rarete]}"` : "";
+      const bordure = RARETES_COULEUR[m.rarete]
+        ? `style="box-shadow: inset 0 3px 0 ${RARETES_COULEUR[m.rarete]}"` : "";
 
       return `
         <div class="${classes.join(" ")}" ${bordure}>
@@ -245,8 +222,7 @@
         $("banniere").textContent = `Tour ${e.numero}`;
       } else if (e.type === "degats") {
         actif = { camp: e.deCamp, slot: e.deSlot };
-        const cible = etat[e.surCamp][e.surSlot];
-        cible.pv = e.pvRestants;
+        etat[e.surCamp][e.surSlot].pv = e.pvRestants;
         fx = { camp: e.surCamp, slot: e.surSlot, type: "degats", texte: `-${e.degats}${e.critique ? " CRIT" : ""}` };
       } else if (e.type === "rate") {
         actif = { camp: e.deCamp, slot: e.deSlot };
@@ -258,54 +234,36 @@
       ajouterLog(e);
     }
 
-    function terminer() {
+    // Rattrapage à l'ouverture : pas d'animation, on applique directement
+    function appliquerSansAnimation(e) {
+      if (e.type !== "KO") { actif = null; fx = null; }
+      appliquer(e);
+    }
+
+    function terminer(redirigerEnDirect) {
       clearTimeout(timer);
       actif = null;
       fx = null;
       dessiner();
-      $("play").disabled = true;
-      $("passer").disabled = true;
       $("banniere").textContent = "Combat terminé";
       const v = resultat.vainqueur;
-      $("resultat").textContent =
-        v === null ? "Match nul" : v === monCamp ? "Victoire !" : "Défaite";
+      $("resultat").textContent = v === null ? "Match nul" : v === monCamp ? "Victoire !" : "Défaite";
+
+      if (redirigerEnDirect) {
+        $("resultat").textContent += " · retour à l'historique…";
+        setTimeout(() => location.replace("/combat.html"), 3000);
+      }
     }
 
     function pas() {
-      if (index >= journal.length) return terminer();
+      if (index >= journal.length) return terminer(true);
 
       const e = journal[index++];
-      // Une action remplace la précédente, sauf le K.O. qui suit le coup fatal
       if (e.type !== "KO") { actif = null; fx = null; }
       appliquer(e);
       dessiner();
-
-      if (!enPause) timer = setTimeout(pas, Number($("vitesse").value));
+      timer = setTimeout(pas, PAS_MS);
     }
-
-    $("play").addEventListener("click", () => {
-      if (index >= journal.length) return;
-      if (enPause) {
-        enPause = false;
-        $("play").textContent = "Pause";
-        pas();
-      } else {
-        enPause = true;
-        clearTimeout(timer);
-        $("play").textContent = "Reprendre";
-      }
-    });
-
-    $("passer").addEventListener("click", () => {
-      clearTimeout(timer);
-      enPause = true;
-      while (index < journal.length) {
-        const e = journal[index++];
-        if (e.type !== "KO") { actif = null; fx = null; }
-        appliquer(e);
-      }
-      terminer();
-    });
 
     async function charger() {
       const moi = await fetch("/moi");
@@ -323,7 +281,6 @@
       $("titre-moi").textContent = `${pseudoMoi} (toi)`;
       $("titre-adv").textContent = pseudoAdv;
 
-      // Équipes au départ, PV pleins
       for (const camp of ["A", "B"]) {
         etat[camp] = resultat[`equipe${camp}`].map((m) =>
           m ? { ...m, pv: m.hp, max: m.hp, dead: false } : null
@@ -331,9 +288,19 @@
       }
       journal = resultat.journal;
 
-      $("banniere").textContent = "Le combat commence…";
+      // Rattrapage : on se place là où le combat en est déjà
+      const ecoule = Math.max(0, data.ecouleMs - DELAI_INITIAL_MS);
+      const cible = Math.min(journal.length, Math.floor(ecoule / PAS_MS));
+      for (index = 0; index < cible; index++) appliquerSansAnimation(journal[index]);
+
       dessiner();
-      timer = setTimeout(pas, 1000);
+
+      if (index >= journal.length) {
+        terminer(false);
+      } else {
+        $("banniere").textContent = "En direct";
+        timer = setTimeout(pas, PAS_MS);
+      }
     }
 
     charger();
