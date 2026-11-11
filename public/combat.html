@@ -253,10 +253,10 @@
     </main>
   </div>
 
+  <script src="/js/session.js"></script>
   <script>
     const NB_SLOTS = 6;
     const INTERVALLE_RAFRAICHISSEMENT_MS = 3000;
-    const INTERVALLE_PRESENCE_MS = 20000;
 
     const RARETES_AFFICHAGE = {
       common:    { label: "Commun",     couleur: "#060ee4" },
@@ -380,12 +380,6 @@
         });
         zone.appendChild(slot);
       });
-    }
-
-    // ---------- Présence ----------
-
-    async function signalerPresence() {
-      await fetch("/presence", { method: "POST" });
     }
 
     // ---------- Joueurs ----------
@@ -579,9 +573,6 @@
         window.location.replace("/");
         return;
       }
-
-      signalerPresence();
-      setInterval(signalerPresence, INTERVALLE_PRESENCE_MS);
 
       afficherSlots();
       try {

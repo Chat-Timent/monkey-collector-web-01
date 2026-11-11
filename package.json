@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check index.js && node --check tirage.js && node --check combat.js && powershell -NoProfile -Command \"Get-ChildItem src -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName }\"",
+    "check": "node --check index.js && node --check tirage.js && node --check combat.js && node --check public/js/session.js && powershell -NoProfile -Command \"Get-ChildItem src -Recurse -Filter *.js | ForEach-Object { node --check $_.FullName }\"",
     "dev": "nodemon index.js"
   },
   "keywords": [],

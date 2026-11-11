@@ -152,6 +152,7 @@
     </div>
   </div>
 
+  <script src="/js/session.js"></script>
   <script>
     const RARETES_AFFICHAGE = {
       common:    { label: "Commun",     couleur: "#060ee4" },
@@ -173,6 +174,23 @@
     });
     imgStarter.addEventListener("load", () => imgStarter.classList.remove("cachee"));
 
+    function afficherStarter(starter) {
+      const chemin = IMAGES_STARTERS[starter.nom];
+      if (chemin) imgStarter.src = chemin;
+      document.getElementById("starter-nom").textContent = starter.nom;
+      document.getElementById("starter-niveau").textContent = `Niveau ${starter.niveau}`;
+      document.getElementById("starter-xp").textContent =
+        `XP ${starter.xp} / ${starter.niveau * 100} pour le niveau suivant`;
+    }
+
+    function prechargerImages(urls) {
+      return Promise.all(urls.map((url) => new Promise((resolve) => {
+        const image = new Image();
+        image.onload = image.onerror = resolve;
+        image.src = url;
+      })));
+    }
+
     async function chargerStarter(reponseProfil) {
       const reponse = reponseProfil ?? await fetch("/profil");
       if (!reponse.ok) return;
@@ -182,12 +200,7 @@
         return;
       }
 
-      const chemin = IMAGES_STARTERS[starter.nom];
-      if (chemin) imgStarter.src = chemin;
-      document.getElementById("starter-nom").textContent = starter.nom;
-      document.getElementById("starter-niveau").textContent = `Niveau ${starter.niveau}`;
-      document.getElementById("starter-xp").textContent =
-        `XP ${starter.xp} / ${starter.niveau * 100} pour le niveau suivant`;
+      afficherStarter(starter);
     }
 
     document.getElementById("deconnexion").addEventListener("click", async () => {
@@ -206,13 +219,17 @@
 
       const rarete = RARETES_AFFICHAGE[espece.rarete] ?? { label: espece.rarete, couleur: "#777" };
       const couleur = "#" + rarete.couleur.replace("#", "");
+      const imageRarete = `/images/MonkeysRarities/rarity_${espece.rarete}.png`;
+
+      await prechargerImages([image, imageRarete]);
+      await new Promise(requestAnimationFrame);
 
       const elRarete = document.getElementById("rarete");
       elRarete.innerHTML = "";
       elRarete.style.borderColor = couleur;
       elRarete.style.color = couleur;
       const icone = document.createElement("img");
-      icone.src = `/images/MonkeysRarities/rarity_${espece.rarete}.png`;
+      icone.src = imageRarete;
       icone.alt = "";
       elRarete.appendChild(icone);
       elRarete.appendChild(document.createTextNode(rarete.label));
@@ -234,8 +251,7 @@
       document.getElementById("critdmg").textContent = stats.critdmg + "%";
 
       document.getElementById("carte").style.display = "flex";
-
-      await chargerStarter();
+      afficherStarter(data.starter);
     });
 
     // Vérifie la session au chargement : sans cookie valide, retour à la connexion

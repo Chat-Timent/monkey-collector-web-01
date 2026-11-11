@@ -106,6 +106,7 @@
     <button id="suivant">▶</button>
   </div>
 
+  <script src="/js/session.js"></script>
   <script>
     const RARETES_AFFICHAGE = {
       common:    { label: "Commun",     couleur: "#060ee4" },
@@ -118,7 +119,16 @@
     const PAR_PAGE = 12;
     let singes = [];
     let page = 0;
+    let renduVersion = 0;
     const grille = document.getElementById("grille");
+
+    function prechargerImages(urls) {
+      return Promise.all([...new Set(urls)].map((url) => new Promise((resolve) => {
+        const image = new Image();
+        image.onload = image.onerror = resolve;
+        image.src = url;
+      })));
+    }
 
     function carteHTML(s) {
       const r = RARETES_AFFICHAGE[s.espece.rarete] ?? { label: s.espece.rarete, couleur: "#777" };
@@ -140,10 +150,17 @@
         </div>`;
     }
 
-    function afficher() {
+    async function afficher() {
+      const version = ++renduVersion;
       const totalPages = Math.max(1, Math.ceil(singes.length / PAR_PAGE));
       const debut = page * PAR_PAGE;
       const morceau = singes.slice(debut, debut + PAR_PAGE);
+
+      await prechargerImages(morceau.flatMap((s) => [
+        s.image,
+        `/images/MonkeysRarities/rarity_${s.espece.rarete}.png`,
+      ]));
+      if (version !== renduVersion) return;
 
       grille.innerHTML = morceau.length
         ? morceau.map(carteHTML).join("")
