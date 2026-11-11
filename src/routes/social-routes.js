@@ -8,6 +8,7 @@ import {
   lireMessages,
   repondreDefi,
 } from "../services/combat-service.js";
+import { envoyerChatGlobal, lireChatGlobal } from "../services/chat-service.js";
 
 export const socialRoutes = Router();
 
@@ -50,6 +51,20 @@ socialRoutes.get("/combats/:id", authentifie, async (req, res) => {
   const combat = await getCombat(req.userId, req.params.id);
   if (!combat) return res.status(404).json({ erreur: "combat introuvable" });
   res.json(combat);
+});
+
+socialRoutes.get("/chat", authentifie, async (req, res) => {
+  const apres = Number(req.query.apres) || 0;
+  res.json(await lireChatGlobal(req.userId, apres));
+});
+
+socialRoutes.post("/chat", authentifie, async (req, res) => {
+  try {
+    await envoyerChatGlobal(req.userId, req.body.texte);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ erreur: err.message });
+  }
 });
 
 socialRoutes.get("/combats/:id/messages", authentifie, async (req, res) => {

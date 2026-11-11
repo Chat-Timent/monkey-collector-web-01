@@ -59,7 +59,7 @@ test("les anciens points d'entrée restent utilisables", async () => {
     "ajouterCopie", "getMonkeydex", "getCompteurRarete", "getStarter", "choisirStarter",
     "gagnerRecompense", "getEquipe", "definirEquipe", "marquerPresence", "listerJoueurs",
     "envoyerDefi", "defisDuJoueur", "repondreDefi", "getCombat", "combatsDuJoueur",
-    "lireMessages", "envoyerMessage",
+    "lireMessages", "envoyerMessage", "lireChatGlobal", "envoyerChatGlobal",
   ]) {
     assert.equal(typeof facade[nom], "function", `${nom} doit rester exporté`);
   }
@@ -77,6 +77,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     .sort();
 
   assert.deepEqual(routes, [
+    "GET /chat",
     "GET /combats",
     "GET /combats/:id",
     "GET /combats/:id/messages",
@@ -87,6 +88,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /monkeydex",
     "GET /profil",
     "GET /tirage",
+    "POST /chat",
     "POST /combats/:id/messages",
     "POST /connexion",
     "POST /deconnexion",

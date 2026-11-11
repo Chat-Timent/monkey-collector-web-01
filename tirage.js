@@ -31,6 +31,8 @@ export {
   repondreDefi,
 } from "./src/services/combat-service.js";
 
+export { envoyerChatGlobal, lireChatGlobal } from "./src/services/chat-service.js";
+
 export {
   connecter,
   creerCompte,
