@@ -30,6 +30,7 @@
       z-index: 10;
     }
     #topbar img { width: 48px; height: 48px; object-fit: contain; }
+    #topbar img.cachee { display: none; }
     #topbar strong { font-size: 16px; }
     #topbar .detail { font-size: 13px; color: #bbb; }
 
@@ -148,9 +149,16 @@
     };
 
     const IMAGES_STARTERS = {
-      "Fire monkey": "./images/Starters/fire_starter.png",
-      "Ice monkey": "./images/Starters/ice_starter.png",
+      "Fire monkey": "/images/Starters/fire_starter.png",
+      "Ice monkey": "/images/Starters/ice_starter.png",
     };
+
+    const imgStarter = document.getElementById("starter-img");
+    imgStarter.addEventListener("error", () => {
+      console.warn("Image starter introuvable :", imgStarter.src);
+      imgStarter.classList.add("cachee");
+    });
+    imgStarter.addEventListener("load", () => imgStarter.classList.remove("cachee"));
 
     // Met à jour la topbar avec les données réelles du serveur.
     // Si le joueur n'a pas de starter, on le renvoie vers le choix.
@@ -162,7 +170,8 @@
         return;
       }
 
-      document.getElementById("starter-img").src = IMAGES_STARTERS[starter.nom] ?? "";
+      const chemin = IMAGES_STARTERS[starter.nom];
+      if (chemin) imgStarter.src = chemin;
       document.getElementById("starter-nom").textContent = starter.nom;
       document.getElementById("starter-niveau").textContent = `Niveau ${starter.niveau}`;
       document.getElementById("starter-xp").textContent =
