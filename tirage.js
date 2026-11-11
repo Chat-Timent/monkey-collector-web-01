@@ -133,3 +133,54 @@ export async function getCompteurRarete(pseudo) {
     total: compteur[r.nom] ?? 0,
   }));
 }
+
+const STARTERS = {
+  fire: { nom: "Fire Monkey" },
+  ice: { nom: "Ice Monkey" },
+};
+
+
+export async function getStarter(pseudo) {
+  const { rows } = await pool.query(
+    "SELECT nom, level, xp, FROM starter WHERE pseudo = $1",
+    [pseudo]
+  );
+  return rows[0] ?? null;
+}
+
+
+export async function chooseStarter(pseudo, choix) {
+  if (!STARTERS[choix]) throw new Error("oula");
+
+  await pool.query(
+    `INSERT INTO starter (pseudo, nom) VALUES ($1, $2)
+    ON CONFLICT (pseudo) DO NOTHING`,
+    [pseudo, STARTERS[choix].nom]
+  );
+  return getStarter(pseudo);
+};
+
+
+export async function gagnerRecompense(pseudo, amount) {
+
+  const starter = await getStarter(pseudo);
+  if (!starter) return null;
+
+  let { level, xp } = starter;
+  xp += amount;
+
+  let gainedLevels = 0;
+  while (xp >= level * 100) {
+    xp -= level * 100;
+    level += 1;
+    gainedLevels += 1;
+  }
+
+  await pool.query(
+    "UPDATE starter SET level = $2, xp = $3 WHERE pseudo = $1",
+    [pseudo, level, xp]
+  );
+
+  return { nom: starter.nom, level, xp, gainedLevels };
+
+}

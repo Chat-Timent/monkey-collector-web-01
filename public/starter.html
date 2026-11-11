@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Choisis ton starter</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #161616;
+      color: #f2f2f2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .choix { display: flex; gap: 24px; margin-top: 30px; }
+    .starter {
+      background: #242424;
+      border: 1px solid #333;
+      border-radius: 14px;
+      padding: 24px;
+      width: 220px;
+      text-align: center;
+      cursor: pointer;
+      color: #f2f2f2;
+    }
+    .starter:hover { border-color: #ff8a3d; }
+    .starter img { width: 140px; height: 140px; object-fit: contain; }
+    .starter h2 { margin: 10px 0 0; font-size: 20px; }
+    #message { color: #ffb86b; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Bienvenue sur Gacha Monkey</h1>
+  <p>Choisis ton starter avant de commencer.</p>
+
+  <div class="choix">
+    <button class="starter" data-choix="fire">
+      <img src="/images/starters/fire_starter.png" alt="">
+      <h2>Fire monkey</h2>
+    </button>
+    <button class="starter" data-choix="ice">
+      <img src="/images/starters/ice_starter.png" alt="">
+      <h2>Ice monkey</h2>
+    </button>
+  </div>
+
+  <p id="message"></p>
+
+  <script>
+    const pseudo = localStorage.getItem("pseudo");
+    if (!pseudo) window.location.replace("/");
+
+    document.querySelectorAll(".starter").forEach((bouton) => {
+      bouton.addEventListener("click", async () => {
+        const reponse = await fetch("/starter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pseudo, choix: bouton.dataset.choix }),
+        });
+        if (!reponse.ok) {
+          document.getElementById("message").textContent = "Erreur, réessaie.";
+          return;
+        }
+        window.location.replace("/tirage.html");
+      });
+    });
+  </script>
+</body>
+</html>

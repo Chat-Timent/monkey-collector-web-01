@@ -110,6 +110,11 @@
   </div>
 
   <script>
+
+    fetch("/profil?pseudo=" + encodeURIComponent(pseudo))
+    .then((r) => r.json())
+    .then((d) => { if (!d.starter) window.location.replace("/starter.html"); });
+
     const pseudo = localStorage.getItem("pseudo");
     if (!pseudo) window.location.replace("/");
 
