@@ -19,6 +19,11 @@ import {
   userIdDepuisToken,
   getPseudo,
   deconnecter,
+  marquerPresence,
+  listerJoueurs,
+  envoyerDefi,
+  defisDuJoueur,
+  repondreDefi,
 } from "./tirage.js";
 
 const app = express();
@@ -140,6 +145,37 @@ app.post("/equipe", authentifie, async (req, res) => {
   }
   try {
     res.json({ equipe: await definirEquipe(req.userId, especes) });
+  } catch (err) {
+    res.status(400).json({ erreur: err.message });
+  }
+});
+
+app.post("/presence", authentifie, async (req, res) => {
+  await marquerPresence(req.userId);
+  res.json({ ok: true });
+});
+
+app.get("/joueurs", authentifie, async (req, res) => {
+  res.json({ joueurs: await listerJoueurs(req.userId) });
+});
+
+app.get("/defis", authentifie, async (req, res) => {
+  res.json(await defisDuJoueur(req.userId));
+});
+
+app.post("/defis", authentifie, async (req, res) => {
+  try {
+    const id = await envoyerDefi(req.userId, req.body.versUserId);
+    res.json({ id });
+  } catch (err) {
+    res.status(400).json({ erreur: err.message });
+  }
+});
+
+app.post("/defis/:id/repondre", authentifie, async (req, res) => {
+  try {
+    await repondreDefi(req.userId, req.params.id, !!req.body.accepter);
+    res.json({ ok: true });
   } catch (err) {
     res.status(400).json({ erreur: err.message });
   }

@@ -22,7 +22,7 @@
       margin: 0 auto 24px;
     }
     h1 { margin: 0; }
-    h2 { max-width: 1000px; margin: 0 auto 12px; font-size: 18px; color: #bbb; }
+    h2 { max-width: 1000px; margin: 30px auto 12px; font-size: 18px; color: #bbb; }
     .lien {
       color: #f2f2f2;
       text-decoration: none;
@@ -45,7 +45,6 @@
     }
 
     .slot { position: relative; }
-
     .slot-bouton {
       width: 100%;
       min-height: 170px;
@@ -98,7 +97,6 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
     .menu.ouvert { display: block; }
-
     .option {
       display: flex;
       align-items: center;
@@ -121,6 +119,57 @@
     .option .sous { font-size: 12px; color: #bbb; }
     .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
 
+    /* Joueurs et défis */
+    .liste {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .ligne-joueur {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #242424;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 10px 14px;
+    }
+    .point {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #555;
+      flex-shrink: 0;
+    }
+    .point.en-ligne { background: #4caf50; }
+    .ligne-joueur .pseudo { flex: 1; font-weight: bold; }
+    .ligne-joueur .etat { font-size: 12px; color: #999; }
+    .bouton-defi {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #ff8a3d, #e5447a);
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .bouton-defi:disabled {
+      background: #333;
+      color: #888;
+      cursor: default;
+    }
+    .bouton-secondaire {
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #2a2640;
+      color: #f2f2f2;
+      cursor: pointer;
+    }
+    .vide-liste { color: #777; font-size: 14px; }
+
     #message { max-width: 1000px; margin: 20px auto 0; color: #ffb86b; }
   </style>
 </head>
@@ -138,8 +187,16 @@
   <div id="equipe"></div>
   <p id="message"></p>
 
+  <h2>Joueurs</h2>
+  <div id="joueurs" class="liste"></div>
+
+  <h2>Défis reçus</h2>
+  <div id="defis-recus" class="liste"></div>
+
   <script>
     const NB_SLOTS = 6;
+    const INTERVALLE_RAFRAICHISSEMENT_MS = 3000;
+    const INTERVALLE_PRESENCE_MS = 20000;
 
     const RARETES_AFFICHAGE = {
       common:    { label: "Commun",     couleur: "#060ee4" },
@@ -151,9 +208,15 @@
 
     let possedes = [];
     let equipe = Array(NB_SLOTS).fill(null);
+    let defisEnvoyes = [];
+    let defisRecus = [];
 
     const zone = document.getElementById("equipe");
     const message = document.getElementById("message");
+    const zoneJoueurs = document.getElementById("joueurs");
+    const zoneDefisRecus = document.getElementById("defis-recus");
+
+    // ---------- Équipe ----------
 
     function pastilleHTML(rarete) {
       const r = RARETES_AFFICHAGE[rarete] ?? { label: rarete, couleur: "#777" };
@@ -179,12 +242,10 @@
       if (slotOccupe) {
         html += `<button class="option retirer" data-id="">✕ Retirer du slot</button>`;
       }
-
       if (possedes.length === 0) {
         html += `<p style="padding:8px;color:#bbb">Aucun singe possédé.</p>`;
         return html;
       }
-
       for (const s of possedes) {
         const dispo = !dejaUtilises.includes(s.id);
         html += `
@@ -208,7 +269,6 @@
 
       menu.innerHTML = construireOptions(index);
       menu.classList.add("ouvert");
-
       menu.querySelectorAll(".option").forEach((btn) => {
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -241,10 +301,8 @@
 
     function afficherSlots() {
       zone.innerHTML = "";
-
       equipe.forEach((id, index) => {
         const singe = id ? trouverSinge(id) : null;
-
         const slot = document.createElement("div");
         slot.className = "slot";
         slot.innerHTML = `
@@ -257,15 +315,138 @@
               : `<span class="vide">Slot ${index + 1} : vide</span>`}
           </button>
           <div class="menu"></div>`;
-
         slot.querySelector(".slot-bouton").addEventListener("click", (e) => {
           e.stopPropagation();
           ouvrirMenu(slot, index);
         });
-
         zone.appendChild(slot);
       });
     }
+
+    // ---------- Présence ----------
+
+    async function signalerPresence() {
+      await fetch("/presence", { method: "POST" });
+    }
+
+    // ---------- Joueurs et défis ----------
+
+    // Stocke la date de fin en temps absolu pour que le compte à rebours
+    // se mette à jour entre deux rafraîchissements.
+    function normaliserDefi(d) {
+      return { ...d, fin: Date.now() + d.secondes_restantes * 1000 };
+    }
+
+    function tempsRestant(fin) {
+      return Math.max(0, Math.ceil((fin - Date.now()) / 1000));
+    }
+
+    function afficherJoueurs(joueurs) {
+      if (joueurs.length === 0) {
+        zoneJoueurs.innerHTML = `<p class="vide-liste">Aucun autre joueur pour l'instant.</p>`;
+        return;
+      }
+
+      zoneJoueurs.innerHTML = joueurs.map((j) => {
+        const envoye = defisEnvoyes.find((d) => d.vers_user === j.id);
+        let action;
+        if (envoye) {
+          action = `<button class="bouton-secondaire" disabled>
+                      Défi envoyé · <span data-fin="${envoye.fin}">${tempsRestant(envoye.fin)}</span>s
+                    </button>`;
+        } else if (!j.en_ligne) {
+          action = `<button class="bouton-defi" disabled>Hors ligne</button>`;
+        } else {
+          action = `<button class="bouton-defi" data-defier="${j.id}">Défier</button>`;
+        }
+
+        return `
+          <div class="ligne-joueur">
+            <span class="point ${j.en_ligne ? "en-ligne" : ""}"></span>
+            <span class="pseudo">${j.pseudo}</span>
+            <span class="etat">${j.en_ligne ? "En ligne" : "Hors ligne"}</span>
+            ${action}
+          </div>`;
+      }).join("");
+
+      zoneJoueurs.querySelectorAll("[data-defier]").forEach((btn) => {
+        btn.addEventListener("click", () => envoyerDefi(btn.dataset.defier));
+      });
+    }
+
+    function afficherDefisRecus() {
+      if (defisRecus.length === 0) {
+        zoneDefisRecus.innerHTML = `<p class="vide-liste">Aucun défi reçu.</p>`;
+        return;
+      }
+
+      zoneDefisRecus.innerHTML = defisRecus.map((d) => `
+        <div class="ligne-joueur">
+          <span class="pseudo">${d.de_pseudo} te défie</span>
+          <span class="etat">expire dans <span data-fin="${d.fin}">${tempsRestant(d.fin)}</span>s</span>
+          <button class="bouton-defi" data-accepter="${d.id}">Accepter</button>
+          <button class="bouton-secondaire" data-refuser="${d.id}">Refuser</button>
+        </div>`).join("");
+
+      zoneDefisRecus.querySelectorAll("[data-accepter]").forEach((btn) => {
+        btn.addEventListener("click", () => repondreDefi(btn.dataset.accepter, true));
+      });
+      zoneDefisRecus.querySelectorAll("[data-refuser]").forEach((btn) => {
+        btn.addEventListener("click", () => repondreDefi(btn.dataset.refuser, false));
+      });
+    }
+
+    async function envoyerDefi(versUserId) {
+      const reponse = await fetch("/defis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ versUserId }),
+      });
+      const data = await reponse.json();
+      message.textContent = reponse.ok
+        ? "Défi envoyé. Il expire dans 60 secondes."
+        : "Erreur : " + data.erreur;
+      await rafraichirJoueurs();
+    }
+
+    async function repondreDefi(defiId, accepter) {
+      const reponse = await fetch(`/defis/${defiId}/repondre`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accepter }),
+      });
+      const data = await reponse.json();
+      if (!reponse.ok) {
+        message.textContent = "Erreur : " + data.erreur;
+      } else {
+        message.textContent = accepter
+          ? "Défi accepté. Le lancement du combat sera branché à l'étape suivante."
+          : "Défi refusé.";
+      }
+      await rafraichirJoueurs();
+    }
+
+    async function rafraichirJoueurs() {
+      const [rj, rd] = await Promise.all([fetch("/joueurs"), fetch("/defis")]);
+      if (!rj.ok || !rd.ok) return;
+
+      const { joueurs } = await rj.json();
+      const defis = await rd.json();
+      defisEnvoyes = defis.envoyes.map(normaliserDefi);
+      defisRecus = defis.recus.map(normaliserDefi);
+
+      afficherJoueurs(joueurs);
+      afficherDefisRecus();
+    }
+
+    // Met à jour les compteurs chaque seconde sans refaire toute la liste
+    setInterval(() => {
+      document.querySelectorAll("[data-fin]").forEach((el) => {
+        el.textContent = tempsRestant(Number(el.dataset.fin));
+      });
+    }, 1000);
+
+    // ---------- Chargement ----------
 
     document.addEventListener("click", fermerMenus);
 
@@ -275,6 +456,9 @@
         window.location.replace("/");
         return;
       }
+
+      signalerPresence();
+      setInterval(signalerPresence, INTERVALLE_PRESENCE_MS);
 
       afficherSlots();
       try {
@@ -297,6 +481,9 @@
       } catch (err) {
         message.textContent = "Erreur de chargement : " + err.message;
       }
+
+      rafraichirJoueurs();
+      setInterval(rafraichirJoueurs, INTERVALLE_RAFRAICHISSEMENT_MS);
     }
 
     init();
