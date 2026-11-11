@@ -1,5 +1,5 @@
 import express from "express";
-import { tirer, getEspece, getImageUrl, ajouterCopie, getNiveau, getMonkeydex, getCompteurRarete, getStarter, gagnerRecompense, choisirStarter } from "./tirage.js";
+import { tirer, getEspece, getImageUrl, ajouterCopie, getNiveau, getMonkeydex, getCompteurRarete, getStarter, gagnerRecompense, chooseStarter } from "./tirage.js";
 
 
 const RECOMPENSES = {
@@ -63,7 +63,7 @@ app.post("/starter", async (req, res) => {
   const { pseudo, choix } = req.body;
   if (!pseudo || !choix) return res.status(400).json({ erreur: "pseudo et choix requis" });
   try {
-    res.json(await choisirStarter(pseudo, choix));
+    res.json(await chooseStarter(pseudo, choix));
   } catch (err) {
     console.error(err);
     res.status(500).json({ erreur: err.message });
