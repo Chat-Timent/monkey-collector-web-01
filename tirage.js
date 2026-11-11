@@ -142,7 +142,7 @@ const STARTERS = {
 
 export async function getStarter(pseudo) {
   const { rows } = await pool.query(
-    "SELECT nom, niveau, xp, FROM starter WHERE pseudo = $1",
+    "SELECT nom, niveau, xp FROM starter WHERE pseudo = $1",
     [pseudo]
   );
   return rows[0] ?? null;
