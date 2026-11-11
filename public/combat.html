@@ -273,18 +273,27 @@
     document.addEventListener("click", fermerMenus);
 
     async function init() {
-      const [resDex, resEquipe] = await Promise.all([
-        fetch("/monkeydex?pseudo=" + encodeURIComponent(pseudo)),
-        fetch("/equipe?pseudo=" + encodeURIComponent(pseudo)),
-      ]);
-      const dex = await resDex.json();
-      const eq = await resEquipe.json();
-
-      possedes = dex.singes;
-      for (const { slot, espece } of eq.equipe) {
-        equipe[slot - 1] = espece;
-      }
       afficherSlots();
+      try {
+        const [resDex, resEquipe] = await Promise.all([
+          fetch("/monkeydex?pseudo=" + encodeURIComponent(pseudo)),
+          fetch("/equipe?pseudo=" + encodeURIComponent(pseudo)),
+        ]);
+        if (!resDex.ok || !resEquipe.ok) {
+          throw new Error(`monkeydex ${resDex.status}, équipe ${resEquipe.status}`);
+        }
+        const dex = await resDex.json();
+        const eq = await resEquipe.json();
+
+        possedes = dex.singes;
+        equipe = Array(NB_SLOTS).fill(null);
+        for (const { slot, espece } of eq.equipe) {
+          equipe[slot - 1] = espece;
+        }
+        afficherSlots();
+      } catch (err) {
+        message.textContent = "Erreur de chargement : " + err.message;
+      }
     }
 
     init();
