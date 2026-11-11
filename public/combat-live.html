@@ -110,19 +110,73 @@
       font-weight: bold;
       min-height: 30px;
     }
-    #journal {
+    .deux-colonnes {
       max-width: 1000px;
       margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 16px;
+    }
+    @media (max-width: 800px) {
+      .deux-colonnes { grid-template-columns: 1fr; }
+    }
+    #journal {
       background: #1e1e1e;
       border-radius: 10px;
       padding: 12px;
-      height: 180px;
+      height: 340px;
       overflow-y: auto;
       font-size: 13px;
       color: #ccc;
     }
     #journal div { padding: 2px 0; }
     #journal .tour { color: #ffb86b; font-weight: bold; margin-top: 6px; }
+
+    .chat {
+      background: #1e1e1e;
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      height: 340px;
+    }
+    .chat h2 { font-size: 14px; color: #bbb; margin: 0 0 8px; }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 4px;
+    }
+    .msg { background: #262626; border-radius: 8px; padding: 6px 8px; word-wrap: break-word; }
+    .msg.moi { background: #2a3b2f; }
+    .msg .auteur { font-weight: bold; font-size: 12px; color: #ffb86b; }
+    .msg.moi .auteur { color: #7fdc9a; }
+    .msg .heure { font-size: 10px; color: #777; margin-left: 6px; }
+    .msg .texte { margin-top: 2px; }
+    #formChat { display: flex; gap: 6px; margin-top: 8px; }
+    #texteChat {
+      flex: 1;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #161616;
+      color: #f2f2f2;
+      font-size: 13px;
+    }
+    #formChat button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, #ff8a3d, #e5447a);
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #formChat button:disabled { background: #333; color: #888; cursor: default; }
+    #statutChat { font-size: 12px; color: #ffb86b; min-height: 16px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -144,12 +198,26 @@
   </div>
 
   <div id="resultat"></div>
-  <div id="journal"></div>
+
+  <div class="deux-colonnes">
+    <div id="journal"></div>
+
+    <div class="chat">
+      <h2>Chat du combat</h2>
+      <div id="messages"></div>
+      <form id="formChat">
+        <input id="texteChat" maxlength="200" placeholder="Insulte ton adversaire avec amour…" autocomplete="off">
+        <button id="envoyerChat" type="submit">Envoyer</button>
+      </form>
+      <div id="statutChat"></div>
+    </div>
+  </div>
 
   <script>
     // Doit rester identique à tirage.js
     const DELAI_INITIAL_MS = 1000;
     const PAS_MS = 700;
+    const INTERVALLE_CHAT_MS = 2000;
 
     const idCombat = new URLSearchParams(location.search).get("id");
     const $ = (id) => document.getElementById(id);
@@ -168,7 +236,13 @@
     let fx = null;
     let timer = null;
 
+    let dernierIdMessage = 0;
+    let chatLive = false;
+    let chatTimer = null;
+
     const adverse = () => (monCamp === "A" ? "B" : "A");
+
+    // ---------- Combat ----------
 
     function carteHTML(camp, i, m) {
       if (!m) return `<div class="carte vide">Slot ${i + 1}</div>`;
@@ -234,7 +308,6 @@
       ajouterLog(e);
     }
 
-    // Rattrapage à l'ouverture : pas d'animation, on applique directement
     function appliquerSansAnimation(e) {
       if (e.type !== "KO") { actif = null; fx = null; }
       appliquer(e);
@@ -265,6 +338,88 @@
       timer = setTimeout(pas, PAS_MS);
     }
 
+    // ---------- Chat ----------
+
+    function formaterHeure(iso) {
+      return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    // Construit les éléments avec textContent : le texte saisi n'est jamais interprété en HTML
+    function ajouterMessage(m) {
+      const zone = $("messages");
+      const bulle = document.createElement("div");
+      bulle.className = "msg" + (m.moi ? " moi" : "");
+
+      const entete = document.createElement("div");
+      const auteur = document.createElement("span");
+      auteur.className = "auteur";
+      auteur.textContent = m.pseudo;
+      const heure = document.createElement("span");
+      heure.className = "heure";
+      heure.textContent = formaterHeure(m.created_at);
+      entete.appendChild(auteur);
+      entete.appendChild(heure);
+
+      const texte = document.createElement("div");
+      texte.className = "texte";
+      texte.textContent = m.texte;
+
+      bulle.appendChild(entete);
+      bulle.appendChild(texte);
+      zone.appendChild(bulle);
+      zone.scrollTop = zone.scrollHeight;
+    }
+
+    function majStatutChat() {
+      const input = $("texteChat");
+      const bouton = $("envoyerChat");
+      input.disabled = !chatLive;
+      bouton.disabled = !chatLive;
+      $("statutChat").textContent = chatLive ? "" : "Le combat est terminé, le chat est fermé.";
+    }
+
+    async function rafraichirChat() {
+      const r = await fetch(`/combats/${idCombat}/messages?apres=${dernierIdMessage}`);
+      if (!r.ok) return;
+      const data = await r.json();
+
+      for (const m of data.messages) {
+        ajouterMessage(m);
+        dernierIdMessage = m.id;
+      }
+      if (chatLive !== data.live) {
+        chatLive = data.live;
+        majStatutChat();
+      }
+    }
+
+    $("formChat").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = $("texteChat");
+      const texte = input.value.trim();
+      if (!texte) return;
+
+      const r = await fetch(`/combats/${idCombat}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texte }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        $("statutChat").textContent = data.erreur;
+        if (data.erreur === "le combat est terminé") {
+          chatLive = false;
+          majStatutChat();
+        }
+        return;
+      }
+      input.value = "";
+      $("statutChat").textContent = "";
+      rafraichirChat();
+    });
+
+    // ---------- Chargement ----------
+
     async function charger() {
       const moi = await fetch("/moi");
       if (!moi.ok) return location.replace("/");
@@ -288,12 +443,16 @@
       }
       journal = resultat.journal;
 
-      // Rattrapage : on se place là où le combat en est déjà
       const ecoule = Math.max(0, data.ecouleMs - DELAI_INITIAL_MS);
       const cible = Math.min(journal.length, Math.floor(ecoule / PAS_MS));
       for (index = 0; index < cible; index++) appliquerSansAnimation(journal[index]);
 
       dessiner();
+
+      // Chat : on charge tout l'historique du combat, puis on interroge régulièrement
+      await rafraichirChat();
+      chatTimer = setInterval(rafraichirChat, INTERVALLE_CHAT_MS);
+      majStatutChat();
 
       if (index >= journal.length) {
         terminer(false);

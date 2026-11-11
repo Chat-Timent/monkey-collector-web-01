@@ -26,6 +26,8 @@ import {
   repondreDefi,
   getCombat,
   combatsDuJoueur,
+  lireMessages,
+  envoyerMessage,
 } from "./tirage.js";
 
 const app = express();
@@ -191,6 +193,22 @@ app.get("/combats/:id", authentifie, async (req, res) => {
   const combat = await getCombat(req.userId, req.params.id);
   if (!combat) return res.status(404).json({ erreur: "combat introuvable" });
   res.json(combat);
+});
+
+app.get("/combats/:id/messages", authentifie, async (req, res) => {
+  const apres = Number(req.query.apres) || 0;
+  const data = await lireMessages(req.userId, req.params.id, apres);
+  if (!data) return res.status(404).json({ erreur: "combat introuvable" });
+  res.json(data);
+});
+
+app.post("/combats/:id/messages", authentifie, async (req, res) => {
+  try {
+    await envoyerMessage(req.userId, req.params.id, req.body.texte);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ erreur: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

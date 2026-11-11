@@ -495,3 +495,47 @@ export async function combatsDuJoueur(userId) {
     };
   });
 }
+
+// Chat pendant un combat
+
+async function infosCombatPourUser(userId, combatId) {
+  const { rows } = await pool.query(
+    `SELECT (c.user_a = $2 OR c.user_b = $2) AS participant,
+            (c.created_at + (COALESCE((c.resultat->>'dureeMs')::int, 0) * interval '1 millisecond') > now()) AS live
+     FROM combats c WHERE c.id = $1`,
+    [combatId, userId]
+  );
+  return rows[0] ?? null;
+}
+
+export async function lireMessages(userId, combatId, apres = 0) {
+  const infos = await infosCombatPourUser(userId, combatId);
+  if (!infos || !infos.participant) return null;
+
+  const { rows } = await pool.query(
+    `SELECT m.id, m.texte, m.created_at, u.pseudo, (m.user_id = $3) AS moi
+     FROM messages m
+     JOIN users u ON u.id = m.user_id
+     WHERE m.combat_id = $1 AND m.id > $2
+     ORDER BY m.id
+     LIMIT 200`,
+    [combatId, apres, userId]
+  );
+  return { live: infos.live, messages: rows };
+}
+
+export async function envoyerMessage(userId, combatId, texte) {
+  const propre = String(texte ?? "").trim();
+  if (propre.length === 0) throw new Error("message vide");
+  if (propre.length > 200) throw new Error("message trop long (200 caractères max)");
+
+  const infos = await infosCombatPourUser(userId, combatId);
+  if (!infos || !infos.participant) throw new Error("combat introuvable");
+  if (!infos.live) throw new Error("le combat est terminé");
+
+  await pool.query(
+    "INSERT INTO messages (combat_id, user_id, texte) VALUES ($1, $2, $3)",
+    [combatId, userId, propre]
+  );
+  return true;
+}
