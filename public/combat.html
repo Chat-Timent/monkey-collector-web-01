@@ -270,6 +270,7 @@
     let equipe = Array(NB_SLOTS).fill(null);
     let defisEnvoyes = [];
     let defisRecus = [];
+    let premierRafraichissementCombats = true;
 
     const $ = (id) => document.getElementById(id);
     const zone = $("equipe");
@@ -518,10 +519,31 @@
         </div>`;
     }
 
+    // Un combat lancé par moi (mon défi accepté) qui apparaît après le chargement
+    // de la page ouvre directement le spectateur. Les combats déjà existants
+    // au chargement sont marqués comme vus et ne redirigent pas.
+    function cleVu(id) {
+      return "combat_vu_" + id;
+    }
+
     async function rafraichirCombats() {
       const r = await fetch("/combats");
       if (!r.ok) return;
       const { combats } = await r.json();
+
+      if (premierRafraichissementCombats) {
+        combats.forEach((c) => sessionStorage.setItem(cleVu(c.id), "1"));
+        premierRafraichissementCombats = false;
+      } else {
+        const nouveau = combats.find(
+          (c) => c.recent && c.lanceParMoi && !sessionStorage.getItem(cleVu(c.id))
+        );
+        if (nouveau) {
+          sessionStorage.setItem(cleVu(nouveau.id), "1");
+          location.href = `/combat-live.html?id=${nouveau.id}`;
+          return;
+        }
+      }
 
       const enCours = combats.filter((c) => c.recent);
       const historique = combats.filter((c) => !c.recent);

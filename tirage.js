@@ -470,6 +470,7 @@ export async function combatsDuJoueur(userId) {
   const { rows } = await pool.query(
     `SELECT c.id, c.user_a, u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b,
             c.resultat->>'vainqueur' AS vainqueur,
+            (c.user_a = $1) AS lance_par_moi,
             (c.created_at + (COALESCE((c.resultat->>'dureeMs')::int, 0) * interval '1 millisecond') > now()) AS recent
      FROM combats c
      JOIN users u1 ON u1.id = c.user_a
@@ -490,6 +491,7 @@ export async function combatsDuJoueur(userId) {
       adversaire: monCamp === "A" ? r.pseudo_b : r.pseudo_a,
       issue,
       recent: r.recent,
+      lanceParMoi: !!r.lance_par_moi,
     };
   });
 }
