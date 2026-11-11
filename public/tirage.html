@@ -33,6 +33,15 @@
     #topbar img.cachee { display: none; }
     #topbar strong { font-size: 16px; }
     #topbar .detail { font-size: 13px; color: #bbb; }
+    #deconnexion {
+      margin-left: auto;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #2a2640;
+      color: #f2f2f2;
+      cursor: pointer;
+    }
 
     h1 { margin: 0 0 20px; }
     .controles { display: flex; gap: 10px; margin-bottom: 30px; }
@@ -112,6 +121,7 @@
       <div id="starter-niveau" class="detail"></div>
       <div id="starter-xp" class="detail"></div>
     </div>
+    <button id="deconnexion">Déconnexion</button>
   </header>
 
   <h1>Gacha Monkey</h1>
@@ -134,13 +144,15 @@
       <div class="stat"><span>HP</span><strong id="hp"></strong><small id="hp-croissance"></small></div>
       <div class="stat"><span>ATK</span><strong id="atk"></strong><small id="atk-croissance"></small></div>
       <div class="stat"><span>DEF</span><strong id="def"></strong><small id="def-croissance"></small></div>
+      <div class="stat"><span>SPD</span><strong id="spd"></strong></div>
+      <div class="stat"><span>PRE</span><strong id="prec"></strong></div>
+      <div class="stat"><span>ESQ</span><strong id="esq"></strong></div>
+      <div class="stat"><span>CRIT</span><strong id="crit"></strong></div>
+      <div class="stat"><span>CRIT DMG</span><strong id="critdmg"></strong></div>
     </div>
   </div>
 
   <script>
-    const pseudo = localStorage.getItem("pseudo");
-    if (!pseudo) window.location.replace("/");
-
     const RARETES_AFFICHAGE = {
       common:    { label: "Commun",     couleur: "#060ee4" },
       uncommon:  { label: "Non-commun", couleur: "#1af3c3" },
@@ -161,10 +173,9 @@
     });
     imgStarter.addEventListener("load", () => imgStarter.classList.remove("cachee"));
 
-    // Met à jour la topbar avec les données réelles du serveur.
-    // Si le joueur n'a pas de starter, on le renvoie vers le choix.
     async function chargerStarter() {
-      const reponse = await fetch("/profil?pseudo=" + encodeURIComponent(pseudo));
+      const reponse = await fetch("/profil");
+      if (!reponse.ok) return;
       const { starter } = await reponse.json();
       if (!starter) {
         window.location.replace("/starter.html");
@@ -179,12 +190,20 @@
         `XP ${starter.xp} / ${starter.niveau * 100} pour le niveau suivant`;
     }
 
-    document.getElementById("tirer").addEventListener("click", async () => {
-      const reponse = await fetch("/tirage?pseudo=" + encodeURIComponent(pseudo));
-      const data = await reponse.json();
-      const { espece, niveau, image } = data;
+    document.getElementById("deconnexion").addEventListener("click", async () => {
+      await fetch("/deconnexion", { method: "POST" });
+      window.location.replace("/");
+    });
 
-      const calcul = (cle) => espece.base[cle] + espece.croissance[cle] * (niveau.niveau - 1);
+    document.getElementById("tirer").addEventListener("click", async () => {
+      const reponse = await fetch("/tirage");
+      if (!reponse.ok) {
+        document.getElementById("message").textContent = "Erreur : " + (await reponse.json()).erreur;
+        return;
+      }
+      const data = await reponse.json();
+      const { espece, niveau, image, stats } = data;
+
       const rarete = RARETES_AFFICHAGE[espece.rarete] ?? { label: espece.rarete, couleur: "#777" };
       const couleur = "#" + rarete.couleur.replace("#", "");
 
@@ -205,17 +224,28 @@
       document.getElementById("image").src = image;
 
       for (const cle of ["hp", "atk", "def"]) {
-        document.getElementById(cle).textContent = calcul(cle);
+        document.getElementById(cle).textContent = stats[cle];
         document.getElementById(cle + "-croissance").textContent = `+${espece.croissance[cle]} / niv.`;
       }
+      for (const cle of ["spd", "prec", "esq"]) {
+        document.getElementById(cle).textContent = stats[cle];
+      }
+      document.getElementById("crit").textContent = stats.crit + "%";
+      document.getElementById("critdmg").textContent = stats.critdmg + "%";
 
       document.getElementById("carte").style.display = "flex";
 
-      // Met à jour la topbar (XP et niveau du starter) après le tirage
       await chargerStarter();
     });
 
-    chargerStarter();
+    // Vérifie la session au chargement : sans cookie valide, retour à la connexion
+    fetch("/moi").then((r) => {
+      if (!r.ok) {
+        window.location.replace("/");
+        return;
+      }
+      chargerStarter();
+    });
   </script>
 </body>
 </html>

@@ -28,6 +28,7 @@
       text-align: center;
       cursor: pointer;
       color: #f2f2f2;
+      font: inherit;
     }
     .starter:hover { border-color: #ff8a3d; }
     .starter img { width: 140px; height: 140px; object-fit: contain; }
@@ -41,11 +42,11 @@
 
   <div class="choix">
     <button class="starter" data-choix="fire">
-      <img src="/images/Starters/fire_starter.png" alt="">
+      <img src="/images/starters/fire_starter.png" alt="">
       <h2>Fire monkey</h2>
     </button>
     <button class="starter" data-choix="ice">
-      <img src="/images/Starters/ice_starter.png" alt="">
+      <img src="/images/starters/ice_starter.png" alt="">
       <h2>Ice monkey</h2>
     </button>
   </div>
@@ -53,15 +54,16 @@
   <p id="message"></p>
 
   <script>
-    const pseudo = localStorage.getItem("pseudo");
-    if (!pseudo) window.location.replace("/");
+    fetch("/moi").then((r) => {
+      if (!r.ok) window.location.replace("/");
+    });
 
     document.querySelectorAll(".starter").forEach((bouton) => {
       bouton.addEventListener("click", async () => {
         const reponse = await fetch("/starter", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pseudo, choix: bouton.dataset.choix }),
+          body: JSON.stringify({ choix: bouton.dataset.choix }),
         });
         if (!reponse.ok) {
           document.getElementById("message").textContent = "Erreur, réessaie.";

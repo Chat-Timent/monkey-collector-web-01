@@ -1,6 +1,8 @@
 import "dotenv/config";
 import fs from "node:fs";
 import pg from "pg";
+import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 
 const SINGES = JSON.parse(fs.readFileSync("./monkeys.json", "utf8"));
 
@@ -79,6 +81,15 @@ export function getNiveau(rarete, amount) {
   return { niveau, progression: restant, prochain };
 }
 
+export function statsFinales(espece, niveau) {
+  const n = niveau - 1;
+  const s = {};
+  for (const k of Object.keys(espece.base)) {
+    s[k] = espece.base[k] + (espece.croissance[k] ?? 0) * n;
+  }
+  return s;
+}
+
 // Collection
 
 export async function lireCollection(pseudo) {
@@ -114,16 +125,12 @@ export async function getMonkeydex(pseudo) {
     .map(([id, { amount }]) => {
       const espece = SINGES[id];
       const niveau = getNiveau(espece.rarete, amount);
-      const stats = {};
-      for (const k of ["hp", "atk", "def"]) {
-        stats[k] = espece.base[k] + espece.croissance[k] * (niveau.niveau - 1);
-      }
       return {
         id,
         espece,
         amount,
         niveau,
-        stats,
+        stats: statsFinales(espece, niveau.niveau),
         image: getImageUrl(id),
         rang: ordre[espece.rarete] ?? 0,
       };
@@ -237,4 +244,45 @@ export async function definirEquipe(pseudo, especes) {
   }
 
   return getEquipe(pseudo);
+}
+
+import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
+
+export async function creerCompte(pseudo, motDePasse) {
+  if (!/^[\w-]{3,20}$/.test(pseudo)) throw new Error("pseudo invalide (3-20 caractères, lettres, chiffres, - ou _)");
+  if (motDePasse.length < 6) throw new Error("mot de passe trop court (6 caractères minimum)");
+  const hash = await bcrypt.hash(motDePasse, 10);
+  try {
+    await pool.query("INSERT INTO users (pseudo, password_hash) VALUES ($1, $2)", [pseudo, hash]);
+  } catch (err) {
+    if (err.code === "23505") throw new Error("ce pseudo est déjà pris");
+    throw err;
+  }
+}
+
+export async function connecter(pseudo, motDePasse) {
+  const { rows } = await pool.query("SELECT password_hash FROM users WHERE pseudo = $1", [pseudo]);
+  const ok = rows[0] && (await bcrypt.compare(motDePasse, rows[0].password_hash));
+  if (!ok) throw new Error("pseudo ou mot de passe incorrect");
+
+  const token = crypto.randomBytes(32).toString("hex");
+  await pool.query(
+    "INSERT INTO sessions (token, pseudo, expires_at) VALUES ($1, $2, now() + interval '30 days')",
+    [token, pseudo]
+  );
+  return token;
+}
+
+export async function pseudoDepuisToken(token) {
+  if (!token) return null;
+  const { rows } = await pool.query(
+    "SELECT pseudo FROM sessions WHERE token = $1 AND expires_at > now()",
+    [token]
+  );
+  return rows[0]?.pseudo ?? null;
+}
+
+export async function deconnecter(token) {
+  await pool.query("DELETE FROM sessions WHERE token = $1", [token]);
 }

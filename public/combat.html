@@ -139,9 +139,6 @@
   <p id="message"></p>
 
   <script>
-    const pseudo = localStorage.getItem("pseudo");
-    if (!pseudo) window.location.replace("/");
-
     const NB_SLOTS = 6;
 
     const RARETES_AFFICHAGE = {
@@ -152,8 +149,8 @@
       legendary: { label: "Légendaire", couleur: "#fe9308" },
     };
 
-    let possedes = [];                        // singes possédés (depuis /monkeydex)
-    let equipe = Array(NB_SLOTS).fill(null);  // identifiant par slot, ou null
+    let possedes = [];
+    let equipe = Array(NB_SLOTS).fill(null);
 
     const zone = document.getElementById("equipe");
     const message = document.getElementById("message");
@@ -230,7 +227,7 @@
         const reponse = await fetch("/equipe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pseudo, especes: equipe }),
+          body: JSON.stringify({ especes: equipe }),
         });
         const data = await reponse.json();
         if (!reponse.ok) throw new Error(data.erreur);
@@ -273,11 +270,17 @@
     document.addEventListener("click", fermerMenus);
 
     async function init() {
+      const moi = await fetch("/moi");
+      if (!moi.ok) {
+        window.location.replace("/");
+        return;
+      }
+
       afficherSlots();
       try {
         const [resDex, resEquipe] = await Promise.all([
-          fetch("/monkeydex?pseudo=" + encodeURIComponent(pseudo)),
-          fetch("/equipe?pseudo=" + encodeURIComponent(pseudo)),
+          fetch("/monkeydex"),
+          fetch("/equipe"),
         ]);
         if (!resDex.ok || !resEquipe.ok) {
           throw new Error(`monkeydex ${resDex.status}, équipe ${resEquipe.status}`);

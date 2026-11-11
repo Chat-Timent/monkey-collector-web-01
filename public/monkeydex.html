@@ -35,7 +35,7 @@
       max-width: 1000px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 14px;
     }
     .carte {
@@ -64,7 +64,7 @@
     }
     .rarete img { width: 14px; height: 14px; object-fit: contain; }
     .niv { color: #ffb86b; font-size: 12px; }
-    .stats { color: #bbb; font-size: 11px; }
+    .stats { color: #bbb; font-size: 11px; line-height: 1.5; }
     .pagination {
       display: flex;
       gap: 12px;
@@ -81,7 +81,6 @@
       cursor: pointer;
     }
     .pagination button:disabled { opacity: 0.4; cursor: default; }
-
     .compteur { display: flex; gap: 10px; flex-wrap: wrap; max-width: 1000px; margin: 0 auto 20px; }
     .compteur span {
       display: inline-flex; align-items: center; gap: 6px;
@@ -117,9 +116,6 @@
     };
 
     const PAR_PAGE = 12;
-    const pseudo = localStorage.getItem("pseudo");
-    if (!pseudo) window.location.replace("/");
-
     let singes = [];
     let page = 0;
     const grille = document.getElementById("grille");
@@ -136,7 +132,11 @@
             ${r.label}
           </span>
           <div class="niv">Lvl ${s.niveau.niveau} (${s.niveau.progression}/${s.niveau.prochain})</div>
-          <div class="stats">HP ${s.stats.hp} · ATK ${s.stats.atk} · DEF ${s.stats.def}</div>
+          <div class="stats">
+            HP ${s.stats.hp} · ATK ${s.stats.atk} · DEF ${s.stats.def}<br>
+            SPD ${s.stats.spd} · PRE ${s.stats.prec} · ESQ ${s.stats.esq}<br>
+            CRIT ${s.stats.crit}% · CRIT DMG ${s.stats.critdmg}%
+          </div>
         </div>`;
     }
 
@@ -159,12 +159,18 @@
     });
     document.getElementById("suivant").addEventListener("click", () => { page++; afficher(); });
 
-    // Chargement immédiat
     (async () => {
-      const reponse = await fetch("/monkeydex?pseudo=" + encodeURIComponent(pseudo));
+      const moi = await fetch("/moi");
+      if (!moi.ok) {
+        window.location.replace("/");
+        return;
+      }
+
+      const reponse = await fetch("/monkeydex");
       const data = await reponse.json();
       singes = data.singes;
       document.getElementById("total").textContent = `Nombre total de singes : ${data.total}`;
+
       const zoneCompteur = document.getElementById("compteur");
       zoneCompteur.innerHTML = "";
       for (const c of data.compteur) {

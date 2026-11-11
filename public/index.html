@@ -16,12 +16,22 @@
       min-height: 100vh;
       margin: 0;
     }
-    form { display: flex; flex-direction: column; gap: 12px; width: 280px; }
+    .carte-auth {
+      background: #2a2640;
+      border-radius: 16px;
+      padding: 30px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .onglets { display: flex; gap: 8px; }
+    .onglets button { flex: 1; }
     input {
       padding: 12px 16px;
       border-radius: 8px;
       border: 1px solid #444;
-      background: #2a2640;
+      background: #1e1b2e;
       color: #fff;
       font-size: 16px;
     }
@@ -29,31 +39,95 @@
       padding: 12px;
       border: none;
       border-radius: 10px;
-      background: linear-gradient(135deg, #ff8a3d, #e5447a);
+      background: #3a3455;
       color: #fff;
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
     }
+    button.principal { background: linear-gradient(135deg, #ff8a3d, #e5447a); }
+    button.actif { outline: 2px solid #ff8a3d; }
+    #message { color: #ffb86b; min-height: 1.2em; margin: 0; font-size: 14px; }
   </style>
 </head>
 <body>
   <h1>Gacha Monkey</h1>
-  <form id="formulaire">
-    <input id="pseudo" placeholder="Choisis ton pseudo" required>
-    <button type="submit">Entrer</button>
-  </form>
+
+  <div class="carte-auth">
+    <div class="onglets">
+      <button id="onglet-connexion" class="actif">Connexion</button>
+      <button id="onglet-inscription">Inscription</button>
+    </div>
+
+    <form id="formulaire">
+      <input id="pseudo" placeholder="Pseudo" autocomplete="username" required>
+      <input id="motDePasse" type="password" placeholder="Mot de passe" autocomplete="current-password" required>
+      <button type="submit" class="principal" id="valider">Se connecter</button>
+    </form>
+
+    <p id="message"></p>
+  </div>
 
   <script>
-    if (localStorage.getItem("pseudo")) {
-      window.location.replace("/tirage.html");
+    let mode = "connexion";
+    const form = document.getElementById("formulaire");
+    const message = document.getElementById("message");
+    const valider = document.getElementById("valider");
+
+    // Si déjà connecté, on passe directement au tirage
+    fetch("/moi").then((r) => {
+      if (r.ok) window.location.replace("/tirage.html");
+    });
+
+    function changerMode(nouveau) {
+      mode = nouveau;
+      document.getElementById("onglet-connexion").classList.toggle("actif", mode === "connexion");
+      document.getElementById("onglet-inscription").classList.toggle("actif", mode === "inscription");
+      valider.textContent = mode === "connexion" ? "Se connecter" : "Créer le compte";
+      document.getElementById("motDePasse").autocomplete =
+        mode === "connexion" ? "current-password" : "new-password";
+      message.textContent = "";
     }
 
-    document.getElementById("formulaire").addEventListener("submit", (e) => {
+    document.getElementById("onglet-connexion").addEventListener("click", () => changerMode("connexion"));
+    document.getElementById("onglet-inscription").addEventListener("click", () => changerMode("inscription"));
+
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const pseudo = document.getElementById("pseudo").value.trim();
-      if (!pseudo) return;
-      localStorage.setItem("pseudo", pseudo);
+      message.textContent = "";
+
+      const corps = {
+        pseudo: document.getElementById("pseudo").value.trim(),
+        motDePasse: document.getElementById("motDePasse").value,
+      };
+
+      const url = mode === "connexion" ? "/connexion" : "/inscription";
+      const reponse = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(corps),
+      });
+      const data = await reponse.json();
+
+      if (!reponse.ok) {
+        message.textContent = data.erreur;
+        return;
+      }
+
+      if (mode === "inscription") {
+        // Après inscription, on connecte directement
+        const connexion = await fetch("/connexion", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(corps),
+        });
+        if (!connexion.ok) {
+          message.textContent = "Compte créé, connecte-toi.";
+          changerMode("connexion");
+          return;
+        }
+      }
+
       window.location.replace("/tirage.html");
     });
   </script>

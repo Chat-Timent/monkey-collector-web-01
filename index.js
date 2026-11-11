@@ -4,6 +4,7 @@ import {
   getEspece,
   getImageUrl,
   getNiveau,
+  statsFinales,
   ajouterCopie,
   getMonkeydex,
   getCompteurRarete,
@@ -12,11 +13,27 @@ import {
   gagnerRecompense,
   getEquipe,
   definirEquipe,
+  creerCompte,
+  connecter,
+  pseudoDepuisToken,
+  deconnecter,
 } from "./tirage.js";
+
+import cookieParser from "cookie-parser";
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static("public"));
+
+
+async function authentifie(req, res, next) {
+  const pseudo = await pseudoDepuisToken(req.cookies.session);
+  if (!pseudo) return res.status(401).json({ erreur: "non connecté" });
+  req.pseudo = pseudo;
+  next();
+}
+
 
 app.get("/tirage", async (req, res) => {
   const pseudo = req.query.pseudo;
@@ -30,6 +47,7 @@ app.get("/tirage", async (req, res) => {
   const id = tirer();
   const amount = await ajouterCopie(pseudo, id);
   const espece = getEspece(id);
+  const niveau = getNiveau(espece.rarete, amount);
   const starter = await gagnerRecompense(pseudo, espece.rarete);
 
   res.json({
@@ -37,7 +55,8 @@ app.get("/tirage", async (req, res) => {
     espece,
     image: getImageUrl(id),
     amount,
-    niveau: getNiveau(espece.rarete, amount),
+    niveau,
+    stats: statsFinales(espece, niveau.niveau),
     starter,
   });
 });
@@ -88,6 +107,41 @@ app.post("/equipe", async (req, res) => {
     res.status(400).json({ erreur: err.message });
   }
 });
+
+
+app.post("/inscription", async (req, res) => {
+  try {
+    await creerCompte(req.body.pseudo, req.body.motDePasse);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ erreur: err.message });
+  }
+});
+
+app.post("/connexion", async (req, res) => {
+  try {
+    const token = await connecter(req.body.pseudo, req.body.motDePasse);
+    res.cookie("session", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 30 * 24 * 3600 * 1000,
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(401).json({ erreur: err.message });
+  }
+});
+
+
+app.post("/deconnexion", async (req, res) => {
+  await deconnecter(req.cookies.session);
+  res.clearCookie("session");
+  res.json({ ok: true });
+});
+
+app.get("/moi", authentifie, (req, res) => res.json({ pseudo: req.pseudo }));
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Serveur sur le port ${PORT}`));
