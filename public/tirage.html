@@ -111,12 +111,14 @@
 
   <script>
 
-    fetch("/profil?pseudo=" + encodeURIComponent(pseudo))
+    const pseudo = localStorage.getItem("pseudo");
+    if (!pseudo) window.location.replace("/");
+
+
+  fetch("/profil?pseudo=" + encodeURIComponent(pseudo))
     .then((r) => r.json())
     .then((d) => { if (!d.starter) window.location.replace("/starter.html"); });
 
-    const pseudo = localStorage.getItem("pseudo");
-    if (!pseudo) window.location.replace("/");
 
     const RARETES_AFFICHAGE = {
       common:    { label: "Commun",     couleur: "#060ee4" },
