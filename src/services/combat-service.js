@@ -1,6 +1,6 @@
 import { pool } from "../config/database.js";
 import { DELAI_INITIAL_MS, PAS_MS } from "../constants/game.js";
-import { SINGES } from "../data/monkeys.js";
+import { SINGES } from "../monkeys.js";
 import { combat } from "../game/combat-engine.js";
 import { getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
 import { lireCollection } from "./collection-service.js";

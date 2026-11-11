@@ -1,6 +1,6 @@
 import { pool } from "../config/database.js";
 import { RARETES } from "../constants/game.js";
-import { SINGES } from "../data/monkeys.js";
+import { SINGES } from "../monkeys.js";
 import { getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
 
 export async function lireCollection(userId) {

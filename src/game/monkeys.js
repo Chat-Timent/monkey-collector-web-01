@@ -1,5 +1,5 @@
 import { PALIERS, RARETES } from "../constants/game.js";
-import { SINGES } from "../data/monkeys.js";
+import { SINGES } from "../monkeys.js";
 
 function tirerPondere(items) {
   const total = items.reduce((somme, it) => somme + it.poids, 0);
