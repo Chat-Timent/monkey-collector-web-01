@@ -35,7 +35,7 @@
       max-width: 1000px;
       margin: 0 auto;
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 14px;
     }
     .carte {
@@ -48,7 +48,12 @@
       text-align: center;
       gap: 6px;
       border: 1px solid #333;
+      cursor: pointer;
+      transition: border-color 0.15s, transform 0.15s;
+      font: inherit;
+      color: inherit;
     }
+    .carte:hover { border-color: #ff8a3d; transform: translateY(-2px); }
     .carte img { width: 90px; height: 90px; object-fit: contain; }
     .carte h3 { margin: 0; font-size: 15px; }
     .rarete {
@@ -64,7 +69,6 @@
     }
     .rarete img { width: 14px; height: 14px; object-fit: contain; }
     .niv { color: #ffb86b; font-size: 12px; }
-    .stats { color: #bbb; font-size: 11px; line-height: 1.5; }
     .pagination {
       display: flex;
       gap: 12px;
@@ -88,6 +92,59 @@
       background: #2a2640; border: 1.5px solid; font-size: 13px; font-weight: bold;
     }
     .compteur img { width: 16px; height: 16px; }
+
+    /* Fenêtre de détail */
+    #detail {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 50;
+    }
+    #detail.ouverte { display: flex; }
+    .fiche {
+      background: #242424;
+      border: 1px solid #444;
+      border-radius: 16px;
+      padding: 24px;
+      width: min(480px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .fermer {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #bbb;
+      font-size: 22px;
+      cursor: pointer;
+    }
+    .fiche-entete { display: flex; gap: 16px; align-items: center; }
+    .fiche-entete img { width: 110px; height: 110px; object-fit: contain; flex-shrink: 0; }
+    .fiche h2 { margin: 0 0 6px; font-size: 22px; }
+    .fiche .description { font-style: italic; color: #bbb; font-size: 14px; margin: 0 0 10px; }
+    .fiche .niveau { color: #ffb86b; font-size: 13px; }
+    .fiche table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      font-size: 14px;
+    }
+    .fiche th, .fiche td {
+      padding: 7px 6px;
+      border-bottom: 1px solid #333;
+      text-align: right;
+    }
+    .fiche th:first-child, .fiche td:first-child { text-align: left; }
+    .fiche th { color: #999; font-weight: normal; font-size: 12px; text-transform: uppercase; }
+    .fiche td.croissance { color: #7fdc9a; }
   </style>
 </head>
 <body>
@@ -106,6 +163,26 @@
     <button id="suivant">▶</button>
   </div>
 
+  <div id="detail">
+    <div class="fiche">
+      <button class="fermer" id="fermer" aria-label="Fermer">×</button>
+      <div class="fiche-entete">
+        <img id="detail-image" alt="">
+        <div>
+          <h2 id="detail-nom"></h2>
+          <p class="description" id="detail-description"></p>
+          <div class="niveau" id="detail-niveau"></div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Stat</th><th>Actuelle</th><th>Base</th><th>Croissance / niv.</th></tr>
+        </thead>
+        <tbody id="detail-stats"></tbody>
+      </table>
+    </div>
+  </div>
+
   <script src="/js/session.js"></script>
   <script>
     const RARETES_AFFICHAGE = {
@@ -115,6 +192,18 @@
       epic:      { label: "Epic",       couleur: "#a831eb" },
       legendary: { label: "Légendaire", couleur: "#fe9308" },
     };
+
+    // Libellés et ordre d'affichage des stats dans la fiche
+    const STATS_FICHE = [
+      { cle: "hp",      libelle: "PV",          suffixe: "" },
+      { cle: "atk",     libelle: "ATK",         suffixe: "" },
+      { cle: "def",     libelle: "DEF",         suffixe: "" },
+      { cle: "spd",     libelle: "Vitesse",     suffixe: "" },
+      { cle: "prec",    libelle: "Précision",   suffixe: "" },
+      { cle: "esq",     libelle: "Esquive",     suffixe: "" },
+      { cle: "crit",    libelle: "Critique",    suffixe: "%" },
+      { cle: "critdmg", libelle: "Dégâts crit", suffixe: "%" },
+    ];
 
     const PAR_PAGE = 12;
     let singes = [];
@@ -130,11 +219,11 @@
       })));
     }
 
-    function carteHTML(s) {
+    function carteHTML(s, indexGlobal) {
       const r = RARETES_AFFICHAGE[s.espece.rarete] ?? { label: s.espece.rarete, couleur: "#777" };
       const couleur = "#" + r.couleur.replace("#", "");
       return `
-        <div class="carte">
+        <button class="carte" data-index="${indexGlobal}">
           <img src="${s.image}" alt="">
           <h3>${s.espece.nom} <small>×${s.amount}</small></h3>
           <span class="rarete" style="border-color:${couleur}; color:${couleur}">
@@ -142,12 +231,7 @@
             ${r.label}
           </span>
           <div class="niv">Lvl ${s.niveau.niveau} (${s.niveau.progression}/${s.niveau.prochain})</div>
-          <div class="stats">
-            HP ${s.stats.hp} · ATK ${s.stats.atk} · DEF ${s.stats.def}<br>
-            SPD ${s.stats.spd} · PRE ${s.stats.prec} · ESQ ${s.stats.esq}<br>
-            CRIT ${s.stats.crit}% · CRIT DMG ${s.stats.critdmg}%
-          </div>
-        </div>`;
+        </button>`;
     }
 
     async function afficher() {
@@ -163,13 +247,63 @@
       if (version !== renduVersion) return;
 
       grille.innerHTML = morceau.length
-        ? morceau.map(carteHTML).join("")
+        ? morceau.map((s, i) => carteHTML(s, debut + i)).join("")
         : "<p>Aucun singe trouvé.</p>";
 
       document.getElementById("page").textContent = `Page ${page + 1}/${totalPages}`;
       document.getElementById("precedent").disabled = page === 0;
       document.getElementById("suivant").disabled = page >= totalPages - 1;
     }
+
+    // ---------- Fiche détaillée ----------
+
+    function ouvrirFiche(s) {
+      const r = RARETES_AFFICHAGE[s.espece.rarete] ?? { label: s.espece.rarete, couleur: "#777" };
+      const couleur = "#" + r.couleur.replace("#", "");
+
+      document.getElementById("detail-image").src = s.image;
+      document.getElementById("detail-nom").textContent = s.espece.nom;
+      document.getElementById("detail-nom").style.color = couleur;
+      document.getElementById("detail-description").textContent = s.espece.description ?? "";
+      document.getElementById("detail-niveau").textContent =
+        `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}`;
+
+      const lignes = STATS_FICHE.map(({ cle, libelle, suffixe }) => {
+        const base = s.espece.base[cle] ?? 0;
+        const croissance = s.espece.croissance[cle] ?? 0;
+        const actuelle = s.stats[cle] ?? 0;
+        return `
+          <tr>
+            <td>${libelle}</td>
+            <td>${actuelle}${suffixe}</td>
+            <td>${base}${suffixe}</td>
+            <td class="croissance">+${croissance}${suffixe}</td>
+          </tr>`;
+      }).join("");
+      document.getElementById("detail-stats").innerHTML = lignes;
+
+      document.getElementById("detail").classList.add("ouverte");
+    }
+
+    function fermerFiche() {
+      document.getElementById("detail").classList.remove("ouverte");
+    }
+
+    grille.addEventListener("click", (e) => {
+      const carte = e.target.closest(".carte");
+      if (!carte) return;
+      ouvrirFiche(singes[Number(carte.dataset.index)]);
+    });
+
+    document.getElementById("fermer").addEventListener("click", fermerFiche);
+    document.getElementById("detail").addEventListener("click", (e) => {
+      if (e.target.id === "detail") fermerFiche();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") fermerFiche();
+    });
+
+    // ---------- Navigation et chargement ----------
 
     document.getElementById("precedent").addEventListener("click", () => {
       if (page > 0) { page--; afficher(); }
