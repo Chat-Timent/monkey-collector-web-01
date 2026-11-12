@@ -5,52 +5,227 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Monkey Collector V0.1</title>
   <style>
+    :root {
+      --fond: #1e1b2e;
+      --panneau: #1c1c1c;
+      --panneau-bord: #2a2a2a;
+      --carte: #2a2640;
+      --carte-bord: #444;
+      --texte: #f2f2f2;
+      --texte-doux: #bbb;
+      --accent: #ff8a3d;
+      --accent-2: #e5447a;
+      --or: #ffb86b;
+      --vert: #7fdc9a;
+      --topbar-h: 84px;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       font-family: system-ui, sans-serif;
-      background: #1e1b2e;
-      color: #f2f2f2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background: var(--fond);
+      color: var(--texte);
       margin: 0;
-      padding: 90px 20px 30px;
-      min-height: 100vh;
-      box-sizing: border-box;
+      padding: var(--topbar-h) 0 0;
+      height: 100vh;
+      overflow: hidden;
     }
+
+    /* ---------- Topbar ---------- */
 
     #topbar {
       position: fixed;
       top: 0; left: 0; right: 0;
-      display: flex;
+      height: var(--topbar-h);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      gap: 12px;
-      padding: 10px 20px;
-      background: #242424;
-      border-bottom: 1px solid #333;
+      gap: 16px;
+      padding: 0 24px;
+      background: linear-gradient(180deg, #2a2640, #232034);
+      border-bottom: 1px solid #3a3555;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
       z-index: 10;
     }
-    #topbar img { width: 48px; height: 48px; object-fit: contain; }
-    #topbar img.cachee { display: none; }
-    #topbar strong { font-size: 16px; }
-    #topbar .detail { font-size: 13px; color: #bbb; }
+
+    .starter-bloc {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+    .starter-bloc .avatar {
+      width: 60px; height: 60px;
+      border-radius: 14px;
+      background: #1e1b2e;
+      border: 2px solid var(--or);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .starter-bloc .avatar img { width: 52px; height: 52px; object-fit: contain; }
+    .starter-bloc .avatar img.cachee { display: none; }
+    .starter-info { min-width: 0; flex: 1; }
+    .starter-ligne { display: flex; align-items: center; gap: 8px; }
+    #starter-nom {
+      font-size: 16px;
+      font-weight: bold;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #starter-niveau {
+      font-size: 12px;
+      font-weight: bold;
+      color: #1e1b2e;
+      background: var(--or);
+      padding: 2px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .xp-track {
+      margin-top: 6px;
+      height: 10px;
+      width: 100%;
+      max-width: 220px;
+      background: #111;
+      border: 1px solid #3a3555;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .xp-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #f0a020, #ffd36b);
+      transition: width 0.6s ease;
+    }
+    #starter-xp {
+      font-size: 11px;
+      color: var(--texte-doux);
+      margin-top: 3px;
+    }
+
+    .titre-topbar {
+      font-size: 22px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-align: center;
+      white-space: nowrap;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .droite-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .ressource {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: #1e1b2e;
+      border: 1px solid #3a3555;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .ressource .icone { font-size: 18px; }
+    .ressource .valeur { color: var(--or); }
+
     #deconnexion {
-      margin-left: auto;
       padding: 8px 14px;
       border-radius: 8px;
-      border: 1px solid #444;
-      background: #2a2640;
-      color: #f2f2f2;
+      border: 1px solid var(--carte-bord);
+      background: var(--carte);
+      color: var(--texte);
       cursor: pointer;
     }
 
-    h1 { margin: 0 0 20px; }
-    .controles { display: flex; gap: 10px; margin-bottom: 30px; }
+    /* ---------- Mise en page : panneaux collés aux bords ---------- */
+
+    .page {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr) 320px;
+      gap: 0;
+      min-height: 0;
+    }
+
+    .panneau {
+      background: var(--panneau);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: 100%;
+    }
+    .classement-panneau { border-right: 1px solid var(--panneau-bord); }
+    .chat-panneau { border-left: 1px solid var(--panneau-bord); }
+
+    .panneau h2 {
+      font-size: 14px;
+      color: var(--texte-doux);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0 0 12px;
+      flex-shrink: 0;
+    }
+
+    .liste {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 4px;
+    }
+
+    .joueur {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #242424;
+      font-size: 14px;
+      border: 1px solid transparent;
+      flex-shrink: 0;
+    }
+    .joueur.moi { border-color: #2e6b3a; }
+    .joueur .rang { width: 22px; color: #888; font-size: 12px; font-weight: bold; }
+    .joueur .pseudo { flex: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .joueur .total { font-weight: bold; color: var(--or); }
+    .joueur.moi .total { color: var(--vert); }
+    .vide { color: #777; font-size: 13px; }
+
+    /* Zone centrale */
+    .gacha {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 0;
+      min-height: 0;
+      height: 100%;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .gacha h1 { margin: 0 0 20px; font-size: 26px; }
+
+    .controles { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
     .bouton {
       padding: 14px 24px;
       border-radius: 10px;
-      border: 1px solid #444;
-      background: #2a2640;
-      color: #f2f2f2;
+      border: 1px solid var(--carte-bord);
+      background: var(--carte);
+      color: var(--texte);
       font-size: 18px;
       font-weight: bold;
       text-decoration: none;
@@ -60,7 +235,7 @@
     }
     #tirer {
       border: none;
-      background: linear-gradient(135deg, #ff8a3d, #e5447a);
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
       transition: transform 0.1s, box-shadow 0.2s;
     }
     #tirer:hover {
@@ -68,12 +243,13 @@
       box-shadow: 0 6px 16px rgba(229, 68, 122, 0.4);
     }
     #tirer:active { transform: translateY(0); }
+
     #carte {
       display: none;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      background: #2a2640;
+      background: var(--carte);
       border-radius: 16px;
       padding: 30px;
       width: 340px;
@@ -89,151 +265,138 @@
       font-size: 14px;
       font-weight: bold;
       color: #fff;
-      background: #2a2640;
+      background: var(--carte);
       border: 2px solid;
       margin-bottom: 14px;
     }
     .rarete img { width: 24px; height: 24px; object-fit: contain; }
-    #description { font-size: 15px; font-style: italic; color: #bbb; margin: 0 0 16px; }
-    #niveau { color: #ffb86b; margin-bottom: 16px; }
+    #description { font-size: 15px; font-style: italic; color: var(--texte-doux); margin: 0 0 16px; }
+    #niveau { color: var(--or); margin-bottom: 16px; }
     #image { width: 200px; height: 200px; object-fit: contain; }
     #stats {
       width: 100%;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 8px;
-      border-top: 1px solid #444;
+      border-top: 1px solid var(--carte-bord);
       margin-top: 20px;
       padding-top: 16px;
     }
     .stat span { display: block; font-size: 12px; color: #999; }
     .stat strong { display: block; font-size: 18px; }
-    .stat small { color: #7fdc9a; font-size: 12px; }
-    #message { color: #ffb86b; }
+    .stat small { color: var(--vert); font-size: 12px; }
+    #message { color: var(--or); }
 
-    .page {
-      width: min(1400px, 100%);
-      display: grid;
-      grid-template-columns: 260px minmax(0, 1fr) 320px;
-      gap: 24px;
-      align-items: start;
-    }
-    .gacha {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 0;
-    }
-
-    /* Colonne gauche : classement */
-    .classement-col {
-      background: #1c1c1c;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 14px;
-      position: sticky;
-      top: 90px;
-      box-sizing: border-box;
-    }
-    .classement-col h2 { font-size: 16px; color: #bbb; margin: 0 0 12px; }
-    .colonne { display: flex; flex-direction: column; gap: 6px; }
-    .joueur {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: #242424;
-      font-size: 14px;
-      border: 1px solid transparent;
-    }
-    .joueur.moi { border-color: #2e6b3a; }
-    .joueur .rang { width: 22px; color: #888; font-size: 12px; font-weight: bold; }
-    .joueur .pseudo { flex: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .joueur .total { font-weight: bold; color: #ffb86b; }
-    .joueur.moi .total { color: #7fdc9a; }
-    .vide { color: #777; font-size: 13px; }
-
-    /* Colonne droite : chat */
-    .chat {
-      background: #2a2640;
-      border: 1px solid #444;
-      border-radius: 12px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      height: 420px;
-      position: sticky;
-      top: 90px;
-    }
-    .chat h2 { font-size: 14px; color: #bbb; margin: 0 0 8px; }
-    #messages {
+    /* Chat */
+    .chat-texte {
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
-      font-size: 13px;
       display: flex;
       flex-direction: column;
       gap: 6px;
       padding-right: 4px;
     }
-    .msg { background: #262626; border-radius: 8px; padding: 6px 8px; word-wrap: break-word; }
+    .msg {
+      background: #262626;
+      border-radius: 8px;
+      padding: 6px 8px;
+      word-wrap: break-word;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
     .msg.moi { background: #2a3b2f; }
-    .msg .auteur { font-weight: bold; font-size: 12px; color: #ffb86b; }
-    .msg.moi .auteur { color: #7fdc9a; }
+    .msg .auteur { font-weight: bold; font-size: 12px; color: var(--or); }
+    .msg.moi .auteur { color: var(--vert); }
     .msg .heure { font-size: 10px; color: #777; margin-left: 6px; }
     .msg .texte { margin-top: 2px; }
-    #formChat { display: flex; gap: 6px; margin-top: 8px; }
+
+    #formChat { display: flex; gap: 6px; margin-top: 10px; flex-shrink: 0; }
     #texteChat {
       flex: 1;
+      min-width: 0;
       padding: 8px 10px;
       border-radius: 8px;
-      border: 1px solid #444;
+      border: 1px solid var(--carte-bord);
       background: #161616;
-      color: #f2f2f2;
+      color: var(--texte);
       font-size: 13px;
     }
     #formChat button {
       padding: 8px 12px;
       border-radius: 8px;
       border: none;
-      background: linear-gradient(135deg, #ff8a3d, #e5447a);
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
       color: #fff;
       font-weight: bold;
       cursor: pointer;
     }
-    #statutChat { font-size: 12px; color: #ffb86b; min-height: 16px; margin-top: 4px; }
+    #statutChat { font-size: 12px; color: var(--or); min-height: 16px; margin-top: 4px; flex-shrink: 0; }
+
+    /* ---------- Adaptation petits écrans ---------- */
 
     @media (max-width: 1100px) {
-      .page { grid-template-columns: 1fr 320px; }
-      .classement-col { grid-column: 1 / -1; position: static; }
+      body { height: auto; min-height: 100vh; overflow: auto; }
+      .page { grid-template-columns: 240px minmax(0, 1fr); height: auto; }
+      .gacha { height: auto; overflow: visible; }
+      .classement-panneau { height: auto; max-height: 70vh; }
+      .chat-panneau {
+        grid-column: 1 / -1;
+        height: 360px;
+        border-left: none;
+        border-top: 1px solid var(--panneau-bord);
+      }
     }
-    @media (max-width: 900px) {
+    @media (max-width: 800px) {
       .page { grid-template-columns: 1fr; }
-      .chat { position: static; height: 340px; }
+      .classement-panneau {
+        grid-column: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--panneau-bord);
+        max-height: none;
+      }
+      .classement-panneau .liste { max-height: 260px; flex: none; }
+      .chat-panneau { height: 340px; border-top: none; border-bottom: 1px solid var(--panneau-bord); }
+      .titre-topbar { font-size: 16px; }
+      .droite-topbar #deconnexion { display: none; }
     }
   </style>
 </head>
 <body>
 
   <header id="topbar">
-    <img id="starter-img" alt="">
-    <div>
-      <strong id="starter-nom">Chargement…</strong>
-      <div id="starter-niveau" class="detail"></div>
-      <div id="starter-xp" class="detail"></div>
+    <div class="starter-bloc">
+      <div class="avatar">
+        <img id="starter-img" alt="">
+      </div>
+      <div class="starter-info">
+        <div class="starter-ligne">
+          <span id="starter-nom">Chargement…</span>
+          <span id="starter-niveau"></span>
+        </div>
+        <div class="xp-track"><div id="starter-xp-fill" class="xp-fill"></div></div>
+        <div id="starter-xp"></div>
+      </div>
     </div>
-    <button id="deconnexion">Déconnexion</button>
+
+    <div class="titre-topbar">MONKEY COLLECTOR</div>
+
+    <div class="droite-topbar">
+      <div class="ressource" title="Coins">
+        <span class="icone">💰</span>
+        <span id="coins" class="valeur">0</span>
+      </div>
+      <button id="deconnexion">Déconnexion</button>
+    </div>
   </header>
 
   <div class="page">
-    <aside class="classement-col">
-      <h2>Classement (singes possédés)</h2>
-      <div id="classement" class="colonne"></div>
+    <aside class="panneau classement-panneau">
+      <h2>Classement</h2>
+      <div id="classement" class="liste"></div>
     </aside>
 
-    <div class="gacha">
-      <h1>Monkey Collector</h1>
-
+    <main class="gacha">
       <div class="controles">
         <button id="tirer" class="bouton">Tirer un singe</button>
         <a href="/monkeydex.html" class="bouton">Monkeydex</a>
@@ -259,17 +422,17 @@
           <div class="stat"><span>CRIT DMG</span><strong id="critdmg"></strong></div>
         </div>
       </div>
-    </div>
+    </main>
 
-    <div class="chat">
+    <aside class="panneau chat-panneau">
       <h2>Chat global</h2>
-      <div id="messages"></div>
+      <div id="messages" class="chat-texte"></div>
       <form id="formChat">
         <input id="texteChat" maxlength="200" placeholder="Parle à tout le monde…" autocomplete="off">
         <button id="envoyerChat" type="submit">Envoyer</button>
       </form>
       <div id="statutChat"></div>
-    </div>
+    </aside>
   </div>
 
   <script>
@@ -296,13 +459,20 @@
     });
     imgStarter.addEventListener("load", () => imgStarter.classList.remove("cachee"));
 
+    // Affiche le starter, sa barre d'XP et les coins
     function afficherStarter(starter) {
+      if (!starter) return;
       const chemin = IMAGES_STARTERS[starter.nom];
       if (chemin) imgStarter.src = chemin;
+
+      const seuil = starter.niveau * 100;
+      const pct = Math.min(100, Math.round((starter.xp / seuil) * 100));
+
       document.getElementById("starter-nom").textContent = starter.nom;
-      document.getElementById("starter-niveau").textContent = `Niveau ${starter.niveau}`;
-      document.getElementById("starter-xp").textContent =
-        `XP ${starter.xp} / ${starter.niveau * 100} pour le niveau suivant`;
+      document.getElementById("starter-niveau").textContent = `Niv. ${starter.niveau}`;
+      document.getElementById("starter-xp-fill").style.width = pct + "%";
+      document.getElementById("starter-xp").textContent = `${starter.xp} / ${seuil} XP`;
+      document.getElementById("coins").textContent = starter.coins ?? 0;
     }
 
     function prechargerImages(urls) {
@@ -398,7 +568,6 @@
         rang.className = "rang";
         rang.textContent = i + 1;
 
-        // textContent : le pseudo n'est jamais interprété comme du HTML
         const pseudo = document.createElement("span");
         pseudo.className = "pseudo";
         pseudo.textContent = j.pseudo;
