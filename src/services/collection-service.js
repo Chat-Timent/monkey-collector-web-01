@@ -79,3 +79,20 @@ export async function getResumeMonkeydex(userId) {
     singes,
   };
 }
+
+
+export async function getClassement(userId) {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.pseudo, COALESCE(SUM(c.amount), 0)::int AS total
+     FROM users u
+     LEFT JOIN collections c ON c.user_id = u.id
+     GROUP BY u.id, u.pseudo
+     ORDER BY total DESC, u.pseudo
+     LIMIT 50`
+  );
+  return rows.map((r) => ({
+    pseudo: r.pseudo,
+    total: r.total,
+    moi: r.id === userId,
+  }));
+}

@@ -3,6 +3,7 @@ import { authentifie } from "../middleware/authentifie.js";
 import {
   ajouterCopie,
   getResumeMonkeydex,
+  getClassement,
 } from "../services/collection-service.js";
 import { choisirStarter, gagnerRecompense, getStarter } from "../services/starter-service.js";
 import { definirEquipe, getEquipe } from "../services/team-service.js";
@@ -67,4 +68,8 @@ gameRoutes.post("/equipe", authentifie, async (req, res) => {
   } catch (err) {
     res.status(400).json({ erreur: err.message });
   }
+});
+
+gameRoutes.get("/classement", authentifie, async (req, res) => {
+  res.json({ joueurs: await getClassement(req.userId) });
 });

@@ -112,9 +112,9 @@
     #message { color: #ffb86b; }
 
     .page {
-      width: min(1100px, 100%);
+      width: min(1400px, 100%);
       display: grid;
-      grid-template-columns: 1fr 320px;
+      grid-template-columns: 260px minmax(0, 1fr) 320px;
       gap: 24px;
       align-items: start;
     }
@@ -122,7 +122,39 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      min-width: 0;
     }
+
+    /* Colonne gauche : classement */
+    .classement-col {
+      background: #1c1c1c;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 14px;
+      position: sticky;
+      top: 90px;
+      box-sizing: border-box;
+    }
+    .classement-col h2 { font-size: 16px; color: #bbb; margin: 0 0 12px; }
+    .colonne { display: flex; flex-direction: column; gap: 6px; }
+    .joueur {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: #242424;
+      font-size: 14px;
+      border: 1px solid transparent;
+    }
+    .joueur.moi { border-color: #2e6b3a; }
+    .joueur .rang { width: 22px; color: #888; font-size: 12px; font-weight: bold; }
+    .joueur .pseudo { flex: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .joueur .total { font-weight: bold; color: #ffb86b; }
+    .joueur.moi .total { color: #7fdc9a; }
+    .vide { color: #777; font-size: 13px; }
+
+    /* Colonne droite : chat */
     .chat {
       background: #2a2640;
       border: 1px solid #444;
@@ -170,6 +202,11 @@
       cursor: pointer;
     }
     #statutChat { font-size: 12px; color: #ffb86b; min-height: 16px; margin-top: 4px; }
+
+    @media (max-width: 1100px) {
+      .page { grid-template-columns: 1fr 320px; }
+      .classement-col { grid-column: 1 / -1; position: static; }
+    }
     @media (max-width: 900px) {
       .page { grid-template-columns: 1fr; }
       .chat { position: static; height: 340px; }
@@ -189,6 +226,11 @@
   </header>
 
   <div class="page">
+    <aside class="classement-col">
+      <h2>Classement (singes possédés)</h2>
+      <div id="classement" class="colonne"></div>
+    </aside>
+
     <div class="gacha">
       <h1>Monkey Collector</h1>
 
@@ -230,7 +272,6 @@
     </div>
   </div>
 
-  <script src="/js/session.js"></script>
   <script>
     const RARETES_AFFICHAGE = {
       common:    { label: "Commun",     couleur: "#060ee4" },
@@ -244,6 +285,9 @@
       "Fire monkey": "/images/Starters/fire_starter.png",
       "Ice monkey": "/images/Starters/ice_starter.png",
     };
+
+    const INTERVALLE_CHAT_MS = 2000;
+    const INTERVALLE_CLASSEMENT_MS = 10000;
 
     const imgStarter = document.getElementById("starter-img");
     imgStarter.addEventListener("error", () => {
@@ -329,11 +373,47 @@
 
       document.getElementById("carte").style.display = "flex";
       afficherStarter(data.starter);
+      chargerClassement();
     });
+
+    // ---------- Classement ----------
+
+    async function chargerClassement() {
+      const r = await fetch("/classement");
+      if (!r.ok) return;
+      const { joueurs } = await r.json();
+      const zone = document.getElementById("classement");
+      zone.innerHTML = "";
+
+      if (joueurs.length === 0) {
+        zone.innerHTML = `<p class="vide">Aucun joueur pour l'instant.</p>`;
+        return;
+      }
+
+      joueurs.forEach((j, i) => {
+        const ligne = document.createElement("div");
+        ligne.className = "joueur" + (j.moi ? " moi" : "");
+
+        const rang = document.createElement("span");
+        rang.className = "rang";
+        rang.textContent = i + 1;
+
+        // textContent : le pseudo n'est jamais interprété comme du HTML
+        const pseudo = document.createElement("span");
+        pseudo.className = "pseudo";
+        pseudo.textContent = j.pseudo;
+
+        const total = document.createElement("span");
+        total.className = "total";
+        total.textContent = j.total;
+
+        ligne.append(rang, pseudo, total);
+        zone.appendChild(ligne);
+      });
+    }
 
     // ---------- Chat global ----------
 
-    const INTERVALLE_CHAT_MS = 2000;
     let dernierIdMessage = 0;
     let rafraichissementChat = null;
 
@@ -386,7 +466,6 @@
           const data = await r.json();
 
           for (const m of data.messages) {
-            // Protection : ne jamais afficher deux fois le même message
             if (document.querySelector(`#messages [data-id="${m.id}"]`)) continue;
             ajouterMessage(m);
             dernierIdMessage = Math.max(dernierIdMessage, m.id);
@@ -425,7 +504,6 @@
 
     // ---------- Chargement ----------
 
-    // Vérifie la session au chargement : sans cookie valide, retour à la connexion
     Promise.all([fetch("/moi"), fetch("/profil")]).then(([moi, profil]) => {
       if (!moi.ok) {
         window.location.replace("/");
@@ -433,7 +511,9 @@
       }
       chargerStarter(profil);
       rafraichirChat();
+      chargerClassement();
       setInterval(rafraichirChat, INTERVALLE_CHAT_MS);
+      setInterval(chargerClassement, INTERVALLE_CLASSEMENT_MS);
     });
   </script>
 </body>
