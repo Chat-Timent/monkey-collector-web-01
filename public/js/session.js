@@ -13,7 +13,7 @@
     notification.type = "button";
     notification.className = "notification-defi";
     notification.innerHTML = `<strong>Nouveau défi</strong><span></span>`;
-    notification.querySelector("span").textContent = `${defi.de_pseudo} te défie ! Clique pour répondre.`;
+    notification.querySelector("span").textContent = `Demande de combat de : ${defi.de_pseudo} ! Clique pour répondre.`;
     notification.addEventListener("click", () => {
       window.location.assign("/combat.html");
     });
