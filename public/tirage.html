@@ -267,7 +267,8 @@
     function afficherQuota(quota) {
       if (!quota) return;
       const zone = document.getElementById("quota");
-      quotaEpuise = quota.restants <= 0;
+      const bonus = quota.bonus ?? 0;
+      quotaEpuise = quota.restants <= 0 && bonus <= 0;
       boutonTirer.disabled = quotaEpuise;
       zone.classList.toggle("epuise", quotaEpuise);
 
@@ -281,6 +282,7 @@
         const nombre = document.createElement("strong");
         nombre.textContent = `${quota.restants} / ${quota.max}`;
         zone.append("Tirages restants : ", nombre);
+        if (bonus > 0) zone.append(` · +${bonus}`);
       }
     }
 

@@ -10,7 +10,7 @@ import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 import { appliquerElo } from "./elo-service.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
-async function preparerEquipe(userId) {
+export async function preparerEquipe(userId) {
   const [equipe, collection, effets] = await Promise.all([
     getEquipe(userId), lireCollection(userId), effetsDuJoueur(userId),
   ]);
@@ -73,11 +73,11 @@ export async function repondreDefi(userId, defiId, accepter) {
 
 export async function getCombat(userId, combatId) {
   const { rows } = await pool.query(
-    `SELECT c.user_a, c.user_b, c.resultat, c.created_at,
+    `SELECT c.user_a, c.user_b, c.resultat, c.created_at, c.mode, c.contexte,
             u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b
      FROM combats c
      JOIN users u1 ON u1.id = c.user_a
-     JOIN users u2 ON u2.id = c.user_b
+     LEFT JOIN users u2 ON u2.id = c.user_b
      WHERE c.id = $1 AND (c.user_a = $2 OR c.user_b = $2)`,
     [combatId, userId]
   );
@@ -87,8 +87,11 @@ export async function getCombat(userId, combatId) {
   return {
     resultat: r.resultat,
     pseudoA: r.pseudo_a,
-    pseudoB: r.pseudo_b,
+    // En Aventure, le camp B est l'étage
+    pseudoB: r.mode === "aventure" ? `Étage ${r.contexte?.etage}` : r.pseudo_b,
     monCamp,
+    mode: r.mode,
+    contexte: r.contexte,
     // Variation d'elo du joueur (null pour un combat d'avant l'elo)
     eloDelta: r.resultat.elo ? r.resultat.elo[monCamp] : null,
     ecouleMs: Date.now() - new Date(r.created_at).getTime(),
@@ -108,7 +111,7 @@ export async function combatsDuJoueur(userId) {
      FROM combats c
      JOIN users u1 ON u1.id = c.user_a
      JOIN users u2 ON u2.id = c.user_b
-     WHERE c.user_a = $1 OR c.user_b = $1
+     WHERE (c.user_a = $1 OR c.user_b = $1) AND c.mode = 'pvp'
      ORDER BY c.created_at DESC
      LIMIT 10`,
     [userId]
@@ -131,7 +134,7 @@ export async function combatsDuJoueur(userId) {
 
 async function infosCombatPourUser(userId, combatId) {
   const { rows } = await pool.query(
-    `SELECT (c.user_a = $2 OR c.user_b = $2) AS participant,
+    `SELECT (c.user_a = $2 OR c.user_b = $2) AS participant, c.mode,
             (c.created_at + (COALESCE((c.resultat->>'dureeMs')::int, 0) * interval '1 millisecond') > now()) AS live
      FROM combats c WHERE c.id = $1`,
     [combatId, userId]
@@ -162,6 +165,7 @@ export async function envoyerMessage(userId, combatId, texte) {
 
   const infos = await infosCombatPourUser(userId, combatId);
   if (!infos || !infos.participant) throw new ErreurJeu("combat introuvable");
+  if (infos.mode !== "pvp") throw new ErreurJeu("pas de chat dans ce combat");
   if (!infos.live) throw new ErreurJeu("le combat est terminé");
 
   await pool.query(

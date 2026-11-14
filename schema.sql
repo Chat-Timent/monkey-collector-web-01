@@ -45,7 +45,15 @@ CREATE TABLE starter_noeuds (
 CREATE TABLE tirages_etat (
   user_id          uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   tirages_restants integer NOT NULL DEFAULT 0,
-  dernier_reset    timestamptz NOT NULL DEFAULT now()
+  dernier_reset    timestamptz NOT NULL DEFAULT now(),
+  tirages_bonus    integer NOT NULL DEFAULT 0  -- stock gagné en Aventure, jamais remis à zéro
+);
+
+-- Aventure (donjon endless) : étage courant du joueur (le prochain à battre).
+CREATE TABLE aventure (
+  user_id    uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  etage      integer NOT NULL DEFAULT 1,
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE equipe (
@@ -76,9 +84,11 @@ CREATE TABLE combats (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   defi_id    uuid REFERENCES defis(id) ON DELETE SET NULL,
   user_a     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  user_b     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_b     uuid REFERENCES users(id) ON DELETE CASCADE,  -- null en PVE (pas d'adversaire joueur)
   resultat   jsonb NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT now(),
+  mode       text NOT NULL DEFAULT 'pvp',  -- 'pvp' ou 'aventure'
+  contexte   jsonb                         -- PVE : étage, récompenses obtenues
 );
 
 CREATE TABLE messages (
@@ -111,3 +121,4 @@ ALTER TABLE defis       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE combats     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_global ENABLE ROW LEVEL SECURITY;
+ALTER TABLE aventure    ENABLE ROW LEVEL SECURITY;

@@ -4,7 +4,8 @@ import { combat } from "../src/game/combat-engine.js";
 import { getEspece, getImageUrl, getNiveau, statsFinales } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import { agregerEffets, etatArbre, pointsDepenses } from "../src/game/starter-arbre.js";
-import { debutFenetre, etatQuota } from "../src/game/quota.js";
+import { consommerTirage, debutFenetre, etatQuota } from "../src/game/quota.js";
+import { ennemisEtage, recompensesEtage, singeBonus } from "../src/game/aventure.js";
 import { calculerElo } from "../src/game/elo.js";
 import { creerApplication } from "../src/app.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
@@ -66,6 +67,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
 
   assert.deepEqual(routes, [
     "GET /arbre",
+    "GET /aventure",
     "GET /chat",
     "GET /classement",
     "GET /classement/elo",
@@ -79,6 +81,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /monkeydex",
     "GET /profil",
     "POST /arbre/noeuds",
+    "POST /aventure/combat",
     "POST /chat",
     "POST /combats/:id/messages",
     "POST /connexion",
@@ -267,4 +270,58 @@ test("l'elo suit la formule classique (K = 32) et reste à somme nulle", () => {
     const d = calculerElo(a, b, v);
     assert.equal(d.A + d.B, 0);
   }
+});
+
+test("Aventure : ennemis fixes par étage, difficulté par paliers", () => {
+  // Un même étage donne toujours les mêmes ennemis
+  assert.deepEqual(ennemisEtage(23), ennemisEtage(23));
+  assert.notDeepEqual(ennemisEtage(23), ennemisEtage(24));
+
+  const presents = (e) => ennemisEtage(e).filter(Boolean);
+  // Nombre d'ennemis par palier, 6 emplacements au maximum
+  for (const [etage, nombre] of [[1, 1], [4, 1], [5, 2], [10, 3], [20, 4], [30, 5], [50, 6], [100, 6], [500, 6]]) {
+    assert.equal(presents(etage).length, nombre, `étage ${etage}`);
+    assert.equal(ennemisEtage(etage).length, 6);
+  }
+  // Rareté maximale du palier, ou celle juste en dessous
+  assert.ok(presents(3).every((s) => s.rarete === "common"));
+  assert.ok(presents(12).every((s) => ["common", "uncommon"].includes(s.rarete)));
+  assert.ok(presents(120).every((s) => ["epic", "legendary"].includes(s.rarete)));
+  // Niveau : 1 au début du palier, +1 par étage
+  assert.ok(presents(10).every((s) => s.niveau === 1));
+  assert.ok(presents(14).every((s) => s.niveau === 5));
+  // Étage 1 affaibli de moitié par rapport à l'étage 6 (même espèce, même niveau sinon)
+  const e1 = presents(1)[0];
+  const espece = getEspece(e1.id);
+  const s1 = statsFinales(espece, 1);
+  assert.equal(e1.hp, Math.round(s1.hp * 0.5));
+  assert.equal(e1.atk, Math.round(s1.atk * 0.5));
+});
+
+test("Aventure : récompenses par étage", () => {
+  assert.deepEqual(recompensesEtage(1), { xp: 25, coins: 13, tirages: 0 });
+  assert.deepEqual(recompensesEtage(10), { xp: 70, coins: 40, tirages: 1 });
+  assert.deepEqual(recompensesEtage(50), { xp: 270, coins: 160, tirages: 1 });
+  assert.equal(recompensesEtage(51).tirages, 0);
+  // Singe bonus : 10 % de chance, une copie d'un des ennemis
+  const ennemis = ennemisEtage(30);
+  assert.equal(singeBonus(ennemis, () => 0.5), null);
+  const singe = singeBonus(ennemis, () => 0.05);
+  assert.ok(ennemis.filter(Boolean).some((s) => s.id === singe));
+});
+
+test("les tirages bonus sont consommés après le quota gratuit", () => {
+  const maintenant = Date.UTC(2026, 10, 14, 14, 37);
+  const debut = new Date(Date.UTC(2026, 10, 14, 14, 30));
+  const quota = etatQuota({ tirages_restants: 1, dernier_reset: debut, tirages_bonus: 2 }, maintenant);
+  assert.equal(quota.bonus, 2);
+  assert.ok(consommerTirage(quota));
+  assert.deepEqual([quota.restants, quota.bonus], [0, 2]);
+  assert.ok(consommerTirage(quota));
+  assert.ok(consommerTirage(quota));
+  assert.deepEqual([quota.restants, quota.bonus], [0, 0]);
+  assert.equal(consommerTirage(quota), false);
+  // Le stock bonus survit au reset ; sans ligne, il vaut 0
+  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(0), tirages_bonus: 3 }, maintenant).bonus, 3);
+  assert.equal(etatQuota(null, maintenant).bonus, 0);
 });

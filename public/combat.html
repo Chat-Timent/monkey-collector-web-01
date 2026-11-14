@@ -42,6 +42,7 @@
     .mode .icone { font-size: 44px; line-height: 1; }
     .mode .titre { font-size: 20px; font-weight: bold; }
     .mode.bientot { opacity: 0.45; cursor: default; }
+    .mode .etiquette:empty { display: none; }
     .mode .etiquette {
       font-size: 12px;
       font-weight: bold;
@@ -82,11 +83,11 @@
       <span class="icone">⚔️</span>
       <span class="titre">PVP</span>
     </a>
-    <div class="mode bientot">
+    <a class="mode" href="/aventure.html">
       <span class="icone">🗺️</span>
       <span class="titre">Aventure</span>
-      <span class="etiquette">Bientôt</span>
-    </div>
+      <span class="etiquette" id="etage-aventure"></span>
+    </a>
     <div class="mode bientot">
       <span class="icone">💎</span>
       <span class="titre">Ressources</span>
@@ -117,8 +118,18 @@
       }
     }
 
+    async function majAventure() {
+      try {
+        const { ok, data } = await api("/aventure");
+        if (ok) document.getElementById("etage-aventure").textContent = `Étage ${data.etage}`;
+      } catch {
+        // Réseau indisponible : la carte reste sans étage
+      }
+    }
+
     exigerConnexion().then((moi) => {
       if (!moi) return;
+      majAventure();
       majDefis();
       setInterval(majDefis, 5000);
     });

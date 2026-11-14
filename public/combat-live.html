@@ -121,6 +121,21 @@
     @media (max-width: 800px) {
       .deux-colonnes { grid-template-columns: 1fr; }
     }
+    .deux-colonnes.sans-chat { grid-template-columns: 1fr; }
+    .sans-chat .chat { display: none; }
+    #action {
+      display: none;
+      width: max-content;
+      margin: 0 auto 20px;
+      padding: 14px 28px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ff8a3d, #e5447a);
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    #action.visible { display: block; }
     #journal {
       background: #1e1e1e;
       border-radius: 10px;
@@ -172,8 +187,9 @@
   </div>
 
   <div id="resultat"></div>
+  <a id="action" href="/aventure.html"></a>
 
-  <div class="deux-colonnes">
+  <div class="deux-colonnes" id="colonnes">
     <div id="journal"></div>
 
     <div class="chat">
@@ -199,6 +215,8 @@
 
     let resultat = null;
     let eloDelta = null;
+    let mode = "pvp";
+    let contexte = null;
     let monCamp = null;
     let etat = { A: [], B: [] };
     let journal = [];
@@ -296,10 +314,32 @@
         $("resultat").textContent += eloDelta > 0 ? ` +${eloDelta} elo` : eloDelta < 0 ? ` −${-eloDelta} elo` : " ±0 elo";
       }
 
+      if (mode === "aventure") {
+        terminerAventure(v === monCamp);
+        return;
+      }
+
       if (redirigerEnDirect) {
         $("resultat").textContent += " · retour à l'historique…";
         setTimeout(() => location.replace("/pvp.html"), 3000);
       }
+    }
+
+    // Aventure : récompenses gagnées, puis « Étage suivant » ou « Réessayer »
+    function terminerAventure(victoire) {
+      const g = contexte?.gains;
+      if (victoire && g) {
+        const morceaux = [`+${g.xp} XP`, `+${g.coins} coins`];
+        if (g.tirages > 0) morceaux.push(`+${g.tirages} tirage${g.tirages > 1 ? "s" : ""}`);
+        if (g.singe) {
+          const nom = resultat.equipeB.find((s) => s && s.id === g.singe)?.nom ?? g.singe;
+          morceaux.push(`🐒 ${nom}`);
+        }
+        if (g.niveauxGagnes > 0) morceaux.push("Niveau supérieur !");
+        $("resultat").textContent += " " + morceaux.join(" · ");
+      }
+      $("action").textContent = victoire ? "Étage suivant" : "Réessayer";
+      $("action").classList.add("visible");
     }
 
     function pas() {
@@ -370,6 +410,8 @@
       pasMs = data.pasMs;
       resultat = data.resultat;
       eloDelta = data.eloDelta;
+      mode = data.mode ?? "pvp";
+      contexte = data.contexte;
       monCamp = data.monCamp;
       const pseudoMoi = monCamp === "A" ? data.pseudoA : data.pseudoB;
       const pseudoAdv = monCamp === "A" ? data.pseudoB : data.pseudoA;
@@ -389,10 +431,16 @@
 
       dessiner();
 
-      // Chat : on charge tout l'historique du combat, puis on interroge régulièrement
-      await rafraichirChat();
-      chatTimer = setInterval(rafraichirChat, INTERVALLE_CHAT_MS);
-      majStatutChat();
+      if (mode === "aventure") {
+        // Combat contre l'étage : pas de chat, retour vers l'Aventure
+        $("colonnes").classList.add("sans-chat");
+        document.querySelector("header a.lien").href = "/aventure.html";
+      } else {
+        // Chat : on charge tout l'historique du combat, puis on interroge régulièrement
+        await rafraichirChat();
+        chatTimer = setInterval(rafraichirChat, INTERVALLE_CHAT_MS);
+        majStatutChat();
+      }
 
       if (index >= journal.length) {
         terminer(false);

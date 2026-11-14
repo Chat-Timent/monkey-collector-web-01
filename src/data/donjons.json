@@ -1,0 +1,20 @@
+{
+  "aventure": {
+    "paliers": [
+      { "des": 1, "nombre": 1, "rarete": "common" },
+      { "des": 5, "nombre": 2, "rarete": "common" },
+      { "des": 10, "nombre": 3, "rarete": "uncommon" },
+      { "des": 20, "nombre": 4, "rarete": "uncommon" },
+      { "des": 30, "nombre": 5, "rarete": "rare" },
+      { "des": 50, "nombre": 6, "rarete": "epic" },
+      { "des": 100, "nombre": 6, "rarete": "legendary" }
+    ],
+    "force": { "depart": 0.5, "parEtage": 0.1 },
+    "recompenses": {
+      "xp": { "base": 20, "parEtage": 5 },
+      "coins": { "base": 10, "parEtage": 3 },
+      "tirages": { "tousLes": 5, "quantite": 1 },
+      "singe": { "chance": 0.1 }
+    }
+  }
+}

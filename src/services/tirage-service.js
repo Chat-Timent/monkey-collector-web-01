@@ -3,7 +3,7 @@ import { ErreurJeu } from "../erreurs.js";
 import { getEspece, getImageUrl, getNiveau, statsFinales, tirer } from "../game/monkeys.js";
 import { TIRAGES_PAR_RESET } from "../constants/game.js";
 import { gainsDuTirage } from "../game/progression.js";
-import { etatQuota, quotaPublic } from "../game/quota.js";
+import { consommerTirage, etatQuota, quotaPublic } from "../game/quota.js";
 import { agregerEffets, pointsDepenses, pointsDisponibles } from "../game/starter-arbre.js";
 import { effetsDuJoueur, lireNoeudsPris } from "./arbre-service.js";
 import { ajouterCopie } from "./collection-service.js";
@@ -11,7 +11,7 @@ import { gagnerRecompense, getStarter } from "./starter-service.js";
 
 async function lireLigneQuota(userId, db) {
   const { rows } = await db.query(
-    "SELECT tirages_restants, dernier_reset FROM tirages_etat WHERE user_id = $1",
+    "SELECT tirages_restants, dernier_reset, tirages_bonus FROM tirages_etat WHERE user_id = $1",
     [userId]
   );
   return rows[0] ?? null;
@@ -35,7 +35,7 @@ export async function effectuerTirage(userId) {
     const pris = await lireNoeudsPris(userId, db);
     const effets = agregerEffets(pris);
     const quota = etatQuota(await lireLigneQuota(userId, db), Date.now(), TIRAGES_PAR_RESET + effets.reset_bonus);
-    if (quota.restants <= 0) {
+    if (!consommerTirage(quota)) {
       throw new ErreurJeu("plus de tirages disponibles avant le prochain reset", 429, {
         quota: quotaPublic(quota),
       });
@@ -51,13 +51,13 @@ export async function effectuerTirage(userId) {
     const niveau = getNiveau(espece.rarete, amount);
     const starter = await gagnerRecompense(userId, gains, starterAvant, db);
 
-    quota.restants -= 1;
     await db.query(
-      `INSERT INTO tirages_etat (user_id, tirages_restants, dernier_reset)
-       VALUES ($1, $2, $3)
+      `INSERT INTO tirages_etat (user_id, tirages_restants, dernier_reset, tirages_bonus)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT (user_id) DO UPDATE
-       SET tirages_restants = EXCLUDED.tirages_restants, dernier_reset = EXCLUDED.dernier_reset`,
-      [userId, quota.restants, new Date(quota.debutFenetre)]
+       SET tirages_restants = EXCLUDED.tirages_restants, dernier_reset = EXCLUDED.dernier_reset,
+           tirages_bonus = EXCLUDED.tirages_bonus`,
+      [userId, quota.restants, new Date(quota.debutFenetre), quota.bonus]
     );
 
     return {

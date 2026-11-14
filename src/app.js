@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import { authRoutes } from "./routes/auth-routes.js";
 import { gameRoutes } from "./routes/game-routes.js";
 import { socialRoutes } from "./routes/social-routes.js";
+import { aventureRoutes } from "./routes/aventure-routes.js";
 import { gererErreurs } from "./erreurs.js";
 
 export function creerApplication() {
@@ -19,6 +20,7 @@ export function creerApplication() {
   app.use(authRoutes);
   app.use(gameRoutes);
   app.use(socialRoutes);
+  app.use(aventureRoutes);
   app.use(gererErreurs);
   return app;
 }
