@@ -1,13 +1,14 @@
 import crypto from "node:crypto";
 import bcrypt from "bcryptjs";
 import { pool } from "../config/database.js";
+import { ErreurJeu } from "../erreurs.js";
 
 export async function creerCompte(pseudo, motDePasse) {
-  if (!/^[\w-]{3,20}$/.test(pseudo)) {
-    throw new Error("pseudo invalide (3-20 caractères, lettres, chiffres, - ou _)");
+  if (typeof pseudo !== "string" || !/^[\w-]{3,20}$/.test(pseudo)) {
+    throw new ErreurJeu("pseudo invalide (3-20 caractères, lettres, chiffres, - ou _)");
   }
-  if (!motDePasse || motDePasse.length < 6) {
-    throw new Error("mot de passe trop court (6 caractères minimum)");
+  if (typeof motDePasse !== "string" || motDePasse.length < 6) {
+    throw new ErreurJeu("mot de passe trop court (6 caractères minimum)");
   }
 
   const hash = await bcrypt.hash(motDePasse, 10);
@@ -18,18 +19,21 @@ export async function creerCompte(pseudo, motDePasse) {
     );
     return rows[0].id;
   } catch (err) {
-    if (err.code === "23505") throw new Error("ce pseudo est déjà pris");
+    if (err.code === "23505") throw new ErreurJeu("ce pseudo est déjà pris");
     throw err;
   }
 }
 
 export async function connecter(pseudo, motDePasse) {
+  if (typeof pseudo !== "string" || typeof motDePasse !== "string") {
+    throw new ErreurJeu("pseudo ou mot de passe incorrect", 401);
+  }
   const { rows } = await pool.query(
     "SELECT id, password_hash FROM users WHERE pseudo = $1",
     [pseudo]
   );
   const ok = rows[0] && (await bcrypt.compare(motDePasse, rows[0].password_hash));
-  if (!ok) throw new Error("pseudo ou mot de passe incorrect");
+  if (!ok) throw new ErreurJeu("pseudo ou mot de passe incorrect", 401);
 
   const token = crypto.randomBytes(32).toString("hex");
   await pool.query(

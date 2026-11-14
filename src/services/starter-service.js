@@ -1,16 +1,20 @@
 import { pool } from "../config/database.js";
 import { RECOMPENSES, STARTERS } from "../constants/game.js";
+import { ErreurJeu } from "../erreurs.js";
+import { appliquerGains } from "../game/progression.js";
 
-export async function getStarter(userId) {
-  const { rows } = await pool.query(
-    "SELECT nom, niveau, xp, coins FROM starter WHERE user_id = $1",
+// `verrouiller` : dans une transaction, bloque la ligne jusqu'au COMMIT
+// pour que deux tirages simultanés ne s'écrasent pas leurs gains.
+export async function getStarter(userId, db = pool, { verrouiller = false } = {}) {
+  const { rows } = await db.query(
+    `SELECT nom, niveau, xp, coins FROM starter WHERE user_id = $1${verrouiller ? " FOR UPDATE" : ""}`,
     [userId]
   );
   return rows[0] ?? null;
 }
 
 export async function choisirStarter(userId, choix) {
-  if (!STARTERS[choix]) throw new Error("starter inconnu");
+  if (!STARTERS[choix]) throw new ErreurJeu("starter inconnu");
   await pool.query(
     `INSERT INTO starter (user_id, nom) VALUES ($1, $2)
      ON CONFLICT (user_id) DO NOTHING`,
@@ -19,24 +23,18 @@ export async function choisirStarter(userId, choix) {
   return getStarter(userId);
 }
 
-export async function gagnerRecompense(userId, rarete, starterDejaLu) {
+// `starterDejaLu` doit avoir été lu avec `verrouiller` dans la même transaction `db`
+// si des appels concurrents sont possibles.
+export async function gagnerRecompense(userId, rarete, starterDejaLu, db = pool) {
   const gains = RECOMPENSES[rarete];
   if (!gains) return null;
 
-  const starter = starterDejaLu ?? await getStarter(userId);
+  const starter = starterDejaLu ?? await getStarter(userId, db);
   if (!starter) return null;
 
-  let niveau = starter.niveau;
-  let xp = starter.xp + gains.xp;
-  let coins = starter.coins + gains.coins;
-  let niveauxGagnes = 0;
-  while (xp >= niveau * 100) {
-    xp -= niveau * 100;
-    niveau += 1;
-    niveauxGagnes += 1;
-  }
+  const { niveau, xp, coins, niveauxGagnes } = appliquerGains(starter, gains);
 
-  await pool.query(
+  await db.query(
     "UPDATE starter SET niveau = $2, xp = $3, coins = $4 WHERE user_id = $1",
     [userId, niveau, xp, coins]
   );

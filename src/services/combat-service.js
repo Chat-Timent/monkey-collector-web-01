@@ -1,10 +1,11 @@
-import { pool } from "../config/database.js";
+import { pool, transaction } from "../config/database.js";
 import { DELAI_INITIAL_MS, PAS_MS } from "../constants/game.js";
+import { ErreurJeu } from "../erreurs.js";
 import { SINGES } from "../monkeys.js";
 import { combat } from "../game/combat-engine.js";
 import { getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
 import { lireCollection } from "./collection-service.js";
-import { getDefiEnAttentePourReponse, repondreAuDefi } from "./challenge-service.js";
+import { traiterReponseDefi } from "./challenge-service.js";
 import { getEquipe } from "./team-service.js";
 
 async function preparerEquipe(userId) {
@@ -14,6 +15,7 @@ async function preparerEquipe(userId) {
 
   for (const { slot, espece } of equipe) {
     const e = SINGES[espece];
+    if (!e) continue; // espèce retirée de monkeys.json : slot laissé vide plutôt que planter
     const amount = collection.singes[espece]?.amount ?? 1;
     const niveau = getNiveau(e.rarete, amount).niveau;
     const s = statsFinales(e, niveau);
@@ -31,13 +33,13 @@ async function preparerEquipe(userId) {
   return slots;
 }
 
-async function lancerCombat(defi, equipeA, equipeB) {
+async function enregistrerCombat(db, defi, equipeA, equipeB) {
   const resultat = combat(equipeA, equipeB);
   resultat.equipeA = equipeA;
   resultat.equipeB = equipeB;
   resultat.dureeMs = DELAI_INITIAL_MS + resultat.journal.length * PAS_MS;
 
-  const { rows } = await pool.query(
+  const { rows } = await db.query(
     `INSERT INTO combats (defi_id, user_a, user_b, resultat)
      VALUES ($1, $2, $3, $4) RETURNING id`,
     [defi.id, defi.de_user, defi.vers_user, resultat]
@@ -45,20 +47,21 @@ async function lancerCombat(defi, equipeA, equipeB) {
   return rows[0].id;
 }
 
+// Transaction : le défi n'est marqué accepté/refusé que si tout réussit
+// (équipes non vides, combat enregistré). Une double réponse simultanée
+// est rejetée par traiterReponseDefi.
 export async function repondreDefi(userId, defiId, accepter) {
-  const defi = await getDefiEnAttentePourReponse(userId, defiId);
-  let equipeA;
-  let equipeB;
-  if (accepter) {
-    equipeA = await preparerEquipe(defi.de_user);
-    equipeB = await preparerEquipe(defi.vers_user);
-    if (!equipeA.some(Boolean)) throw new Error("le challenger n'a aucun singe dans son équipe");
-    if (!equipeB.some(Boolean)) throw new Error("tu n'as aucun singe dans ton équipe");
-  }
+  return transaction(async (db) => {
+    const defi = await traiterReponseDefi(db, userId, defiId, accepter);
+    if (!accepter) return null;
 
-  await repondreAuDefi(defi.id, accepter);
-  if (!accepter) return null;
-  return lancerCombat(defi, equipeA, equipeB);
+    const equipeA = await preparerEquipe(defi.de_user);
+    const equipeB = await preparerEquipe(defi.vers_user);
+    if (!equipeA.some(Boolean)) throw new ErreurJeu("le challenger n'a aucun singe dans son équipe");
+    if (!equipeB.some(Boolean)) throw new ErreurJeu("tu n'as aucun singe dans ton équipe");
+
+    return enregistrerCombat(db, defi, equipeA, equipeB);
+  });
 }
 
 export async function getCombat(userId, combatId) {
@@ -139,12 +142,12 @@ export async function lireMessages(userId, combatId, apres = 0) {
 
 export async function envoyerMessage(userId, combatId, texte) {
   const propre = String(texte ?? "").trim();
-  if (propre.length === 0) throw new Error("message vide");
-  if (propre.length > 200) throw new Error("message trop long (200 caractères max)");
+  if (propre.length === 0) throw new ErreurJeu("message vide");
+  if (propre.length > 200) throw new ErreurJeu("message trop long (200 caractères max)");
 
   const infos = await infosCombatPourUser(userId, combatId);
-  if (!infos || !infos.participant) throw new Error("combat introuvable");
-  if (!infos.live) throw new Error("le combat est terminé");
+  if (!infos || !infos.participant) throw new ErreurJeu("combat introuvable");
+  if (!infos.live) throw new ErreurJeu("le combat est terminé");
 
   await pool.query(
     "INSERT INTO messages (combat_id, user_id, texte) VALUES ($1, $2, $3)",

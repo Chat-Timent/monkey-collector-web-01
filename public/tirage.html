@@ -499,13 +499,29 @@
       window.location.replace("/");
     });
 
-    document.getElementById("tirer").addEventListener("click", async () => {
-      const reponse = await fetch("/tirage");
+    const boutonTirer = document.getElementById("tirer");
+
+    boutonTirer.addEventListener("click", async () => {
+      // Un seul tirage à la fois : évite les doubles clics
+      if (boutonTirer.disabled) return;
+      boutonTirer.disabled = true;
+      try {
+        await tirer();
+      } catch {
+        document.getElementById("message").textContent = "Erreur réseau, réessaie.";
+      } finally {
+        boutonTirer.disabled = false;
+      }
+    });
+
+    async function tirer() {
+      const reponse = await fetch("/tirage", { method: "POST" });
+      const data = await reponse.json();
       if (!reponse.ok) {
-        document.getElementById("message").textContent = "Erreur : " + (await reponse.json()).erreur;
+        document.getElementById("message").textContent = "Erreur : " + data.erreur;
         return;
       }
-      const data = await reponse.json();
+      document.getElementById("message").textContent = "";
       const { espece, niveau, image, stats } = data;
 
       const rarete = RARETES_AFFICHAGE[espece.rarete] ?? { label: espece.rarete, couleur: "#777" };
@@ -544,7 +560,7 @@
       document.getElementById("carte").style.display = "flex";
       afficherStarter(data.starter);
       chargerClassement();
-    });
+    }
 
     // ---------- Classement ----------
 

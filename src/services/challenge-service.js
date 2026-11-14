@@ -1,5 +1,6 @@
 import { pool } from "../config/database.js";
 import { DUREE_DEFI_SEC, SEUIL_EN_LIGNE_SEC } from "../constants/game.js";
+import { ErreurJeu } from "../erreurs.js";
 
 async function expirerDefis() {
   await pool.query(
@@ -30,13 +31,13 @@ export async function listerJoueurs(userId) {
 
 export async function envoyerDefi(deUser, versUser) {
   await expirerDefis();
-  if (deUser === versUser) throw new Error("tu ne peux pas te défier toi-même");
+  if (deUser === versUser) throw new ErreurJeu("tu ne peux pas te défier toi-même");
 
   const { rows: cible } = await pool.query(
     "SELECT 1 FROM presence WHERE user_id = $1 AND last_seen > now() - make_interval(secs => $2)",
     [versUser, SEUIL_EN_LIGNE_SEC]
   );
-  if (cible.length === 0) throw new Error("ce joueur n'est pas en ligne");
+  if (cible.length === 0) throw new ErreurJeu("ce joueur n'est pas en ligne");
 
   try {
     const { rows } = await pool.query(
@@ -47,7 +48,7 @@ export async function envoyerDefi(deUser, versUser) {
     );
     return rows[0].id;
   } catch (err) {
-    if (err.code === "23505") throw new Error("un défi est déjà en attente pour ce joueur");
+    if (err.code === "23505") throw new ErreurJeu("un défi est déjà en attente pour ce joueur");
     throw err;
   }
 }
@@ -69,19 +70,16 @@ export async function defisDuJoueur(userId) {
   };
 }
 
-export async function getDefiEnAttentePourReponse(userId, defiId) {
-  await expirerDefis();
-  const { rows } = await pool.query(
-    "SELECT id, de_user, vers_user FROM defis WHERE id = $1 AND vers_user = $2 AND statut = 'en_attente'",
-    [defiId, userId]
+// Vérifie et change le statut d'un défi en une seule requête atomique :
+// si deux réponses arrivent en même temps, la seconde ne trouve plus le défi « en attente ».
+// À appeler dans une transaction (`db`) pour annuler le changement si la suite échoue.
+export async function traiterReponseDefi(db, userId, defiId, accepter) {
+  const { rows } = await db.query(
+    `UPDATE defis SET statut = $3
+     WHERE id = $1 AND vers_user = $2 AND statut = 'en_attente' AND expires_at > now()
+     RETURNING id, de_user, vers_user`,
+    [defiId, userId, accepter ? "accepte" : "refuse"]
   );
-  if (rows.length === 0) throw new Error("défi introuvable, expiré ou déjà traité");
+  if (rows.length === 0) throw new ErreurJeu("défi introuvable, expiré ou déjà traité");
   return rows[0];
-}
-
-export async function repondreAuDefi(defiId, accepter) {
-  await pool.query("UPDATE defis SET statut = $2 WHERE id = $1", [
-    defiId,
-    accepter ? "accepte" : "refuse",
-  ]);
 }

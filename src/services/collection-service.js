@@ -13,8 +13,8 @@ export async function lireCollection(userId) {
   return { userId, singes };
 }
 
-export async function ajouterCopie(userId, id) {
-  const { rows } = await pool.query(
+export async function ajouterCopie(userId, id, db = pool) {
+  const { rows } = await db.query(
     `INSERT INTO collections (user_id, espece, amount)
      VALUES ($1, $2, 1)
      ON CONFLICT (user_id, espece)
