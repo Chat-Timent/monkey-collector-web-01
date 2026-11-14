@@ -3,8 +3,8 @@
 -- Le serveur se connecte directement (rôle propriétaire) : la RLS est activée sans politique,
 -- ce qui bloque l'accès via l'API publique Supabase sans gêner le serveur.
 --
--- Tables présentes en base mais pas encore utilisées par le code (travail en cours) :
--- starter_noeuds, tirages_etat. Elles ne sont pas décrites ici.
+-- Table présente en base mais pas encore utilisée par le code (travail en cours) :
+-- starter_noeuds. Elle n'est pas décrite ici.
 
 CREATE TABLE users (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,6 +32,14 @@ CREATE TABLE starter (
   niveau  integer NOT NULL DEFAULT 1,
   xp      integer NOT NULL DEFAULT 0,
   coins   integer NOT NULL DEFAULT 0
+);
+
+-- Quota de tirages : tirages restants dans la fenêtre de reset commencée à `dernier_reset`.
+-- Une ligne d'une fenêtre passée vaut un quota plein (voir src/game/quota.js).
+CREATE TABLE tirages_etat (
+  user_id          uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  tirages_restants integer NOT NULL DEFAULT 0,
+  dernier_reset    timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE equipe (
@@ -89,6 +97,7 @@ ALTER TABLE users       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE starter     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tirages_etat ENABLE ROW LEVEL SECURITY;
 ALTER TABLE equipe      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presence    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE defis       ENABLE ROW LEVEL SECURITY;

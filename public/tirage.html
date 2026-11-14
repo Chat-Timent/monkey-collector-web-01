@@ -231,6 +231,11 @@
       box-shadow: 0 6px 16px rgba(229, 68, 122, 0.4);
     }
     #tirer:active { transform: translateY(0); }
+    #tirer:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+
+    #quota { margin: -12px 0 16px; font-size: 15px; color: var(--texte-doux); min-height: 1.2em; }
+    #quota strong { color: var(--texte); }
+    #quota.epuise { color: var(--or); font-weight: bold; }
 
     #carte {
       display: none;
@@ -356,6 +361,8 @@
         <a href="/combat.html" class="bouton">Combat</a>
       </div>
 
+      <p id="quota"></p>
+
       <p id="message"></p>
 
       <div id="carte">
@@ -428,6 +435,43 @@
         return;
       }
       afficherStarter(profil.data.starter);
+      afficherQuota(profil.data.quota);
+    }
+
+    // ---------- Quota de tirages ----------
+
+    let quotaEpuise = false;
+    let minuteurReset = null;
+
+    // Affiche les tirages restants, ou l'heure du prochain reset quand il n'y en a plus.
+    // Au reset, le quota est relu auprès du serveur et le bouton réactivé.
+    function afficherQuota(quota) {
+      if (!quota) return;
+      const zone = document.getElementById("quota");
+      quotaEpuise = quota.restants <= 0;
+      boutonTirer.disabled = quotaEpuise;
+      zone.classList.toggle("epuise", quotaEpuise);
+
+      if (quotaEpuise) {
+        zone.textContent = `Plus de tirages ! Prochain reset à ${formaterHeure(quota.prochainReset)}`;
+        clearTimeout(minuteurReset);
+        // Petite marge pour être sûr que le serveur est passé dans la nouvelle fenêtre
+        minuteurReset = setTimeout(rafraichirQuota, quota.msAvantReset + 1000);
+      } else {
+        zone.innerHTML = "";
+        const nombre = document.createElement("strong");
+        nombre.textContent = `${quota.restants} / ${quota.max}`;
+        zone.append("Tirages restants : ", nombre);
+      }
+    }
+
+    async function rafraichirQuota() {
+      try {
+        const { ok, data } = await api("/profil");
+        if (ok) afficherQuota(data.quota);
+      } catch {
+        minuteurReset = setTimeout(rafraichirQuota, 5000);
+      }
     }
 
     document.getElementById("deconnexion").addEventListener("click", async () => {
@@ -446,17 +490,24 @@
       } catch {
         document.getElementById("message").textContent = "Erreur réseau, réessaie.";
       } finally {
-        boutonTirer.disabled = false;
+        boutonTirer.disabled = quotaEpuise;
       }
     });
 
     async function tirer() {
       const { ok, data } = await api("/tirage", { methode: "POST" });
       if (!ok) {
-        document.getElementById("message").textContent = "Erreur : " + data.erreur;
+        if (data.quota) {
+          // Quota épuisé : le message du quota suffit
+          document.getElementById("message").textContent = "";
+          afficherQuota(data.quota);
+        } else {
+          document.getElementById("message").textContent = "Erreur : " + data.erreur;
+        }
         return;
       }
       document.getElementById("message").textContent = "";
+      afficherQuota(data.quota);
       const { espece, niveau, image, stats } = data;
 
       const rarete = infoRarete(espece.rarete);

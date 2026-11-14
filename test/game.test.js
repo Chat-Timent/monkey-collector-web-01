@@ -3,6 +3,7 @@ import test from "node:test";
 import { combat } from "../src/game/combat-engine.js";
 import { getEspece, getImageUrl, getNiveau, statsFinales } from "../src/game/monkeys.js";
 import { appliquerGains } from "../src/game/progression.js";
+import { debutFenetre, etatQuota } from "../src/game/quota.js";
 import { creerApplication } from "../src/app.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
 
@@ -153,4 +154,38 @@ test("les requêtes invalides reçoivent une erreur JSON sans toucher la base", 
   } finally {
     serveur.close();
   }
+});
+
+test("le quota de tirages se réinitialise à heure fixe toutes les 10 minutes", () => {
+  const dix = 10 * 60 * 1000;
+  const t = Date.UTC(2026, 10, 14, 14, 37, 12); // 14:37:12 UTC
+  const debut = Date.UTC(2026, 10, 14, 14, 30);
+
+  // Fenêtre calée sur l'horloge, indépendante du joueur
+  assert.equal(debutFenetre(t), debut);
+  assert.equal(debutFenetre(debut), debut);
+  assert.equal(debutFenetre(debut - 1), debut - dix);
+
+  // Jamais tiré : quota plein
+  const neuf = etatQuota(null, t);
+  assert.equal(neuf.restants, 20);
+  assert.equal(neuf.max, 20);
+  assert.equal(neuf.prochainReset, "2026-11-14T14:40:00.000Z");
+  assert.equal(neuf.msAvantReset, Date.UTC(2026, 10, 14, 14, 40) - t);
+
+  // Ligne de la fenêtre en cours : on garde le compte
+  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(debut) }, t).restants, 0);
+  assert.equal(etatQuota({ tirages_restants: 7, dernier_reset: new Date(debut).toISOString() }, t).restants, 7);
+
+  // Ligne d'une fenêtre passée : reset
+  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(debut - dix) }, t).restants, 20);
+  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(debut) }, debut + dix).restants, 20);
+});
+
+test("une erreur métier peut renvoyer des détails au client", () => {
+  let statut, corps;
+  const res = { headersSent: false, status(s) { statut = s; return this; }, json(c) { corps = c; } };
+  gererErreurs(new ErreurJeu("plus de tirages", 429, { quota: { restants: 0 } }), {}, res, () => {});
+  assert.equal(statut, 429);
+  assert.deepEqual(corps, { quota: { restants: 0 }, erreur: "plus de tirages" });
 });

@@ -31,3 +31,8 @@ export const DUREE_DEFI_SEC = 60;
 export const SEUIL_EN_LIGNE_SEC = 45;
 export const DELAI_INITIAL_MS = 1000;
 export const PAS_MS = 700;
+
+// Tirages limités : TIRAGES_PAR_RESET par fenêtre de DUREE_RESET_MS.
+// Les fenêtres sont calées sur l'horloge (:00, :10, :20…), identiques pour tous les joueurs.
+export const TIRAGES_PAR_RESET = 20;
+export const DUREE_RESET_MS = 10 * 60 * 1000;

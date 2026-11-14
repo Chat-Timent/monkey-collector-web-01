@@ -3,7 +3,7 @@ import { authentifie } from "../middleware/authentifie.js";
 import { getResumeMonkeydex, getClassement } from "../services/collection-service.js";
 import { choisirStarter, getStarter } from "../services/starter-service.js";
 import { definirEquipe, getEquipe } from "../services/team-service.js";
-import { effectuerTirage } from "../services/tirage-service.js";
+import { effectuerTirage, getQuota } from "../services/tirage-service.js";
 import { ErreurJeu } from "../erreurs.js";
 
 export const gameRoutes = Router();
@@ -18,7 +18,8 @@ gameRoutes.get("/monkeydex", authentifie, async (req, res) => {
 });
 
 gameRoutes.get("/profil", authentifie, async (req, res) => {
-  res.json({ starter: await getStarter(req.userId) });
+  const [starter, quota] = await Promise.all([getStarter(req.userId), getQuota(req.userId)]);
+  res.json({ starter, quota });
 });
 
 gameRoutes.post("/starter", authentifie, async (req, res) => {
