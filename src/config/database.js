@@ -1,9 +1,10 @@
 import "dotenv/config";
 import pg from "pg";
 
+// SSL activé par défaut (Supabase). DATABASE_SSL=false pour une base PostgreSQL locale.
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
+  ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false },
 });
 
 // Sans ce gestionnaire, une connexion inactive coupée par le serveur PostgreSQL

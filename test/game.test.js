@@ -51,23 +51,6 @@ test("le moteur de combat conserve son journal et son ordre de tour", () => {
   ]);
 });
 
-test("les anciens points d'entrée restent utilisables", async () => {
-  const facade = await import("../tirage.js");
-  const ancienMoteur = await import("../combat.js");
-
-  for (const nom of [
-    "tirer", "getEspece", "getImageUrl", "getNiveau", "statsFinales",
-    "creerCompte", "connecter", "deconnecter", "getPseudo", "userIdDepuisToken",
-    "ajouterCopie", "getMonkeydex", "getCompteurRarete", "getStarter", "choisirStarter",
-    "gagnerRecompense", "getEquipe", "definirEquipe", "marquerPresence", "listerJoueurs",
-    "envoyerDefi", "defisDuJoueur", "repondreDefi", "getCombat", "combatsDuJoueur",
-    "lireMessages", "envoyerMessage", "lireChatGlobal", "envoyerChatGlobal",
-  ]) {
-    assert.equal(typeof facade[nom], "function", `${nom} doit rester exporté`);
-  }
-  assert.equal(ancienMoteur.combat, combat);
-});
-
 test("l'application expose exactement les mêmes routes HTTP", () => {
   const app = creerApplication();
   const routes = app.router.stack

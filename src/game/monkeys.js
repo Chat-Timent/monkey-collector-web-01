@@ -1,5 +1,8 @@
 import { PALIERS, RARETES } from "../constants/game.js";
-import { SINGES } from "../monkeys.js";
+import fs from "node:fs";
+
+// Catalogue des espèces, indexé par identifiant (ex. "basic_monkey").
+export const SINGES = JSON.parse(fs.readFileSync(new URL("../data/monkeys.json", import.meta.url), "utf8"));
 
 function tirerPondere(items) {
   const total = items.reduce((somme, it) => somme + it.poids, 0);

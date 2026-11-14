@@ -1,7 +1,6 @@
 import { pool } from "../config/database.js";
 import { RARETES } from "../constants/game.js";
-import { SINGES } from "../monkeys.js";
-import { getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
+import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
 
 export async function lireCollection(userId) {
   const { rows } = await pool.query(
@@ -61,14 +60,6 @@ function compterRaretes(collection) {
   }));
 }
 
-export async function getMonkeydex(userId) {
-  return construireMonkeydex(await lireCollection(userId));
-}
-
-export async function getCompteurRarete(userId) {
-  return compterRaretes(await lireCollection(userId));
-}
-
 // Le Monkeydex affiche ces trois informations simultanément : une seule lecture suffit.
 export async function getResumeMonkeydex(userId) {
   const collection = await lireCollection(userId);
@@ -79,7 +70,6 @@ export async function getResumeMonkeydex(userId) {
     singes,
   };
 }
-
 
 export async function getClassement(userId) {
   const { rows } = await pool.query(

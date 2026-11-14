@@ -1,9 +1,8 @@
 import { pool, transaction } from "../config/database.js";
 import { DELAI_INITIAL_MS, PAS_MS } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
-import { SINGES } from "../monkeys.js";
 import { combat } from "../game/combat-engine.js";
-import { getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
+import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
 import { lireCollection } from "./collection-service.js";
 import { traiterReponseDefi } from "./challenge-service.js";
 import { getEquipe } from "./team-service.js";
