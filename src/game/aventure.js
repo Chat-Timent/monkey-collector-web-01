@@ -32,8 +32,9 @@ export function palierDe(etage, donjon = AVENTURE) {
 //   d'être de la rareté maximale, sinon de la rareté juste en dessous
 // - niveau : 1 au début du palier, +1 par étage
 // - force : les premiers étages sont affaiblis (PV, ATK et DEF multipliés)
-export function ennemisEtage(etage, catalogue = SINGES, donjon = AVENTURE) {
-  const hasard = generateur(etage * 7919 + 17);
+// `graine` : distingue les donjons (mêmes règles, ennemis différents).
+export function ennemisEtage(etage, catalogue = SINGES, donjon = AVENTURE, graine = 0) {
+  const hasard = generateur(etage * 7919 + 17 + graine * 104729);
   const palier = palierDe(etage, donjon);
   const niveau = 1 + etage - palier.des;
   const force = Math.min(1, donjon.force.depart + donjon.force.parEtage * (etage - 1));

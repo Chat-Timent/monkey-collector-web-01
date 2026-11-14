@@ -318,11 +318,28 @@
         terminerAventure(v === monCamp);
         return;
       }
+      if (mode === "ressource") {
+        terminerDonjon(v === monCamp);
+        return;
+      }
 
       if (redirigerEnDirect) {
         $("resultat").textContent += " · retour à l'historique…";
         setTimeout(() => location.replace("/pvp.html"), 3000);
       }
+    }
+
+    // Donjon de ressources : quantité gagnée, puis retour aux donjons
+    function terminerDonjon(victoire) {
+      const g = contexte?.gains;
+      if (victoire && g) {
+        const unite = { tirages: g.quantite > 1 ? "tirages" : "tirage", coins: "coins", xp: "XP" }[g.donjon];
+        $("resultat").textContent += ` +${g.quantite} ${unite}`;
+        if (g.niveauxGagnes > 0) $("resultat").textContent += " · Niveau supérieur !";
+      }
+      $("action").textContent = "Retour aux donjons";
+      $("action").href = "/ressources.html";
+      $("action").classList.add("visible");
     }
 
     // Aventure : récompenses gagnées, puis « Étage suivant » ou « Réessayer »
@@ -431,10 +448,10 @@
 
       dessiner();
 
-      if (mode === "aventure") {
-        // Combat contre l'étage : pas de chat, retour vers l'Aventure
+      if (mode !== "pvp") {
+        // Combat PVE (Aventure ou donjon) : pas de chat, retour vers la page du mode
         $("colonnes").classList.add("sans-chat");
-        document.querySelector("header a.lien").href = "/aventure.html";
+        document.querySelector("header a.lien").href = mode === "ressource" ? "/ressources.html" : "/aventure.html";
       } else {
         // Chat : on charge tout l'historique du combat, puis on interroge régulièrement
         await rafraichirChat();

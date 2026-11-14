@@ -88,11 +88,11 @@
       <span class="titre">Aventure</span>
       <span class="etiquette" id="etage-aventure"></span>
     </a>
-    <div class="mode bientot">
+    <a class="mode" href="/ressources.html">
       <span class="icone">💎</span>
       <span class="titre">Ressources</span>
-      <span class="etiquette">Bientôt</span>
-    </div>
+      <span class="etiquette" id="tickets-ressources"></span>
+    </a>
     <div class="mode bientot">
       <span class="icone">🎉</span>
       <span class="titre">Événements</span>
@@ -127,9 +127,21 @@
       }
     }
 
+    async function majRessources() {
+      try {
+        const { ok, data } = await api("/ressources");
+        if (!ok) return;
+        const tickets = data.donjons.reduce((t, d) => t + d.tickets, 0);
+        document.getElementById("tickets-ressources").textContent = `🎫 ${tickets}`;
+      } catch {
+        // Réseau indisponible : la carte reste sans compteur
+      }
+    }
+
     exigerConnexion().then((moi) => {
       if (!moi) return;
       majAventure();
+      majRessources();
       majDefis();
       setInterval(majDefis, 5000);
     });

@@ -3,8 +3,8 @@ import { ErreurJeu } from "../erreurs.js";
 import { lireCollection } from "./collection-service.js";
 import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 
-export async function getEquipe(userId) {
-  const { rows } = await pool.query(
+export async function getEquipe(userId, db = pool) {
+  const { rows } = await db.query(
     "SELECT slot, espece FROM equipe WHERE user_id = $1 ORDER BY slot",
     [userId]
   );

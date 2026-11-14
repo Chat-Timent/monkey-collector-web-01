@@ -2,8 +2,8 @@ import { pool } from "../config/database.js";
 import { RARETES } from "../constants/game.js";
 import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
 
-export async function lireCollection(userId) {
-  const { rows } = await pool.query(
+export async function lireCollection(userId, db = pool) {
+  const { rows } = await db.query(
     "SELECT espece, amount FROM collections WHERE user_id = $1",
     [userId]
   );

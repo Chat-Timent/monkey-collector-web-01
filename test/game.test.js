@@ -6,6 +6,7 @@ import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import { agregerEffets, etatArbre, pointsDepenses } from "../src/game/starter-arbre.js";
 import { consommerTirage, debutFenetre, etatQuota } from "../src/game/quota.js";
 import { ennemisEtage, recompensesEtage, singeBonus } from "../src/game/aventure.js";
+import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles } from "../src/game/ressources.js";
 import { calculerElo } from "../src/game/elo.js";
 import { creerApplication } from "../src/app.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
@@ -80,6 +81,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /moi",
     "GET /monkeydex",
     "GET /profil",
+    "GET /ressources",
     "POST /arbre/noeuds",
     "POST /aventure/combat",
     "POST /chat",
@@ -91,6 +93,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /equipe",
     "POST /inscription",
     "POST /presence",
+    "POST /ressources/combat",
     "POST /starter",
     "POST /tirage",
   ]);
@@ -324,4 +327,33 @@ test("les tirages bonus sont consommés après le quota gratuit", () => {
   // Le stock bonus survit au reset ; sans ligne, il vaut 0
   assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(0), tirages_bonus: 3 }, maintenant).bonus, 3);
   assert.equal(etatQuota(null, maintenant).bonus, 0);
+});
+
+test("donjons de ressources : paliers, gains et ennemis propres à chaque donjon", () => {
+  // Gains : 20 tirages au palier 1, puis +1 par palier ; coins et XP montent aussi
+  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("tirages", p)), [20, 21, 29]);
+  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("coins", p)), [500, 550, 950]);
+  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("xp", p)), [400, 440, 760]);
+  // Difficulté deux fois plus rapide que l'Aventure
+  assert.deepEqual([1, 10, 50].map((p) => etageEquivalent(p)), [5, 23, 103]);
+  const presents = (d, p) => ennemisDonjon(d, p).filter(Boolean);
+  assert.equal(presents("tirages", 1).length, ennemisEtage(5).filter(Boolean).length);
+  // Même palier : mêmes ennemis ; donjons différents (et Aventure) : ennemis différents
+  assert.deepEqual(ennemisDonjon("xp", 7), ennemisDonjon("xp", 7));
+  const ids = (l) => l.filter(Boolean).map((s) => s.id).join();
+  const d = ["tirages", "coins", "xp"].map((x) => ids(ennemisDonjon(x, 25)));
+  assert.equal(new Set([...d, ids(ennemisEtage(53))]).size, 4);
+});
+
+test("les tickets de donjon reviennent à minuit, heure de Paris", () => {
+  // Hiver (UTC+1) : minuit à Paris = 23 h UTC ; été (UTC+2) : 22 h UTC
+  assert.equal(jourParis(new Date("2026-11-14T22:59:59Z")), "2026-11-14");
+  assert.equal(jourParis(new Date("2026-11-14T23:00:00Z")), "2026-11-15");
+  assert.equal(jourParis(new Date("2026-07-14T21:59:59Z")), "2026-07-14");
+  assert.equal(jourParis(new Date("2026-07-14T22:00:00Z")), "2026-07-15");
+  // Tickets : pleins sans ligne ou si la ligne date d'hier, sinon ceux qui restent
+  assert.equal(ticketsDisponibles(null, "2026-11-15"), 2);
+  assert.equal(ticketsDisponibles({ tickets: 0, jour: "2026-11-14" }, "2026-11-15"), 2);
+  assert.equal(ticketsDisponibles({ tickets: 1, jour: "2026-11-15" }, "2026-11-15"), 1);
+  assert.equal(ticketsDisponibles({ tickets: 0, jour: "2026-11-15" }, "2026-11-15"), 0);
 });

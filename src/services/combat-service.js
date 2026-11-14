@@ -10,10 +10,12 @@ import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 import { appliquerElo } from "./elo-service.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
-export async function preparerEquipe(userId) {
-  const [equipe, collection, effets] = await Promise.all([
-    getEquipe(userId), lireCollection(userId), effetsDuJoueur(userId),
-  ]);
+// `db` : la connexion de la transaction en cours, pour ne pas en ouvrir d'autres
+// (le pooler Supabase limite le nombre de connexions simultanées).
+export async function preparerEquipe(userId, db = pool) {
+  const equipe = await getEquipe(userId, db);
+  const collection = await lireCollection(userId, db);
+  const effets = await effetsDuJoueur(userId, db);
   const slots = Array(nbSlots(effets)).fill(null);
 
   for (const { slot, espece } of equipe) {
@@ -62,13 +64,32 @@ export async function repondreDefi(userId, defiId, accepter) {
     const defi = await traiterReponseDefi(db, userId, defiId, accepter);
     if (!accepter) return null;
 
-    const equipeA = await preparerEquipe(defi.de_user);
-    const equipeB = await preparerEquipe(defi.vers_user);
+    const equipeA = await preparerEquipe(defi.de_user, db);
+    const equipeB = await preparerEquipe(defi.vers_user, db);
     if (!equipeA.some(Boolean)) throw new ErreurJeu("le challenger n'a aucun singe dans son équipe");
     if (!equipeB.some(Boolean)) throw new ErreurJeu("tu n'as aucun singe dans ton équipe");
 
     return enregistrerCombat(db, defi, equipeA, equipeB);
   });
+}
+
+// Combat PVE du joueur (mode donné) dont le replay n'est pas terminé : id, sinon null.
+export async function combatEnCours(userId, mode, db = pool) {
+  const { rows } = await db.query(
+    `SELECT id FROM combats
+     WHERE user_a = $1 AND mode = $2
+       AND created_at + (COALESCE((resultat->>'dureeMs')::int, 0) * interval '1 millisecond') > now()
+     ORDER BY created_at DESC LIMIT 1`,
+    [userId, mode]
+  );
+  return rows[0]?.id ?? null;
+}
+
+// Nom affiché du camp B : le joueur adverse en PVP, l'étage ou le donjon en PVE.
+function nomAdversaire(r) {
+  if (r.mode === "aventure") return `Étage ${r.contexte?.etage}`;
+  if (r.mode === "ressource") return r.contexte?.titre ?? "Donjon";
+  return r.pseudo_b;
 }
 
 export async function getCombat(userId, combatId) {
@@ -87,8 +108,7 @@ export async function getCombat(userId, combatId) {
   return {
     resultat: r.resultat,
     pseudoA: r.pseudo_a,
-    // En Aventure, le camp B est l'étage
-    pseudoB: r.mode === "aventure" ? `Étage ${r.contexte?.etage}` : r.pseudo_b,
+    pseudoB: nomAdversaire(r),
     monCamp,
     mode: r.mode,
     contexte: r.contexte,

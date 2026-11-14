@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ressources</title>
+  <link rel="stylesheet" href="/css/commun.css">
+  <link rel="stylesheet" href="/css/arbre.css">
+  <link rel="stylesheet" href="/css/barre.css">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #161616;
+      color: var(--texte);
+      margin: 0;
+      min-height: 100vh;
+    }
+    .contenu { max-width: 900px; margin: 32px auto; padding: 0 16px 40px; }
+    .donjons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 700px) {
+      .donjons { grid-template-columns: 1fr; }
+    }
+
+    .donjon {
+      background: #242424;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+    }
+    .donjon .icone { font-size: 44px; line-height: 1; }
+    .donjon .nom { font-size: 17px; font-weight: bold; }
+    .donjon .palier { font-size: 13px; color: var(--texte-doux); }
+    .donjon .gain { font-size: 26px; font-weight: bold; color: var(--or); }
+    .donjon .tickets { font-size: 14px; color: var(--texte-doux); }
+    .donjon .tickets.vide { color: #ff6b6b; }
+
+    .donjon button {
+      margin-top: 6px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font: inherit;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .donjon button:disabled { background: #333; color: #888; cursor: default; }
+
+    #message { min-height: 1.2em; color: var(--or); text-align: center; margin: 18px 0 0; }
+  </style>
+</head>
+<body>
+  <main class="contenu">
+    <div id="donjons" class="donjons"></div>
+    <p id="message"></p>
+  </main>
+
+  <script src="/js/commun.js"></script>
+  <script src="/js/arbre.js"></script>
+  <script src="/js/barre.js"></script>
+  <script src="/js/session.js"></script>
+  <script>
+    const message = document.getElementById("message");
+    let combatEnCours = null;
+    let enCours = false;
+
+    function carte(d) {
+      const div = document.createElement("section");
+      div.className = "donjon";
+      div.innerHTML = `
+        <span class="icone"></span>
+        <span class="nom"></span>
+        <span class="palier"></span>
+        <span class="gain"></span>
+        <span class="tickets"></span>
+        <button type="button"></button>`;
+      div.querySelector(".icone").textContent = d.icone;
+      div.querySelector(".nom").textContent = d.nom;
+      div.querySelector(".palier").textContent = `Palier ${d.palier}`;
+      div.querySelector(".gain").textContent = `+${d.gain} ${d.icone}`;
+      const tickets = div.querySelector(".tickets");
+      tickets.textContent = `🎫 ${d.tickets} / ${d.ticketsMax}`;
+      tickets.classList.toggle("vide", d.tickets <= 0);
+
+      const bouton = div.querySelector("button");
+      if (combatEnCours) {
+        bouton.textContent = "Voir le combat en cours";
+      } else if (d.tickets <= 0) {
+        bouton.textContent = "Demain";
+        bouton.disabled = true;
+      } else {
+        bouton.textContent = "Combattre";
+      }
+      bouton.addEventListener("click", () => combattre(d.id, bouton));
+      return div;
+    }
+
+    async function combattre(donjon, bouton) {
+      if (combatEnCours) {
+        location.href = `/combat-live.html?id=${combatEnCours}`;
+        return;
+      }
+      if (enCours) return;
+      enCours = true;
+      bouton.disabled = true;
+      message.textContent = "";
+      try {
+        const { ok, data } = await api("/ressources/combat", { corps: { donjon } });
+        if (ok) {
+          location.href = `/combat-live.html?id=${data.combatId}`;
+          return;
+        }
+        message.textContent = data.erreur;
+      } catch {
+        message.textContent = "Erreur réseau, réessaie.";
+      }
+      enCours = false;
+      bouton.disabled = false;
+    }
+
+    async function charger() {
+      const { ok, data } = await api("/ressources");
+      if (!ok) {
+        message.textContent = data.erreur;
+        return;
+      }
+      combatEnCours = data.combatEnCours;
+      const zone = document.getElementById("donjons");
+      zone.innerHTML = "";
+      for (const d of data.donjons) zone.appendChild(carte(d));
+    }
+
+    exigerConnexion().then((moi) => { if (moi) charger(); });
+  </script>
+</body>
+</html>

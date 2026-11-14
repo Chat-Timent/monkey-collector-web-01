@@ -17,6 +17,17 @@ async function lireLigneQuota(userId, db) {
   return rows[0] ?? null;
 }
 
+// Ajoute des tirages bonus au stock du joueur (dans la transaction `db`).
+// Ligne de quota absente : créée avec une fenêtre passée, donc un quota gratuit plein.
+export async function ajouterTiragesBonus(userId, nombre, db) {
+  await db.query(
+    `INSERT INTO tirages_etat (user_id, tirages_restants, dernier_reset, tirages_bonus)
+     VALUES ($1, 0, 'epoch', $2)
+     ON CONFLICT (user_id) DO UPDATE SET tirages_bonus = tirages_etat.tirages_bonus + EXCLUDED.tirages_bonus`,
+    [userId, nombre]
+  );
+}
+
 // Quota actuel du joueur, pour l'afficher sans tirer (bonus de l'arbre compris).
 export async function getQuota(userId) {
   const [ligne, effets] = await Promise.all([lireLigneQuota(userId, pool), effetsDuJoueur(userId)]);

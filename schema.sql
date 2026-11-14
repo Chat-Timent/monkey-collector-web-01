@@ -40,6 +40,16 @@ CREATE TABLE starter_noeuds (
   PRIMARY KEY (user_id, noeud)
 );
 
+-- Donjons de ressources : palier courant et tickets du jour (heure de Paris) par donjon.
+CREATE TABLE donjons_progression (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  donjon  text NOT NULL,                       -- 'tirages', 'coins', 'xp'
+  palier  integer NOT NULL DEFAULT 1,
+  tickets integer NOT NULL DEFAULT 2,
+  jour    date NOT NULL DEFAULT CURRENT_DATE,  -- jour des tickets ; un jour passé = tickets pleins
+  PRIMARY KEY (user_id, donjon)
+);
+
 -- Quota de tirages : tirages restants dans la fenêtre de reset commencée à `dernier_reset`.
 -- Une ligne d'une fenêtre passée vaut un quota plein (voir src/game/quota.js).
 CREATE TABLE tirages_etat (
@@ -87,7 +97,7 @@ CREATE TABLE combats (
   user_b     uuid REFERENCES users(id) ON DELETE CASCADE,  -- null en PVE (pas d'adversaire joueur)
   resultat   jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  mode       text NOT NULL DEFAULT 'pvp',  -- 'pvp' ou 'aventure'
+  mode       text NOT NULL DEFAULT 'pvp',  -- 'pvp', 'aventure' ou 'ressource'
   contexte   jsonb                         -- PVE : étage, récompenses obtenues
 );
 
@@ -122,3 +132,4 @@ ALTER TABLE combats     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_global ENABLE ROW LEVEL SECURITY;
 ALTER TABLE aventure    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE donjons_progression ENABLE ROW LEVEL SECURITY;

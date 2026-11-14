@@ -4,24 +4,13 @@ import { ErreurJeu } from "../erreurs.js";
 import { combat } from "../game/combat-engine.js";
 import { ennemisEtage, recompensesEtage, singeBonus } from "../game/aventure.js";
 import { ajouterCopie } from "./collection-service.js";
-import { preparerEquipe } from "./combat-service.js";
+import { combatEnCours, preparerEquipe } from "./combat-service.js";
+import { ajouterTiragesBonus } from "./tirage-service.js";
 import { gagnerRecompense, getStarter } from "./starter-service.js";
 
 async function lireEtage(userId, db = pool) {
   const { rows } = await db.query("SELECT etage FROM aventure WHERE user_id = $1", [userId]);
   return rows[0]?.etage ?? 1;
-}
-
-// Combat d'Aventure du joueur dont le replay n'est pas terminé (id), sinon null.
-async function combatEnCours(userId, db = pool) {
-  const { rows } = await db.query(
-    `SELECT id FROM combats
-     WHERE user_a = $1 AND mode = 'aventure'
-       AND created_at + (COALESCE((resultat->>'dureeMs')::int, 0) * interval '1 millisecond') > now()
-     ORDER BY created_at DESC LIMIT 1`,
-    [userId]
-  );
-  return rows[0]?.id ?? null;
 }
 
 async function classementAventure(userId) {
@@ -39,7 +28,7 @@ async function classementAventure(userId) {
 // et le combat en cours s'il y en a un.
 export async function getAventure(userId) {
   const [etage, enCours, classement] = await Promise.all([
-    lireEtage(userId), combatEnCours(userId), classementAventure(userId),
+    lireEtage(userId), combatEnCours(userId, "aventure"), classementAventure(userId),
   ]);
   const ennemis = ennemisEtage(etage).filter(Boolean).map(({ id, nom, image, rarete, niveau }) => ({ id, nom, image, rarete, niveau }));
   return { etage, ennemis, recompenses: recompensesEtage(etage), classement, combatEnCours: enCours };
@@ -54,9 +43,9 @@ export async function lancerCombatAventure(userId) {
     const { rows } = await db.query("SELECT etage FROM aventure WHERE user_id = $1 FOR UPDATE", [userId]);
     const etage = rows[0].etage;
 
-    if (await combatEnCours(userId, db)) throw new ErreurJeu("un combat d'Aventure est déjà en cours");
+    if (await combatEnCours(userId, "aventure", db)) throw new ErreurJeu("un combat d'Aventure est déjà en cours");
 
-    const equipe = await preparerEquipe(userId);
+    const equipe = await preparerEquipe(userId, db);
     if (!equipe.some(Boolean)) throw new ErreurJeu("ton équipe est vide");
     const ennemis = ennemisEtage(etage);
 
@@ -73,15 +62,7 @@ export async function lancerCombatAventure(userId) {
         ? await gagnerRecompense(userId, { xp: recompenses.xp, coins: recompenses.coins }, starter, db)
         : null;
 
-      if (recompenses.tirages > 0) {
-        // Ligne de quota absente : créée avec une fenêtre passée, donc un quota gratuit plein
-        await db.query(
-          `INSERT INTO tirages_etat (user_id, tirages_restants, dernier_reset, tirages_bonus)
-           VALUES ($1, 0, 'epoch', $2)
-           ON CONFLICT (user_id) DO UPDATE SET tirages_bonus = tirages_etat.tirages_bonus + EXCLUDED.tirages_bonus`,
-          [userId, recompenses.tirages]
-        );
-      }
+      if (recompenses.tirages > 0) await ajouterTiragesBonus(userId, recompenses.tirages, db);
 
       const singe = singeBonus(ennemis);
       if (singe) await ajouterCopie(userId, singe, db);
