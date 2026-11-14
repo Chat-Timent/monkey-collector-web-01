@@ -4,21 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Monkey Collector V0.1</title>
+  <link rel="stylesheet" href="/css/commun.css">
   <style>
-    :root {
-      --fond: #1e1b2e;
-      --panneau: #1c1c1c;
-      --panneau-bord: #2a2a2a;
-      --carte: #2a2640;
-      --carte-bord: #444;
-      --texte: #f2f2f2;
-      --texte-doux: #bbb;
-      --accent: #ff8a3d;
-      --accent-2: #e5447a;
-      --or: #ffb86b;
-      --vert: #7fdc9a;
-      --topbar-h: 84px;
-    }
+    :root { --topbar-h: 84px; }
 
     * { box-sizing: border-box; }
 
@@ -297,41 +285,6 @@
       gap: 6px;
       padding-right: 4px;
     }
-    .msg {
-      background: #262626;
-      border-radius: 8px;
-      padding: 6px 8px;
-      word-wrap: break-word;
-      font-size: 13px;
-      flex-shrink: 0;
-    }
-    .msg.moi { background: #2a3b2f; }
-    .msg .auteur { font-weight: bold; font-size: 12px; color: var(--or); }
-    .msg.moi .auteur { color: var(--vert); }
-    .msg .heure { font-size: 10px; color: #777; margin-left: 6px; }
-    .msg .texte { margin-top: 2px; }
-
-    #formChat { display: flex; gap: 6px; margin-top: 10px; flex-shrink: 0; }
-    #texteChat {
-      flex: 1;
-      min-width: 0;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--carte-bord);
-      background: #161616;
-      color: var(--texte);
-      font-size: 13px;
-    }
-    #formChat button {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #statutChat { font-size: 12px; color: var(--or); min-height: 16px; margin-top: 4px; flex-shrink: 0; }
 
     /* ---------- Adaptation petits écrans ---------- */
 
@@ -435,15 +388,8 @@
     </aside>
   </div>
 
+  <script src="/js/commun.js"></script>
   <script>
-    const RARETES_AFFICHAGE = {
-      common:    { label: "Commun",     couleur: "#060ee4" },
-      uncommon:  { label: "Non-commun", couleur: "#1af3c3" },
-      rare:      { label: "Rare",       couleur: "#1cc22a" },
-      epic:      { label: "Epic",       couleur: "#a831eb" },
-      legendary: { label: "Légendaire", couleur: "#fe9308" },
-    };
-
     const IMAGES_STARTERS = {
       "Fire monkey": "/images/Starters/fire_starter.png",
       "Ice monkey": "/images/Starters/ice_starter.png",
@@ -475,27 +421,17 @@
       document.getElementById("coins").textContent = starter.coins ?? 0;
     }
 
-    function prechargerImages(urls) {
-      return Promise.all(urls.map((url) => new Promise((resolve) => {
-        const image = new Image();
-        image.onload = image.onerror = resolve;
-        image.src = url;
-      })));
-    }
-
-    async function chargerStarter(reponseProfil) {
-      const reponse = reponseProfil ?? await fetch("/profil");
-      if (!reponse.ok) return;
-      const { starter } = await reponse.json();
-      if (!starter) {
+    function chargerStarter(profil) {
+      if (!profil.ok) return;
+      if (!profil.data.starter) {
         window.location.replace("/starter.html");
         return;
       }
-      afficherStarter(starter);
+      afficherStarter(profil.data.starter);
     }
 
     document.getElementById("deconnexion").addEventListener("click", async () => {
-      await fetch("/deconnexion", { method: "POST" });
+      await api("/deconnexion", { methode: "POST" });
       window.location.replace("/");
     });
 
@@ -515,28 +451,25 @@
     });
 
     async function tirer() {
-      const reponse = await fetch("/tirage", { method: "POST" });
-      const data = await reponse.json();
-      if (!reponse.ok) {
+      const { ok, data } = await api("/tirage", { methode: "POST" });
+      if (!ok) {
         document.getElementById("message").textContent = "Erreur : " + data.erreur;
         return;
       }
       document.getElementById("message").textContent = "";
       const { espece, niveau, image, stats } = data;
 
-      const rarete = RARETES_AFFICHAGE[espece.rarete] ?? { label: espece.rarete, couleur: "#777" };
-      const couleur = "#" + rarete.couleur.replace("#", "");
-      const imageRarete = `/images/MonkeysRarities/rarity_${espece.rarete}.png`;
+      const rarete = infoRarete(espece.rarete);
 
-      await prechargerImages([image, imageRarete]);
+      await prechargerImages([image, rarete.icone]);
       await new Promise(requestAnimationFrame);
 
       const elRarete = document.getElementById("rarete");
       elRarete.innerHTML = "";
-      elRarete.style.borderColor = couleur;
-      elRarete.style.color = couleur;
+      elRarete.style.borderColor = rarete.couleur;
+      elRarete.style.color = rarete.couleur;
       const icone = document.createElement("img");
-      icone.src = imageRarete;
+      icone.src = rarete.icone;
       icone.alt = "";
       elRarete.appendChild(icone);
       elRarete.appendChild(document.createTextNode(rarete.label));
@@ -565,9 +498,9 @@
     // ---------- Classement ----------
 
     async function chargerClassement() {
-      const r = await fetch("/classement");
-      if (!r.ok) return;
-      const { joueurs } = await r.json();
+      const { ok, data } = await api("/classement");
+      if (!ok) return;
+      const { joueurs } = data;
       const zone = document.getElementById("classement");
       zone.innerHTML = "";
 
@@ -602,36 +535,6 @@
     let dernierIdMessage = 0;
     let rafraichissementChat = null;
 
-    function formaterHeure(iso) {
-      return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    }
-
-    function ajouterMessage(m) {
-      const zone = document.getElementById("messages");
-      const bulle = document.createElement("div");
-      bulle.className = "msg" + (m.moi ? " moi" : "");
-      bulle.dataset.id = String(m.id);
-
-      const entete = document.createElement("div");
-      const auteur = document.createElement("span");
-      auteur.className = "auteur";
-      auteur.textContent = m.pseudo;
-      const heure = document.createElement("span");
-      heure.className = "heure";
-      heure.textContent = formaterHeure(m.created_at);
-      entete.appendChild(auteur);
-      entete.appendChild(heure);
-
-      const texte = document.createElement("div");
-      texte.className = "texte";
-      texte.textContent = m.texte;
-
-      bulle.appendChild(entete);
-      bulle.appendChild(texte);
-      zone.appendChild(bulle);
-      zone.scrollTop = zone.scrollHeight;
-    }
-
     function retirerAnciens(plusAncienId) {
       if (!plusAncienId) return;
       const zone = document.getElementById("messages");
@@ -646,13 +549,13 @@
 
       rafraichissementChat = (async () => {
         try {
-          const r = await fetch(`/chat?apres=${dernierIdMessage}`);
-          if (!r.ok) return;
-          const data = await r.json();
+          const { ok, data } = await api(`/chat?apres=${dernierIdMessage}`);
+          if (!ok) return;
 
+          const zone = document.getElementById("messages");
           for (const m of data.messages) {
-            if (document.querySelector(`#messages [data-id="${m.id}"]`)) continue;
-            ajouterMessage(m);
+            if (zone.querySelector(`[data-id="${m.id}"]`)) continue;
+            ajouterBulleChat(zone, m);
             dernierIdMessage = Math.max(dernierIdMessage, m.id);
           }
           retirerAnciens(data.plusAncienId);
@@ -672,13 +575,8 @@
       const texte = input.value.trim();
       if (!texte) return;
 
-      const r = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texte }),
-      });
-      const data = await r.json();
-      if (!r.ok) {
+      const { ok, data } = await api("/chat", { corps: { texte } });
+      if (!ok) {
         document.getElementById("statutChat").textContent = data.erreur;
         return;
       }
@@ -689,11 +587,8 @@
 
     // ---------- Chargement ----------
 
-    Promise.all([fetch("/moi"), fetch("/profil")]).then(([moi, profil]) => {
-      if (!moi.ok) {
-        window.location.replace("/");
-        return;
-      }
+    Promise.all([exigerConnexion(), api("/profil")]).then(([moi, profil]) => {
+      if (!moi) return;
       chargerStarter(profil);
       rafraichirChat();
       chargerClassement();

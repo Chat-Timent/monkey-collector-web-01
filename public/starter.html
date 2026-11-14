@@ -53,20 +53,15 @@
 
   <p id="message"></p>
 
+  <script src="/js/commun.js"></script>
   <script src="/js/session.js"></script>
   <script>
-    fetch("/moi").then((r) => {
-      if (!r.ok) window.location.replace("/");
-    });
+    exigerConnexion();
 
     document.querySelectorAll(".starter").forEach((bouton) => {
       bouton.addEventListener("click", async () => {
-        const reponse = await fetch("/starter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ choix: bouton.dataset.choix }),
-        });
-        if (!reponse.ok) {
+        const { ok } = await api("/starter", { corps: { choix: bouton.dataset.choix } });
+        if (!ok) {
           document.getElementById("message").textContent = "Erreur, réessaie.";
           return;
         }

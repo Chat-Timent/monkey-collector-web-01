@@ -183,16 +183,9 @@
     </div>
   </div>
 
+  <script src="/js/commun.js"></script>
   <script src="/js/session.js"></script>
   <script>
-    const RARETES_AFFICHAGE = {
-      common:    { label: "Commun",     couleur: "#060ee4" },
-      uncommon:  { label: "Non-commun", couleur: "#1af3c3" },
-      rare:      { label: "Rare",       couleur: "#1cc22a" },
-      epic:      { label: "Epic",       couleur: "#a831eb" },
-      legendary: { label: "Légendaire", couleur: "#fe9308" },
-    };
-
     // Libellés et ordre d'affichage des stats dans la fiche
     const STATS_FICHE = [
       { cle: "hp",      libelle: "PV",          suffixe: "" },
@@ -211,23 +204,14 @@
     let renduVersion = 0;
     const grille = document.getElementById("grille");
 
-    function prechargerImages(urls) {
-      return Promise.all([...new Set(urls)].map((url) => new Promise((resolve) => {
-        const image = new Image();
-        image.onload = image.onerror = resolve;
-        image.src = url;
-      })));
-    }
-
     function carteHTML(s, indexGlobal) {
-      const r = RARETES_AFFICHAGE[s.espece.rarete] ?? { label: s.espece.rarete, couleur: "#777" };
-      const couleur = "#" + r.couleur.replace("#", "");
+      const r = infoRarete(s.espece.rarete);
       return `
         <button class="carte" data-index="${indexGlobal}">
           <img src="${s.image}" alt="">
           <h3>${s.espece.nom} <small>×${s.amount}</small></h3>
-          <span class="rarete" style="border-color:${couleur}; color:${couleur}">
-            <img src="/images/MonkeysRarities/rarity_${s.espece.rarete}.png" alt="">
+          <span class="rarete" style="border-color:${r.couleur}; color:${r.couleur}">
+            <img src="${r.icone}" alt="">
             ${r.label}
           </span>
           <div class="niv">Lvl ${s.niveau.niveau} (${s.niveau.progression}/${s.niveau.prochain})</div>
@@ -240,10 +224,7 @@
       const debut = page * PAR_PAGE;
       const morceau = singes.slice(debut, debut + PAR_PAGE);
 
-      await prechargerImages(morceau.flatMap((s) => [
-        s.image,
-        `/images/MonkeysRarities/rarity_${s.espece.rarete}.png`,
-      ]));
+      await prechargerImages(morceau.flatMap((s) => [s.image, infoRarete(s.espece.rarete).icone]));
       if (version !== renduVersion) return;
 
       grille.innerHTML = morceau.length
@@ -258,12 +239,11 @@
     // ---------- Fiche détaillée ----------
 
     function ouvrirFiche(s) {
-      const r = RARETES_AFFICHAGE[s.espece.rarete] ?? { label: s.espece.rarete, couleur: "#777" };
-      const couleur = "#" + r.couleur.replace("#", "");
+      const r = infoRarete(s.espece.rarete);
 
       document.getElementById("detail-image").src = s.image;
       document.getElementById("detail-nom").textContent = s.espece.nom;
-      document.getElementById("detail-nom").style.color = couleur;
+      document.getElementById("detail-nom").style.color = r.couleur;
       document.getElementById("detail-description").textContent = s.espece.description ?? "";
       document.getElementById("detail-niveau").textContent =
         `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}`;
@@ -311,28 +291,27 @@
     document.getElementById("suivant").addEventListener("click", () => { page++; afficher(); });
 
     (async () => {
-      const [moi, reponse] = await Promise.all([
-        fetch("/moi"),
-        fetch("/monkeydex"),
+      const [moi, { ok, data }] = await Promise.all([
+        exigerConnexion(),
+        api("/monkeydex"),
       ]);
-      if (!moi.ok) {
-        window.location.replace("/");
+      if (!moi) return;
+      if (!ok) {
+        document.getElementById("total").textContent = "Erreur de chargement : " + data.erreur;
         return;
       }
 
-      const data = await reponse.json();
       singes = data.singes;
       document.getElementById("total").textContent = `Nombre total de singes : ${data.total}`;
 
       const zoneCompteur = document.getElementById("compteur");
       zoneCompteur.innerHTML = "";
       for (const c of data.compteur) {
-        const r = RARETES_AFFICHAGE[c.nom];
-        const couleur = "#" + r.couleur.replace("#", "");
+        const r = infoRarete(c.nom);
         const pastille = document.createElement("span");
-        pastille.style.borderColor = couleur;
-        pastille.style.color = couleur;
-        pastille.innerHTML = `<img src="/images/MonkeysRarities/rarity_${c.nom}.png" alt=""> ${c.total}`;
+        pastille.style.borderColor = r.couleur;
+        pastille.style.color = r.couleur;
+        pastille.innerHTML = `<img src="${r.icone}" alt=""> ${c.total}`;
         zoneCompteur.appendChild(pastille);
       }
       afficher();

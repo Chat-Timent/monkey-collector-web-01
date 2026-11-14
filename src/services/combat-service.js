@@ -81,6 +81,9 @@ export async function getCombat(userId, combatId) {
     pseudoB: r.pseudo_b,
     monCamp: r.user_a === userId ? "A" : "B",
     ecouleMs: Date.now() - new Date(r.created_at).getTime(),
+    // Rythme du replay : le client s'en sert pour se caler sur le direct.
+    delaiInitialMs: DELAI_INITIAL_MS,
+    pasMs: PAS_MS,
   };
 }
 

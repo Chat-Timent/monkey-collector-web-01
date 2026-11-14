@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Combat en direct</title>
+  <link rel="stylesheet" href="/css/commun.css">
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -150,33 +151,6 @@
       gap: 6px;
       padding-right: 4px;
     }
-    .msg { background: #262626; border-radius: 8px; padding: 6px 8px; word-wrap: break-word; }
-    .msg.moi { background: #2a3b2f; }
-    .msg .auteur { font-weight: bold; font-size: 12px; color: #ffb86b; }
-    .msg.moi .auteur { color: #7fdc9a; }
-    .msg .heure { font-size: 10px; color: #777; margin-left: 6px; }
-    .msg .texte { margin-top: 2px; }
-    #formChat { display: flex; gap: 6px; margin-top: 8px; }
-    #texteChat {
-      flex: 1;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid #444;
-      background: #161616;
-      color: #f2f2f2;
-      font-size: 13px;
-    }
-    #formChat button {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
-      background: linear-gradient(135deg, #ff8a3d, #e5447a);
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    #formChat button:disabled { background: #333; color: #888; cursor: default; }
-    #statutChat { font-size: 12px; color: #ffb86b; min-height: 16px; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -213,19 +187,15 @@
     </div>
   </div>
 
+  <script src="/js/commun.js"></script>
   <script>
-    // Doit rester identique à tirage.js
-    const DELAI_INITIAL_MS = 1000;
-    const PAS_MS = 700;
     const INTERVALLE_CHAT_MS = 2000;
 
     const idCombat = new URLSearchParams(location.search).get("id");
     const $ = (id) => document.getElementById(id);
 
-    const RARETES_COULEUR = {
-      common: "#060ee4", uncommon: "#1af3c3", rare: "#1cc22a",
-      epic: "#a831eb", legendary: "#fe9308",
-    };
+    // Rythme du replay, fourni par le serveur avec le combat
+    let pasMs = 0;
 
     let resultat = null;
     let monCamp = null;
@@ -257,8 +227,8 @@
 
       const bulle = estCible ? `<div class="bulle ${fx.type}">${fx.texte}</div>` : "";
       const pct = Math.max(0, Math.round((m.pv / m.max) * 100));
-      const bordure = RARETES_COULEUR[m.rarete]
-        ? `style="box-shadow: inset 0 3px 0 ${RARETES_COULEUR[m.rarete]}"` : "";
+      const bordure = RARETES_AFFICHAGE[m.rarete]
+        ? `style="box-shadow: inset 0 3px 0 ${RARETES_AFFICHAGE[m.rarete].couleur}"` : "";
 
       return `
         <div class="${classes.join(" ")}" ${bordure}>
@@ -335,40 +305,10 @@
       if (e.type !== "KO") { actif = null; fx = null; }
       appliquer(e);
       dessiner();
-      timer = setTimeout(pas, PAS_MS);
+      timer = setTimeout(pas, pasMs);
     }
 
     // ---------- Chat ----------
-
-    function formaterHeure(iso) {
-      return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-    }
-
-    // Construit les éléments avec textContent : le texte saisi n'est jamais interprété en HTML
-    function ajouterMessage(m) {
-      const zone = $("messages");
-      const bulle = document.createElement("div");
-      bulle.className = "msg" + (m.moi ? " moi" : "");
-
-      const entete = document.createElement("div");
-      const auteur = document.createElement("span");
-      auteur.className = "auteur";
-      auteur.textContent = m.pseudo;
-      const heure = document.createElement("span");
-      heure.className = "heure";
-      heure.textContent = formaterHeure(m.created_at);
-      entete.appendChild(auteur);
-      entete.appendChild(heure);
-
-      const texte = document.createElement("div");
-      texte.className = "texte";
-      texte.textContent = m.texte;
-
-      bulle.appendChild(entete);
-      bulle.appendChild(texte);
-      zone.appendChild(bulle);
-      zone.scrollTop = zone.scrollHeight;
-    }
 
     function majStatutChat() {
       const input = $("texteChat");
@@ -379,13 +319,14 @@
     }
 
     async function rafraichirChat() {
-      const r = await fetch(`/combats/${idCombat}/messages?apres=${dernierIdMessage}`);
-      if (!r.ok) return;
-      const data = await r.json();
+      const { ok, data } = await api(`/combats/${idCombat}/messages?apres=${dernierIdMessage}`);
+      if (!ok) return;
 
+      // Deux rafraîchissements peuvent se croiser (envoi + intervalle) : on ignore les doublons
       for (const m of data.messages) {
-        ajouterMessage(m);
-        dernierIdMessage = m.id;
+        if ($("messages").querySelector(`[data-id="${m.id}"]`)) continue;
+        ajouterBulleChat($("messages"), m);
+        dernierIdMessage = Math.max(dernierIdMessage, Number(m.id));
       }
       if (chatLive !== data.live) {
         chatLive = data.live;
@@ -399,13 +340,8 @@
       const texte = input.value.trim();
       if (!texte) return;
 
-      const r = await fetch(`/combats/${idCombat}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texte }),
-      });
-      const data = await r.json();
-      if (!r.ok) {
+      const { ok, data } = await api(`/combats/${idCombat}/messages`, { corps: { texte } });
+      if (!ok) {
         $("statutChat").textContent = data.erreur;
         if (data.erreur === "le combat est terminé") {
           chatLive = false;
@@ -421,14 +357,13 @@
     // ---------- Chargement ----------
 
     async function charger() {
-      const moi = await fetch("/moi");
-      if (!moi.ok) return location.replace("/");
+      if (!await exigerConnexion()) return;
       if (!idCombat) { $("banniere").textContent = "Aucun combat sélectionné."; return; }
 
-      const r = await fetch(`/combats/${idCombat}`);
-      if (!r.ok) { $("banniere").textContent = "Combat introuvable."; return; }
-      const data = await r.json();
+      const { ok, data } = await api(`/combats/${idCombat}`);
+      if (!ok) { $("banniere").textContent = "Combat introuvable."; return; }
 
+      pasMs = data.pasMs;
       resultat = data.resultat;
       monCamp = data.monCamp;
       const pseudoMoi = monCamp === "A" ? data.pseudoA : data.pseudoB;
@@ -443,8 +378,8 @@
       }
       journal = resultat.journal;
 
-      const ecoule = Math.max(0, data.ecouleMs - DELAI_INITIAL_MS);
-      const cible = Math.min(journal.length, Math.floor(ecoule / PAS_MS));
+      const ecoule = Math.max(0, data.ecouleMs - data.delaiInitialMs);
+      const cible = Math.min(journal.length, Math.floor(ecoule / pasMs));
       for (index = 0; index < cible; index++) appliquerSansAnimation(journal[index]);
 
       dessiner();
@@ -458,7 +393,7 @@
         terminer(false);
       } else {
         $("banniere").textContent = "En direct";
-        timer = setTimeout(pas, PAS_MS);
+        timer = setTimeout(pas, pasMs);
       }
     }
 

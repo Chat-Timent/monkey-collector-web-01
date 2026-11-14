@@ -68,6 +68,7 @@
     <p id="message"></p>
   </div>
 
+  <script src="/js/commun.js"></script>
   <script>
     let mode = "connexion";
     const form = document.getElementById("formulaire");
@@ -75,8 +76,8 @@
     const valider = document.getElementById("valider");
 
     // Si déjà connecté, on passe directement au tirage
-    fetch("/moi").then((r) => {
-      if (r.ok) window.location.replace("/tirage.html");
+    api("/moi").then(({ ok }) => {
+      if (ok) window.location.replace("/tirage.html");
     });
 
     function changerMode(nouveau) {
@@ -102,25 +103,16 @@
       };
 
       const url = mode === "connexion" ? "/connexion" : "/inscription";
-      const reponse = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(corps),
-      });
-      const data = await reponse.json();
+      const { ok, data } = await api(url, { corps });
 
-      if (!reponse.ok) {
+      if (!ok) {
         message.textContent = data.erreur;
         return;
       }
 
       if (mode === "inscription") {
         // Après inscription, on connecte directement
-        const connexion = await fetch("/connexion", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(corps),
-        });
+        const connexion = await api("/connexion", { corps });
         if (!connexion.ok) {
           message.textContent = "Compte créé, connecte-toi.";
           changerMode("connexion");

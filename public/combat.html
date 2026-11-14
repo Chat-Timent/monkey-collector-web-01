@@ -253,18 +253,11 @@
     </main>
   </div>
 
+  <script src="/js/commun.js"></script>
   <script src="/js/session.js"></script>
   <script>
     const NB_SLOTS = 6;
     const INTERVALLE_RAFRAICHISSEMENT_MS = 3000;
-
-    const RARETES_AFFICHAGE = {
-      common:    { label: "Commun",     couleur: "#060ee4" },
-      uncommon:  { label: "Non-commun", couleur: "#1af3c3" },
-      rare:      { label: "Rare",       couleur: "#1cc22a" },
-      epic:      { label: "Epic",       couleur: "#a831eb" },
-      legendary: { label: "Légendaire", couleur: "#fe9308" },
-    };
 
     let possedes = [];
     let equipe = Array(NB_SLOTS).fill(null);
@@ -283,10 +276,9 @@
     // ---------- Équipe ----------
 
     function pastilleHTML(rarete) {
-      const r = RARETES_AFFICHAGE[rarete] ?? { label: rarete, couleur: "#777" };
-      const c = "#" + r.couleur.replace("#", "");
-      return `<span class="pastille" style="border-color:${c};color:${c}">
-                <img src="/images/MonkeysRarities/rarity_${rarete}.png" alt="">${r.label}
+      const r = infoRarete(rarete);
+      return `<span class="pastille" style="border-color:${r.couleur};color:${r.couleur}">
+                <img src="${r.icone}" alt="">${r.label}
               </span>`;
     }
 
@@ -343,13 +335,8 @@
       afficherSlots();
       message.textContent = "Sauvegarde…";
       try {
-        const reponse = await fetch("/equipe", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ especes: equipe }),
-        });
-        const data = await reponse.json();
-        if (!reponse.ok) throw new Error(data.erreur);
+        const { ok, data } = await api("/equipe", { corps: { especes: equipe } });
+        if (!ok) throw new Error(data.erreur);
         message.textContent = "Équipe sauvegardée.";
       } catch (err) {
         equipe[index] = ancienne;
@@ -453,27 +440,17 @@
     }
 
     async function envoyerDefi(versUserId) {
-      const reponse = await fetch("/defis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ versUserId }),
-      });
-      const data = await reponse.json();
-      message.textContent = reponse.ok
+      const { ok, data } = await api("/defis", { corps: { versUserId } });
+      message.textContent = ok
         ? "Défi envoyé. Il expire dans 60 secondes."
         : "Erreur : " + data.erreur;
       await rafraichirJoueurs();
     }
 
     async function repondreDefi(defiId, accepter) {
-      const reponse = await fetch(`/defis/${defiId}/repondre`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accepter }),
-      });
-      const data = await reponse.json();
+      const { ok, data } = await api(`/defis/${defiId}/repondre`, { corps: { accepter } });
 
-      if (!reponse.ok) {
+      if (!ok) {
         message.textContent = "Erreur : " + data.erreur;
       } else if (accepter) {
         location.href = `/combat-live.html?id=${data.combatId}`;
@@ -486,10 +463,10 @@
     }
 
     async function rafraichirJoueurs() {
-      const [rj, rd] = await Promise.all([fetch("/joueurs"), fetch("/defis")]);
+      const [rj, rd] = await Promise.all([api("/joueurs"), api("/defis")]);
       if (!rj.ok || !rd.ok) return;
-      const { joueurs } = await rj.json();
-      const defis = await rd.json();
+      const { joueurs } = rj.data;
+      const defis = rd.data;
       defisEnvoyes = defis.envoyes.map(normaliserDefi);
       defisRecus = defis.recus.map(normaliserDefi);
       afficherJoueurs(joueurs);
@@ -521,9 +498,9 @@
     }
 
     async function rafraichirCombats() {
-      const r = await fetch("/combats");
-      if (!r.ok) return;
-      const { combats } = await r.json();
+      const { ok, data } = await api("/combats");
+      if (!ok) return;
+      const { combats } = data;
 
       if (premierRafraichissementCombats) {
         combats.forEach((c) => sessionStorage.setItem(cleVu(c.id), "1"));
@@ -565,26 +542,21 @@
 
     async function init() {
       const [moi, resDex, resEquipe] = await Promise.all([
-        fetch("/moi"),
-        fetch("/monkeydex"),
-        fetch("/equipe"),
+        exigerConnexion(),
+        api("/monkeydex"),
+        api("/equipe"),
       ]);
-      if (!moi.ok) {
-        window.location.replace("/");
-        return;
-      }
+      if (!moi) return;
 
       afficherSlots();
       try {
         if (!resDex.ok || !resEquipe.ok) {
           throw new Error(`monkeydex ${resDex.status}, équipe ${resEquipe.status}`);
         }
-        const dex = await resDex.json();
-        const eq = await resEquipe.json();
 
-        possedes = dex.singes;
+        possedes = resDex.data.singes;
         equipe = Array(NB_SLOTS).fill(null);
-        for (const { slot, espece } of eq.equipe) {
+        for (const { slot, espece } of resEquipe.data.equipe) {
           equipe[slot - 1] = espece;
         }
         afficherSlots();
