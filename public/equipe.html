@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Équipe</title>
+  <link rel="stylesheet" href="/css/commun.css">
+  <link rel="stylesheet" href="/css/arbre.css">
+  <link rel="stylesheet" href="/css/barre.css">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #161616;
+      color: var(--texte);
+      margin: 0;
+      min-height: 100vh;
+    }
+    .contenu { max-width: 760px; margin: 24px auto; padding: 0 16px 40px; }
+
+    .ligne-equipe { margin-bottom: 22px; }
+    .ligne-equipe h2 {
+      font-size: 13px;
+      color: var(--texte-doux);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0 0 8px;
+    }
+    .slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    .slot { position: relative; }
+    .slot-bouton {
+      width: 100%;
+      min-height: 150px;
+      background: #242424;
+      border: 1px dashed #444;
+      border-radius: 12px;
+      padding: 10px;
+      color: var(--texte);
+      font: inherit;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .slot-bouton.plein { border: 1px solid #333; }
+    .slot-bouton:hover { border-color: var(--accent); }
+    .slot-bouton img { width: 70px; height: 70px; object-fit: contain; }
+    .slot-bouton .nom { font-weight: bold; font-size: 13px; }
+    .slot-bouton .ajouter { color: #777; font-size: 28px; line-height: 1; }
+    .slot-bouton .sous { font-size: 12px; color: var(--or); }
+
+    .pastille {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 8px 2px 3px;
+      border-radius: 999px;
+      border: 1.5px solid;
+      font-size: 11px;
+      font-weight: bold;
+      background: #161616;
+    }
+    .pastille img { width: 14px; height: 14px; object-fit: contain; }
+
+    .menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: min(280px, 85vw);
+      max-height: 340px;
+      overflow-y: auto;
+      background: #242424;
+      border: 1px solid #444;
+      border-radius: 12px;
+      padding: 6px;
+      z-index: 20;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .slot:nth-child(3) .menu { left: auto; right: 0; }
+    .menu.ouvert { display: block; }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 8px;
+      background: none;
+      border: none;
+      border-radius: 8px;
+      color: var(--texte);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .option:hover:not(:disabled) { background: #2f2f2f; }
+    .option:disabled { opacity: 0.4; cursor: default; }
+    .option img { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
+    .option .infos { display: flex; flex-direction: column; gap: 3px; }
+    .option .nom { font-weight: bold; font-size: 14px; }
+    .option .sous { font-size: 12px; color: var(--texte-doux); }
+    .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
+    .menu .vide { padding: 8px; color: var(--texte-doux); margin: 0; }
+
+    #message { min-height: 1.2em; color: var(--or); font-size: 14px; margin: 0; }
+
+    @media (max-width: 640px) {
+      .slots { gap: 8px; }
+      .slot-bouton { min-height: 120px; padding: 6px; }
+      .slot-bouton img { width: 56px; height: 56px; }
+      .slot-bouton .pastille { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="contenu">
+    <div id="rangees"></div>
+    <p id="message"></p>
+  </main>
+
+  <script src="/js/commun.js"></script>
+  <script src="/js/arbre.js"></script>
+  <script src="/js/barre.js"></script>
+  <script src="/js/session.js"></script>
+  <script>
+    // Les emplacements entrent en combat par rangées de 3 : ligne 1, puis ligne 2, puis renfort.
+    const RANGEES = ["Ligne 1", "Ligne 2", "Renfort"];
+
+    let possedes = [];
+    let equipe = Array(6).fill(null);
+    let minuteurMessage = null;
+    const message = document.getElementById("message");
+
+    function afficherMessage(texte, temporaire = false) {
+      clearTimeout(minuteurMessage);
+      message.textContent = texte;
+      if (temporaire) minuteurMessage = setTimeout(() => { message.textContent = ""; }, 2000);
+    }
+
+    function pastilleHTML(rarete) {
+      const r = infoRarete(rarete);
+      return `<span class="pastille" style="border-color:${r.couleur};color:${r.couleur}">
+                <img src="${r.icone}" alt="">${r.label}
+              </span>`;
+    }
+
+    function trouverSinge(id) {
+      return possedes.find((s) => s.id === id);
+    }
+
+    function fermerMenus() {
+      document.querySelectorAll(".menu.ouvert").forEach((m) => m.classList.remove("ouvert"));
+    }
+
+    function construireOptions(index) {
+      const dejaUtilises = equipe.filter((id, i) => id && i !== index);
+      let html = "";
+      if (equipe[index] !== null) {
+        html += `<button class="option retirer" data-id="">✕ Retirer</button>`;
+      }
+      if (possedes.length === 0) {
+        return html + `<p class="vide">Aucun singe : va tirer !</p>`;
+      }
+      for (const s of possedes) {
+        const dispo = !dejaUtilises.includes(s.id);
+        html += `
+          <button class="option" data-id="${s.id}" ${dispo ? "" : "disabled"}>
+            <img src="${s.image}" alt="">
+            <div class="infos">
+              <span class="nom">${s.espece.nom}</span>
+              ${pastilleHTML(s.espece.rarete)}
+              <span class="sous">Lvl ${s.niveau.niveau}${dispo ? "" : " · déjà placé"}</span>
+            </div>
+          </button>`;
+      }
+      return html;
+    }
+
+    function ouvrirMenu(slot, index) {
+      const menu = slot.querySelector(".menu");
+      const dejaOuvert = menu.classList.contains("ouvert");
+      fermerMenus();
+      if (dejaOuvert) return;
+      menu.innerHTML = construireOptions(index);
+      menu.classList.add("ouvert");
+      menu.querySelectorAll(".option").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          choisir(index, btn.dataset.id || null);
+        });
+      });
+    }
+
+    async function choisir(index, id) {
+      fermerMenus();
+      const ancienne = equipe[index];
+      equipe[index] = id;
+      afficherSlots();
+      try {
+        const { ok, data } = await api("/equipe", { corps: { especes: equipe } });
+        if (!ok) throw new Error(data.erreur);
+        afficherMessage("✓ Sauvegardé", true);
+      } catch (err) {
+        equipe[index] = ancienne;
+        afficherSlots();
+        afficherMessage("Erreur : " + err.message);
+      }
+    }
+
+    function slotHTML(index) {
+      const id = equipe[index];
+      const singe = id ? trouverSinge(id) : null;
+      const contenu = singe
+        ? `<img src="${singe.image}" alt="">
+           <span class="nom">${singe.espece.nom}</span>
+           ${pastilleHTML(singe.espece.rarete)}
+           <span class="sous">Lvl ${singe.niveau.niveau}</span>`
+        : `<span class="ajouter">+</span>`;
+      return `<button class="slot-bouton ${singe ? "plein" : ""}" type="button" aria-label="Emplacement ${index + 1}">${contenu}</button>
+              <div class="menu"></div>`;
+    }
+
+    function afficherSlots() {
+      const zone = document.getElementById("rangees");
+      zone.innerHTML = "";
+      for (let debut = 0; debut < equipe.length; debut += 3) {
+        const rangee = document.createElement("section");
+        rangee.className = "ligne-equipe";
+        const titre = document.createElement("h2");
+        titre.textContent = RANGEES[debut / 3] ?? `Ligne ${debut / 3 + 1}`;
+        const grille = document.createElement("div");
+        grille.className = "slots";
+
+        for (let index = debut; index < Math.min(debut + 3, equipe.length); index++) {
+          const slot = document.createElement("div");
+          slot.className = "slot";
+          slot.innerHTML = slotHTML(index);
+          slot.querySelector(".slot-bouton").addEventListener("click", (e) => {
+            e.stopPropagation();
+            ouvrirMenu(slot, index);
+          });
+          grille.appendChild(slot);
+        }
+        rangee.append(titre, grille);
+        zone.appendChild(rangee);
+      }
+    }
+
+    async function charger() {
+      const [resDex, resEquipe] = await Promise.all([api("/monkeydex"), api("/equipe")]);
+      if (!resDex.ok || !resEquipe.ok) {
+        afficherMessage("Erreur de chargement, réessaie.");
+        return;
+      }
+      possedes = resDex.data.singes;
+      equipe = Array(resEquipe.data.nbSlots ?? 6).fill(null);
+      for (const { slot, espece } of resEquipe.data.equipe) {
+        if (slot <= equipe.length) equipe[slot - 1] = espece;
+      }
+      afficherSlots();
+    }
+
+    document.addEventListener("click", fermerMenus);
+    // Débloquer « Rang de renfort » ajoute un emplacement : on recharge l'équipe
+    document.addEventListener("arbre-change", charger);
+
+    exigerConnexion().then((moi) => { if (moi) charger(); });
+  </script>
+</body>
+</html>

@@ -6,9 +6,8 @@
   <title>Monkey Collector V0.1</title>
   <link rel="stylesheet" href="/css/commun.css">
   <link rel="stylesheet" href="/css/arbre.css">
+  <link rel="stylesheet" href="/css/barre.css">
   <style>
-    :root { --topbar-h: 84px; }
-
     * { box-sizing: border-box; }
 
     body {
@@ -19,121 +18,6 @@
       padding: var(--topbar-h) 0 0;
       height: 100vh;
       overflow: hidden;
-    }
-
-    /* ---------- Topbar ---------- */
-
-    #topbar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: var(--topbar-h);
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 16px;
-      padding: 0 24px;
-      background: linear-gradient(180deg, #2a2640, #232034);
-      border-bottom: 1px solid #3a3555;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-      z-index: 10;
-    }
-
-    .starter-bloc {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-    .starter-bloc .avatar {
-      width: 60px; height: 60px;
-      border-radius: 14px;
-      background: #1e1b2e;
-      border: 2px solid var(--or);
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-      overflow: hidden;
-    }
-    .starter-bloc .avatar img { width: 52px; height: 52px; object-fit: contain; }
-    .starter-bloc .avatar img.cachee { display: none; }
-    .starter-info { min-width: 0; flex: 1; }
-    .starter-ligne { display: flex; align-items: center; gap: 8px; }
-    #starter-nom {
-      font-size: 16px;
-      font-weight: bold;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    #starter-niveau {
-      font-size: 12px;
-      font-weight: bold;
-      color: #1e1b2e;
-      background: var(--or);
-      padding: 2px 8px;
-      border-radius: 999px;
-      white-space: nowrap;
-    }
-    .xp-track {
-      margin-top: 6px;
-      height: 10px;
-      width: 100%;
-      max-width: 220px;
-      background: #111;
-      border: 1px solid #3a3555;
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .xp-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #f0a020, #ffd36b);
-      transition: width 0.6s ease;
-    }
-    #starter-xp {
-      font-size: 11px;
-      color: var(--texte-doux);
-      margin-top: 3px;
-    }
-
-    .titre-topbar {
-      font-size: 22px;
-      font-weight: bold;
-      letter-spacing: 1px;
-      text-align: center;
-      white-space: nowrap;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .droite-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 12px;
-    }
-    .ressource {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 14px;
-      border-radius: 10px;
-      background: #1e1b2e;
-      border: 1px solid #3a3555;
-      font-weight: bold;
-      font-size: 16px;
-    }
-    .ressource .icone { font-size: 18px; }
-    .ressource .valeur { color: var(--or); }
-
-    #deconnexion {
-      padding: 8px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--carte-bord);
-      background: var(--carte);
-      color: var(--texte);
-      cursor: pointer;
     }
 
     /* ---------- Mise en page ---------- */
@@ -316,39 +200,10 @@
       }
       .classement-panneau .liste { max-height: 260px; flex: none; }
       .chat-panneau { height: 340px; border-top: none; border-bottom: 1px solid var(--panneau-bord); }
-      .titre-topbar { font-size: 16px; }
-      .droite-topbar #deconnexion { display: none; }
     }
   </style>
 </head>
 <body>
-
-  <header id="topbar">
-    <div class="starter-bloc" id="starter-bloc" role="button" tabindex="0" title="Arbre de compétences">
-      <div class="avatar">
-        <img id="starter-img" alt="">
-        <span id="points-arbre" title="Points d'arbre à dépenser"></span>
-      </div>
-      <div class="starter-info">
-        <div class="starter-ligne">
-          <span id="starter-nom">Chargement…</span>
-          <span id="starter-niveau"></span>
-        </div>
-        <div class="xp-track"><div id="starter-xp-fill" class="xp-fill"></div></div>
-        <div id="starter-xp"></div>
-      </div>
-    </div>
-
-    <div class="titre-topbar">MONKEY COLLECTOR</div>
-
-    <div class="droite-topbar">
-      <div class="ressource" title="Coins">
-        <span class="icone">💰</span>
-        <span id="coins" class="valeur">0</span>
-      </div>
-      <button id="deconnexion">Déconnexion</button>
-    </div>
-  </header>
 
   <div class="page">
     <aside class="panneau classement-panneau">
@@ -359,8 +214,6 @@
     <main class="gacha">
       <div class="controles">
         <button id="tirer" class="bouton">Tirer un singe</button>
-        <a href="/monkeydex.html" class="bouton">Monkeydex</a>
-        <a href="/combat.html" class="bouton">Combat</a>
       </div>
 
       <p id="quota"></p>
@@ -397,85 +250,12 @@
     </aside>
   </div>
 
-  <div id="arbre" role="dialog" aria-label="Arbre de compétences">
-    <div class="arbre-fenetre">
-      <button id="arbre-fermer" aria-label="Fermer">×</button>
-      <div class="arbre-entete">
-        <h2>Arbre de compétences</h2>
-        <span id="arbre-points"></span>
-      </div>
-      <p id="arbre-message"></p>
-      <div id="arbre-branches"></div>
-    </div>
-  </div>
-
   <script src="/js/commun.js"></script>
   <script src="/js/arbre.js"></script>
+  <script src="/js/barre.js"></script>
   <script>
-    const IMAGES_STARTERS = {
-      "Fire monkey": "/images/Starters/fire_starter.png",
-      "Ice monkey": "/images/Starters/ice_starter.png",
-    };
-
     const INTERVALLE_CHAT_MS = 2000;
     const INTERVALLE_CLASSEMENT_MS = 10000;
-
-    const imgStarter = document.getElementById("starter-img");
-    imgStarter.addEventListener("error", () => {
-      console.warn("Image starter introuvable :", imgStarter.src);
-      imgStarter.classList.add("cachee");
-    });
-    imgStarter.addEventListener("load", () => imgStarter.classList.remove("cachee"));
-
-    // Affiche le starter, sa barre d'XP et les coins
-    function afficherStarter(starter) {
-      if (!starter) return;
-      const chemin = IMAGES_STARTERS[starter.nom];
-      if (chemin) imgStarter.src = chemin;
-
-      const seuil = starter.niveau * 100;
-      const pct = Math.min(100, Math.round((starter.xp / seuil) * 100));
-
-      document.getElementById("starter-nom").textContent = starter.nom;
-      document.getElementById("starter-niveau").textContent = `Niv. ${starter.niveau}`;
-      document.getElementById("starter-xp-fill").style.width = pct + "%";
-      document.getElementById("starter-xp").textContent = `${starter.xp} / ${seuil} XP`;
-      document.getElementById("coins").textContent = starter.coins ?? 0;
-    }
-
-    function chargerStarter(profil) {
-      if (!profil.ok) return;
-      if (!profil.data.starter) {
-        window.location.replace("/starter.html");
-        return;
-      }
-      afficherStarter(profil.data.starter);
-      afficherQuota(profil.data.quota);
-      afficherPointsArbre(profil.data.pointsArbre);
-    }
-
-    // ---------- Arbre de compétences ----------
-
-    function afficherPointsArbre(points) {
-      if (points === undefined) return;
-      const pastille = document.getElementById("points-arbre");
-      pastille.textContent = points;
-      pastille.classList.toggle("visible", points > 0);
-    }
-
-    initArbre({
-      // Après un déblocage : points à jour, et quota relu (le bonus de reset peut changer le max)
-      onChangement: (etat) => {
-        afficherPointsArbre(etat.points);
-        rafraichirQuota();
-      },
-    });
-
-    const blocStarter = document.getElementById("starter-bloc");
-    blocStarter.addEventListener("click", ouvrirArbre);
-    blocStarter.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ouvrirArbre(); }
-    });
 
     // ---------- Quota de tirages ----------
 
@@ -513,11 +293,6 @@
       }
     }
 
-    document.getElementById("deconnexion").addEventListener("click", async () => {
-      await api("/deconnexion", { methode: "POST" });
-      window.location.replace("/");
-    });
-
     const boutonTirer = document.getElementById("tirer");
 
     boutonTirer.addEventListener("click", async () => {
@@ -552,7 +327,7 @@
       if (data.starter?.niveauxGagnes > 0) bonus.push("Niveau supérieur : +1 point d'arbre !");
       document.getElementById("message").textContent = bonus.join(" · ");
       afficherQuota(data.quota);
-      afficherPointsArbre(data.pointsArbre);
+      Barre.afficherPoints(data.pointsArbre);
       const { espece, niveau, image, stats } = data;
 
       const rarete = infoRarete(espece.rarete);
@@ -587,7 +362,7 @@
       document.getElementById("critdmg").textContent = stats.critdmg + "%";
 
       document.getElementById("carte").style.display = "flex";
-      afficherStarter(data.starter);
+      Barre.afficherStarter(data.starter);
       chargerClassement();
     }
 
@@ -683,9 +458,12 @@
 
     // ---------- Chargement ----------
 
-    Promise.all([exigerConnexion(), api("/profil")]).then(([moi, profil]) => {
+    // Un déblocage dans l'arbre peut changer le maximum de tirages (Ressourcement)
+    document.addEventListener("arbre-change", () => rafraichirQuota());
+
+    Promise.all([exigerConnexion(), Barre.profil]).then(([moi, profil]) => {
       if (!moi) return;
-      chargerStarter(profil);
+      if (profil.ok) afficherQuota(profil.data.quota);
       rafraichirChat();
       chargerClassement();
       setInterval(rafraichirChat, INTERVALLE_CHAT_MS);

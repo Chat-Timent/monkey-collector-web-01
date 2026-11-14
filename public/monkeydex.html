@@ -4,32 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Monkeydex</title>
+  <link rel="stylesheet" href="/css/commun.css">
+  <link rel="stylesheet" href="/css/arbre.css">
+  <link rel="stylesheet" href="/css/barre.css">
   <style>
     body {
       font-family: system-ui, sans-serif;
       background: #161616;
       color: #f2f2f2;
       margin: 0;
-      padding: 30px 20px;
       min-height: 100vh;
-      box-sizing: border-box;
     }
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      max-width: 1000px;
-      margin: 0 auto 20px;
-    }
-    h1 { margin: 0; }
-    a.retour {
-      color: #f2f2f2;
-      text-decoration: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      background: #2a2640;
-      border: 1px solid #444;
-    }
+    .contenu { padding: 24px 20px 40px; }
     #total { max-width: 1000px; margin: 0 auto 20px; color: #bbb; }
     #grille {
       max-width: 1000px;
@@ -148,11 +134,7 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Monkeydex</h1>
-    <a href="/tirage.html" class="retour">← Retour</a>
-  </header>
-
+  <main class="contenu">
   <p id="total"></p>
   <div id="compteur" class="compteur"></div>
   <div id="grille"></div>
@@ -162,6 +144,7 @@
     <span id="page"></span>
     <button id="suivant">▶</button>
   </div>
+  </main>
 
   <div id="detail">
     <div class="fiche">
@@ -184,6 +167,8 @@
   </div>
 
   <script src="/js/commun.js"></script>
+  <script src="/js/arbre.js"></script>
+  <script src="/js/barre.js"></script>
   <script src="/js/session.js"></script>
   <script>
     // Libellés et ordre d'affichage des stats dans la fiche

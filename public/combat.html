@@ -4,575 +4,124 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Combat</title>
+  <link rel="stylesheet" href="/css/commun.css">
+  <link rel="stylesheet" href="/css/arbre.css">
+  <link rel="stylesheet" href="/css/barre.css">
   <style>
     body {
       font-family: system-ui, sans-serif;
       background: #161616;
-      color: #f2f2f2;
+      color: var(--texte);
       margin: 0;
-      padding: 30px 20px;
       min-height: 100vh;
-      box-sizing: border-box;
     }
-    header {
-      max-width: 1200px;
-      margin: 0 auto 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .modes {
+      max-width: 760px;
+      margin: 32px auto;
+      padding: 0 16px 40px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
     }
-    h1 { margin: 0; }
-    h2 { font-size: 16px; color: #bbb; margin: 0 0 12px; }
-    h3 { font-size: 13px; color: #888; margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 1px; }
-    .lien {
-      color: #f2f2f2;
-      text-decoration: none;
-      padding: 8px 14px;
-      border-radius: 8px;
-      background: #242424;
+    .mode {
+      position: relative;
+      min-height: 160px;
+      border-radius: 16px;
       border: 1px solid #333;
-      margin-left: 8px;
-    }
-
-    .page {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 240px 1fr;
-      gap: 24px;
-      align-items: start;
-    }
-    @media (max-width: 800px) {
-      .page { grid-template-columns: 1fr; }
-    }
-
-    aside {
-      position: sticky;
-      top: 20px;
-      background: #1c1c1c;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 14px;
-    }
-    .colonne { display: flex; flex-direction: column; gap: 6px; }
-    .joueur {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: 8px;
       background: #242424;
-      font-size: 14px;
-    }
-    .joueur .pseudo { flex: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .point { width: 9px; height: 9px; border-radius: 50%; background: #555; flex-shrink: 0; }
-    .point.en-ligne { background: #4caf50; }
-
-    main { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
-    .panneau {
-      background: #1c1c1c;
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 16px;
-    }
-
-    #equipe {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-    @media (max-width: 640px) {
-      #equipe { grid-template-columns: repeat(2, 1fr); }
-    }
-    .slot { position: relative; }
-    .slot-bouton {
-      width: 100%;
-      min-height: 150px;
-      background: #242424;
-      border: 1px dashed #444;
-      border-radius: 12px;
-      padding: 10px;
-      color: #f2f2f2;
-      font: inherit;
-      cursor: pointer;
+      color: var(--texte);
+      text-decoration: none;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-    }
-    .slot-bouton.plein { border: 1px solid #333; }
-    .slot-bouton:hover { border-color: #ff8a3d; }
-    .slot-bouton img { width: 70px; height: 70px; object-fit: contain; }
-    .slot-bouton .nom { font-weight: bold; font-size: 13px; }
-    .slot-bouton .vide { color: #777; font-size: 13px; }
-    .slot-bouton .sous { font-size: 12px; color: #ffb86b; }
-
-    .pastille {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 2px 8px 2px 3px;
-      border-radius: 999px;
-      border: 1.5px solid;
-      font-size: 11px;
-      font-weight: bold;
-      background: #161616;
-    }
-    .pastille img { width: 14px; height: 14px; object-fit: contain; }
-
-    .menu {
-      display: none;
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 0;
-      width: 280px;
-      max-height: 340px;
-      overflow-y: auto;
-      background: #242424;
-      border: 1px solid #444;
-      border-radius: 12px;
-      padding: 6px;
-      z-index: 20;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    .menu.ouvert { display: block; }
-    .option {
-      display: flex;
-      align-items: center;
       gap: 10px;
-      width: 100%;
-      padding: 8px;
-      background: none;
-      border: none;
-      border-radius: 8px;
-      color: #f2f2f2;
-      font: inherit;
-      text-align: left;
-      cursor: pointer;
+      transition: transform 0.15s, border-color 0.15s;
     }
-    .option:hover:not(:disabled) { background: #2f2f2f; }
-    .option:disabled { opacity: 0.4; cursor: default; }
-    .option img { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
-    .option .infos { display: flex; flex-direction: column; gap: 3px; }
-    .option .nom { font-weight: bold; font-size: 14px; }
-    .option .sous { font-size: 12px; color: #bbb; }
-    .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
-
-    .ligne {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: #242424;
-      border-radius: 8px;
-      padding: 9px 12px;
-      font-size: 14px;
-    }
-    .ligne .pseudo { flex: 1; font-weight: bold; }
-    .compte { font-size: 12px; color: #999; }
-    .vide { color: #777; font-size: 13px; }
-
-    .bouton-defi {
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: none;
-      background: linear-gradient(135deg, #ff8a3d, #e5447a);
-      color: #fff;
-      font-weight: bold;
-      font-size: 13px;
-      cursor: pointer;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-    .bouton-defi:disabled { background: #333; color: #888; cursor: default; }
-    .bouton-secondaire {
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: 1px solid #444;
-      background: #2a2640;
-      color: #f2f2f2;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    .badge {
-      min-width: 92px;
-      text-align: center;
-      padding: 3px 10px;
-      border-radius: 999px;
+    a.mode:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .mode .icone { font-size: 44px; line-height: 1; }
+    .mode .titre { font-size: 20px; font-weight: bold; }
+    .mode.bientot { opacity: 0.45; cursor: default; }
+    .mode .etiquette {
       font-size: 12px;
       font-weight: bold;
-      letter-spacing: 0.5px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: #333;
+      color: var(--texte-doux);
     }
-    .badge.victoire { background: #1f8a3e; color: #fff; }
-    .badge.defaite { background: #b02a2a; color: #fff; }
-    .badge.nul { background: #555; color: #fff; }
-    .badge.encours { background: #f0a020; color: #161616; }
-
-    #message { min-height: 1.2em; color: #ffb86b; margin: 10px 0 0; font-size: 14px; }
-    .lien-combat { color: #ffb86b; }
+    .badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: var(--accent-2);
+      color: #fff;
+      font-size: 13px;
+      font-weight: bold;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .badge.visible { display: inline-flex; }
+    @media (max-width: 480px) {
+      .modes { gap: 10px; margin-top: 20px; }
+      .mode { min-height: 130px; }
+      .mode .icone { font-size: 36px; }
+      .mode .titre { font-size: 17px; }
+    }
   </style>
 </head>
 <body>
-
-  <header>
-    <h1>Combat</h1>
-    <div>
-      <a class="lien" href="/tirage.html">Tirage</a>
-      <a class="lien" href="/monkeydex.html">Monkeydex</a>
+  <main class="modes">
+    <a class="mode" href="/pvp.html">
+      <span class="badge" id="badge-pvp" title="Défis reçus"></span>
+      <span class="icone">⚔️</span>
+      <span class="titre">PVP</span>
+    </a>
+    <div class="mode bientot">
+      <span class="icone">🗺️</span>
+      <span class="titre">Aventure</span>
+      <span class="etiquette">Bientôt</span>
     </div>
-  </header>
-
-  <div class="page">
-    <aside>
-      <h2>Joueurs</h2>
-      <div id="joueurs" class="colonne"></div>
-    </aside>
-
-    <main>
-      <section class="panneau">
-        <h2>Ton équipe</h2>
-        <div id="equipe"></div>
-        <p id="message"></p>
-      </section>
-
-      <section class="panneau">
-        <h2>Défis en attente</h2>
-        <div id="defis"></div>
-      </section>
-
-      <section class="panneau">
-        <h2>Combat en cours</h2>
-        <div id="en-cours" class="colonne"></div>
-      </section>
-
-      <section class="panneau">
-        <h2>Historique</h2>
-        <div id="historique" class="colonne"></div>
-      </section>
-    </main>
-  </div>
+    <div class="mode bientot">
+      <span class="icone">💎</span>
+      <span class="titre">Ressources</span>
+      <span class="etiquette">Bientôt</span>
+    </div>
+    <div class="mode bientot">
+      <span class="icone">🎉</span>
+      <span class="titre">Événements</span>
+      <span class="etiquette">Bientôt</span>
+    </div>
+  </main>
 
   <script src="/js/commun.js"></script>
+  <script src="/js/arbre.js"></script>
+  <script src="/js/barre.js"></script>
   <script src="/js/session.js"></script>
   <script>
-    // Emplacements d'équipe : 6 de base, plus le bonus de l'arbre (envoyé par le serveur)
-    let nbSlots = 6;
-    const INTERVALLE_RAFRAICHISSEMENT_MS = 3000;
-
-    let possedes = [];
-    let equipe = Array(nbSlots).fill(null);
-    let defisEnvoyes = [];
-    let defisRecus = [];
-    let premierRafraichissementCombats = true;
-
-    const $ = (id) => document.getElementById(id);
-    const zone = $("equipe");
-    const message = $("message");
-    const zoneJoueurs = $("joueurs");
-    const zoneDefis = $("defis");
-    const zoneEnCours = $("en-cours");
-    const zoneHistorique = $("historique");
-
-    // ---------- Équipe ----------
-
-    function pastilleHTML(rarete) {
-      const r = infoRarete(rarete);
-      return `<span class="pastille" style="border-color:${r.couleur};color:${r.couleur}">
-                <img src="${r.icone}" alt="">${r.label}
-              </span>`;
-    }
-
-    function trouverSinge(id) {
-      return possedes.find((s) => s.id === id);
-    }
-
-    function fermerMenus() {
-      document.querySelectorAll(".menu.ouvert").forEach((m) => m.classList.remove("ouvert"));
-    }
-
-    function construireOptions(index) {
-      const dejaUtilises = equipe.filter((id, i) => id && i !== index);
-      let html = "";
-      if (equipe[index] !== null) {
-        html += `<button class="option retirer" data-id="">✕ Retirer du slot</button>`;
-      }
-      if (possedes.length === 0) {
-        return html + `<p style="padding:8px;color:#bbb">Aucun singe possédé.</p>`;
-      }
-      for (const s of possedes) {
-        const dispo = !dejaUtilises.includes(s.id);
-        html += `
-          <button class="option" data-id="${s.id}" ${dispo ? "" : "disabled"}>
-            <img src="${s.image}" alt="">
-            <div class="infos">
-              <span class="nom">${s.espece.nom} <small>×${s.amount}</small></span>
-              ${pastilleHTML(s.espece.rarete)}
-              <span class="sous">Lvl ${s.niveau.niveau}${dispo ? "" : " · déjà dans l'équipe"}</span>
-            </div>
-          </button>`;
-      }
-      return html;
-    }
-
-    function ouvrirMenu(slot, index) {
-      const menu = slot.querySelector(".menu");
-      const dejaOuvert = menu.classList.contains("ouvert");
-      fermerMenus();
-      if (dejaOuvert) return;
-      menu.innerHTML = construireOptions(index);
-      menu.classList.add("ouvert");
-      menu.querySelectorAll(".option").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          choisir(index, btn.dataset.id || null);
-        });
-      });
-    }
-
-    async function choisir(index, id) {
-      const ancienne = equipe[index];
-      equipe[index] = id;
-      afficherSlots();
-      message.textContent = "Sauvegarde…";
+    // Pastille sur la carte PVP : nombre de défis reçus en attente
+    async function majDefis() {
       try {
-        const { ok, data } = await api("/equipe", { corps: { especes: equipe } });
-        if (!ok) throw new Error(data.erreur);
-        message.textContent = "Équipe sauvegardée.";
-      } catch (err) {
-        equipe[index] = ancienne;
-        afficherSlots();
-        message.textContent = "Erreur : " + err.message;
+        const { ok, data } = await api("/defis");
+        if (!ok) return;
+        const badge = document.getElementById("badge-pvp");
+        badge.textContent = data.recus.length;
+        badge.classList.toggle("visible", data.recus.length > 0);
+      } catch {
+        // Réseau indisponible : on réessaiera au prochain tour
       }
     }
 
-    function afficherSlots() {
-      zone.innerHTML = "";
-      equipe.forEach((id, index) => {
-        const singe = id ? trouverSinge(id) : null;
-        const slot = document.createElement("div");
-        slot.className = "slot";
-        slot.innerHTML = `
-          <button class="slot-bouton ${singe ? "plein" : ""}" type="button">
-            ${singe
-              ? `<img src="${singe.image}" alt="">
-                 <span class="nom">${singe.espece.nom}</span>
-                 ${pastilleHTML(singe.espece.rarete)}
-                 <span class="sous">Lvl ${singe.niveau.niveau}</span>`
-              : `<span class="vide">Slot ${index + 1} : vide</span>`}
-          </button>
-          <div class="menu"></div>`;
-        slot.querySelector(".slot-bouton").addEventListener("click", (e) => {
-          e.stopPropagation();
-          ouvrirMenu(slot, index);
-        });
-        zone.appendChild(slot);
-      });
-    }
-
-    // ---------- Joueurs ----------
-
-    function normaliserDefi(d) {
-      return { ...d, fin: Date.now() + d.secondes_restantes * 1000 };
-    }
-
-    function tempsRestant(fin) {
-      return Math.max(0, Math.ceil((fin - Date.now()) / 1000));
-    }
-
-    function afficherJoueurs(joueurs) {
-      if (joueurs.length === 0) {
-        zoneJoueurs.innerHTML = `<p class="vide">Aucun autre joueur.</p>`;
-        return;
-      }
-      zoneJoueurs.innerHTML = joueurs.map((j) => {
-        const envoye = defisEnvoyes.find((d) => d.vers_user === j.id);
-        let action;
-        if (envoye) {
-          action = `<span class="compte"><span data-fin="${envoye.fin}">${tempsRestant(envoye.fin)}</span>s</span>`;
-        } else if (!j.en_ligne) {
-          action = `<span class="compte">hors ligne</span>`;
-        } else {
-          action = `<button class="bouton-defi" data-defier="${j.id}">Défier</button>`;
-        }
-        return `
-          <div class="joueur">
-            <span class="point ${j.en_ligne ? "en-ligne" : ""}"></span>
-            <span class="pseudo">${j.pseudo}</span>
-            ${action}
-          </div>`;
-      }).join("");
-
-      zoneJoueurs.querySelectorAll("[data-defier]").forEach((btn) => {
-        btn.addEventListener("click", () => envoyerDefi(btn.dataset.defier));
-      });
-    }
-
-    // ---------- Défis ----------
-
-    function afficherDefis() {
-      const recus = defisRecus.length
-        ? defisRecus.map((d) => `
-            <div class="ligne">
-              <span class="pseudo">${d.de_pseudo} te défie</span>
-              <span class="compte">expire dans <span data-fin="${d.fin}">${tempsRestant(d.fin)}</span>s</span>
-              <button class="bouton-defi" data-accepter="${d.id}">Accepter</button>
-              <button class="bouton-secondaire" data-refuser="${d.id}">Refuser</button>
-            </div>`).join("")
-        : `<p class="vide">Aucun défi reçu.</p>`;
-
-      const envoyes = defisEnvoyes.length
-        ? defisEnvoyes.map((d) => `
-            <div class="ligne">
-              <span class="pseudo">Défi à ${d.vers_pseudo}</span>
-              <span class="compte">expire dans <span data-fin="${d.fin}">${tempsRestant(d.fin)}</span>s</span>
-            </div>`).join("")
-        : `<p class="vide">Aucun défi envoyé.</p>`;
-
-      zoneDefis.innerHTML = `<h3>Reçus</h3><div class="colonne">${recus}</div>
-                             <h3>Envoyés</h3><div class="colonne">${envoyes}</div>`;
-
-      zoneDefis.querySelectorAll("[data-accepter]").forEach((btn) => {
-        btn.addEventListener("click", () => repondreDefi(btn.dataset.accepter, true));
-      });
-      zoneDefis.querySelectorAll("[data-refuser]").forEach((btn) => {
-        btn.addEventListener("click", () => repondreDefi(btn.dataset.refuser, false));
-      });
-    }
-
-    async function envoyerDefi(versUserId) {
-      const { ok, data } = await api("/defis", { corps: { versUserId } });
-      message.textContent = ok
-        ? "Défi envoyé. Il expire dans 60 secondes."
-        : "Erreur : " + data.erreur;
-      await rafraichirJoueurs();
-    }
-
-    async function repondreDefi(defiId, accepter) {
-      const { ok, data } = await api(`/defis/${defiId}/repondre`, { corps: { accepter } });
-
-      if (!ok) {
-        message.textContent = "Erreur : " + data.erreur;
-      } else if (accepter) {
-        location.href = `/combat-live.html?id=${data.combatId}`;
-        return;
-      } else {
-        message.textContent = "Défi refusé.";
-      }
-      await rafraichirJoueurs();
-      await rafraichirCombats();
-    }
-
-    async function rafraichirJoueurs() {
-      const [rj, rd] = await Promise.all([api("/joueurs"), api("/defis")]);
-      if (!rj.ok || !rd.ok) return;
-      const { joueurs } = rj.data;
-      const defis = rd.data;
-      defisEnvoyes = defis.envoyes.map(normaliserDefi);
-      defisRecus = defis.recus.map(normaliserDefi);
-      afficherJoueurs(joueurs);
-      afficherDefis();
-    }
-
-    // ---------- Combats ----------
-
-    function badgeIssue(issue) {
-      if (issue === "victoire") return `<span class="badge victoire">VICTOIRE</span>`;
-      if (issue === "défaite") return `<span class="badge defaite">DÉFAITE</span>`;
-      return `<span class="badge nul">NUL</span>`;
-    }
-
-    function ligneCombat(c, badge) {
-      return `
-        <div class="ligne">
-          ${badge}
-          <span class="pseudo">Contre ${c.adversaire}</span>
-          <a class="bouton-defi" href="/combat-live.html?id=${c.id}">Voir</a>
-        </div>`;
-    }
-
-    // Un combat lancé par moi (mon défi accepté) qui apparaît après le chargement
-    // de la page ouvre directement le spectateur. Les combats déjà existants
-    // au chargement sont marqués comme vus et ne redirigent pas.
-    function cleVu(id) {
-      return "combat_vu_" + id;
-    }
-
-    async function rafraichirCombats() {
-      const { ok, data } = await api("/combats");
-      if (!ok) return;
-      const { combats } = data;
-
-      if (premierRafraichissementCombats) {
-        combats.forEach((c) => sessionStorage.setItem(cleVu(c.id), "1"));
-        premierRafraichissementCombats = false;
-      } else {
-        const nouveau = combats.find(
-          (c) => c.recent && c.lanceParMoi && !sessionStorage.getItem(cleVu(c.id))
-        );
-        if (nouveau) {
-          sessionStorage.setItem(cleVu(nouveau.id), "1");
-          location.href = `/combat-live.html?id=${nouveau.id}`;
-          return;
-        }
-      }
-
-      const enCours = combats.filter((c) => c.recent);
-      const historique = combats.filter((c) => !c.recent);
-
-      zoneEnCours.innerHTML = enCours.length
-        ? enCours.map((c) => ligneCombat(c, `<span class="badge encours">EN COURS</span>`)).join("")
-        : `<p class="vide">Aucun combat en cours.</p>`;
-
-      zoneHistorique.innerHTML = historique.length
-        ? historique.map((c) => ligneCombat(c, badgeIssue(c.issue))).join("")
-        : `<p class="vide">Aucun combat terminé.</p>`;
-    }
-
-    // ---------- Compte à rebours ----------
-
-    setInterval(() => {
-      document.querySelectorAll("[data-fin]").forEach((el) => {
-        el.textContent = tempsRestant(Number(el.dataset.fin));
-      });
-    }, 1000);
-
-    // ---------- Chargement ----------
-
-    document.addEventListener("click", fermerMenus);
-
-    async function init() {
-      const [moi, resDex, resEquipe] = await Promise.all([
-        exigerConnexion(),
-        api("/monkeydex"),
-        api("/equipe"),
-      ]);
+    exigerConnexion().then((moi) => {
       if (!moi) return;
-
-      afficherSlots();
-      try {
-        if (!resDex.ok || !resEquipe.ok) {
-          throw new Error(`monkeydex ${resDex.status}, équipe ${resEquipe.status}`);
-        }
-
-        possedes = resDex.data.singes;
-        nbSlots = resEquipe.data.nbSlots ?? 6;
-        equipe = Array(nbSlots).fill(null);
-        for (const { slot, espece } of resEquipe.data.equipe) {
-          equipe[slot - 1] = espece;
-        }
-        afficherSlots();
-      } catch (err) {
-        message.textContent = "Erreur de chargement : " + err.message;
-      }
-
-      rafraichirJoueurs();
-      rafraichirCombats();
-      setInterval(rafraichirJoueurs, INTERVALLE_RAFRAICHISSEMENT_MS);
-      setInterval(rafraichirCombats, INTERVALLE_RAFRAICHISSEMENT_MS);
-    }
-
-    init();
+      majDefis();
+      setInterval(majDefis, 5000);
+    });
   </script>
 </body>
 </html>

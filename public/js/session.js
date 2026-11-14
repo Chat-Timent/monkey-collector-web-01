@@ -1,7 +1,7 @@
 (() => {
   const INTERVALLE_PRESENCE_MS = 20_000;
   const INTERVALLE_DEFIS_MS = 5_000;
-  const estPageCombat = window.location.pathname === "/combat.html";
+  const estPagePvp = window.location.pathname === "/pvp.html";
   const defisDejaSignales = new Set();
 
   function marquerPresence() {
@@ -15,7 +15,7 @@
     notification.innerHTML = `<strong>Nouveau défi</strong><span></span>`;
     notification.querySelector("span").textContent = `Demande de combat de : ${defi.de_pseudo} ! Clique pour répondre.`;
     notification.addEventListener("click", () => {
-      window.location.assign("/combat.html");
+      window.location.assign("/pvp.html");
     });
     document.body.appendChild(notification);
 
@@ -23,7 +23,7 @@
   }
 
   async function verifierDefis() {
-    if (estPageCombat) return;
+    if (estPagePvp) return;
     try {
       const reponse = await fetch("/defis");
       if (!reponse.ok) return;

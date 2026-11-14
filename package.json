@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node -e \"const fs=require('fs'),{execFileSync}=require('child_process');const src=fs.readdirSync('src',{recursive:true}).filter(f=>f.endsWith('.js')).map(f=>'src/'+f);for(const f of ['index.js','public/js/session.js','public/js/commun.js',...src])execFileSync(process.execPath,['--check',f],{stdio:'inherit'})\"",
+    "check": "node -e \"const fs=require('fs'),{execFileSync}=require('child_process');const js=(d)=>fs.readdirSync(d,{recursive:true}).filter(f=>f.endsWith('.js')).map(f=>d+'/'+f);for(const f of ['index.js',...js('src'),...js('public/js')])execFileSync(process.execPath,['--check',f],{stdio:'inherit'})\"",
     "dev": "nodemon index.js"
   },
   "keywords": [],
