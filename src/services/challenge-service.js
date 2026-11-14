@@ -18,7 +18,7 @@ export async function marquerPresence(userId) {
 
 export async function listerJoueurs(userId) {
   const { rows } = await pool.query(
-    `SELECT u.id, u.pseudo,
+    `SELECT u.id, u.pseudo, u.elo,
             COALESCE(p.last_seen > now() - make_interval(secs => $2), false) AS en_ligne
      FROM users u
      LEFT JOIN presence p ON p.user_id = u.id

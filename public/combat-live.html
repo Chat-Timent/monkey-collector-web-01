@@ -198,6 +198,7 @@
     let pasMs = 0;
 
     let resultat = null;
+    let eloDelta = null;
     let monCamp = null;
     let etat = { A: [], B: [] };
     let journal = [];
@@ -291,6 +292,9 @@
       $("banniere").textContent = "Combat terminé";
       const v = resultat.vainqueur;
       $("resultat").textContent = v === null ? "Match nul" : v === monCamp ? "Victoire !" : "Défaite";
+      if (eloDelta !== null && eloDelta !== undefined) {
+        $("resultat").textContent += eloDelta > 0 ? ` +${eloDelta} elo` : eloDelta < 0 ? ` −${-eloDelta} elo` : " ±0 elo";
+      }
 
       if (redirigerEnDirect) {
         $("resultat").textContent += " · retour à l'historique…";
@@ -365,6 +369,7 @@
 
       pasMs = data.pasMs;
       resultat = data.resultat;
+      eloDelta = data.eloDelta;
       monCamp = data.monCamp;
       const pseudoMoi = monCamp === "A" ? data.pseudoA : data.pseudoB;
       const pseudoAdv = monCamp === "A" ? data.pseudoB : data.pseudoA;

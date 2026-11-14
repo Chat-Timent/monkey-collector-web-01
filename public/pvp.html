@@ -28,6 +28,8 @@
     }
     @media (max-width: 800px) {
       .page { grid-template-columns: 1fr; }
+      /* Sur mobile : elo et défis d'abord, liste des joueurs ensuite */
+      .page aside { order: 2; position: static; }
     }
 
     aside {
@@ -110,6 +112,16 @@
     .badge.nul { background: #555; color: #fff; }
     .badge.encours { background: #f0a020; color: #161616; }
 
+    .mon-elo { display: flex; align-items: center; gap: 10px; font-size: 26px; font-weight: bold; }
+    .mon-elo small { font-size: 14px; color: var(--texte-doux); font-weight: normal; }
+    .elo { font-size: 12px; color: var(--or); font-weight: bold; white-space: nowrap; }
+    .delta { min-width: 44px; text-align: right; font-size: 13px; font-weight: bold; }
+    .delta.plus { color: var(--vert); }
+    .delta.moins { color: #ff6b6b; }
+    .delta.zero { color: #777; }
+    .ligne.moi { outline: 1px solid #2e6b3a; }
+    .rang { width: 22px; color: #888; font-size: 12px; font-weight: bold; }
+
     #message { min-height: 1.2em; color: var(--or); margin: 0; font-size: 14px; }
     #message:empty { display: none; }
     .lien-combat { color: #ffb86b; }
@@ -124,6 +136,7 @@
     </aside>
 
     <main>
+      <div class="mon-elo">🏆 <span id="mon-elo">…</span> <small>elo</small></div>
       <p id="message"></p>
 
       <section class="panneau">
@@ -139,6 +152,11 @@
       <section class="panneau">
         <h2>Historique</h2>
         <div id="historique" class="colonne"></div>
+      </section>
+
+      <section class="panneau">
+        <h2>Classement elo</h2>
+        <div id="classement" class="colonne"></div>
       </section>
     </main>
   </div>
@@ -190,6 +208,7 @@
           <div class="joueur">
             <span class="point ${j.en_ligne ? "en-ligne" : ""}"></span>
             <span class="pseudo">${j.pseudo}</span>
+            <span class="elo">${j.elo}</span>
             ${action}
           </div>`;
       }).join("");
@@ -273,11 +292,19 @@
       return `<span class="badge nul">NUL</span>`;
     }
 
-    function ligneCombat(c, badge) {
+    function texteDelta(delta) {
+      if (delta === null || delta === undefined) return "";
+      const classe = delta > 0 ? "plus" : delta < 0 ? "moins" : "zero";
+      const texte = delta > 0 ? `+${delta}` : delta < 0 ? `−${-delta}` : "±0";
+      return `<span class="delta ${classe}">${texte}</span>`;
+    }
+
+    function ligneCombat(c, badge, avecElo = false) {
       return `
         <div class="ligne">
           ${badge}
           <span class="pseudo">Contre ${c.adversaire}</span>
+          ${avecElo ? texteDelta(c.eloDelta) : ""}
           <a class="bouton-defi" href="/combat-live.html?id=${c.id}">Voir</a>
         </div>`;
     }
@@ -316,7 +343,7 @@
         : `<p class="vide">Aucun combat en cours.</p>`;
 
       zoneHistorique.innerHTML = historique.length
-        ? historique.map((c) => ligneCombat(c, badgeIssue(c.issue))).join("")
+        ? historique.map((c) => ligneCombat(c, badgeIssue(c.issue), true)).join("")
         : `<p class="vide">Aucun combat terminé.</p>`;
     }
 
@@ -330,12 +357,39 @@
 
     // ---------- Chargement ----------
 
+    // ---------- Elo ----------
+
+    async function rafraichirElo() {
+      const [rp, rc] = await Promise.all([api("/profil"), api("/classement/elo")]);
+      if (rp.ok) document.getElementById("mon-elo").textContent = rp.data.elo;
+      if (!rc.ok) return;
+      const zone = document.getElementById("classement");
+      zone.innerHTML = "";
+      rc.data.joueurs.forEach((j, i) => {
+        const ligne = document.createElement("div");
+        ligne.className = "ligne" + (j.moi ? " moi" : "");
+        const rang = document.createElement("span");
+        rang.className = "rang";
+        rang.textContent = i + 1;
+        const pseudo = document.createElement("span");
+        pseudo.className = "pseudo";
+        pseudo.textContent = j.pseudo;
+        const elo = document.createElement("span");
+        elo.className = "elo";
+        elo.textContent = j.elo;
+        ligne.append(rang, pseudo, elo);
+        zone.appendChild(ligne);
+      });
+    }
+
     async function init() {
       if (!await exigerConnexion()) return;
       rafraichirJoueurs();
       rafraichirCombats();
+      rafraichirElo();
       setInterval(rafraichirJoueurs, INTERVALLE_RAFRAICHISSEMENT_MS);
       setInterval(rafraichirCombats, INTERVALLE_RAFRAICHISSEMENT_MS);
+      setInterval(rafraichirElo, 10000);
     }
 
     init();

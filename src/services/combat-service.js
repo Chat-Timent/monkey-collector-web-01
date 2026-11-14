@@ -7,6 +7,7 @@ import { lireCollection } from "./collection-service.js";
 import { traiterReponseDefi } from "./challenge-service.js";
 import { getEquipe } from "./team-service.js";
 import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
+import { appliquerElo } from "./elo-service.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 async function preparerEquipe(userId) {
@@ -36,11 +37,14 @@ async function preparerEquipe(userId) {
   return slots;
 }
 
+// Combat PVP : calcul, elo des deux joueurs, puis enregistrement (dans la transaction `db`).
+// Les variations d'elo sont gardées avec le résultat : { A, B, compte }.
 async function enregistrerCombat(db, defi, equipeA, equipeB) {
   const resultat = combat(equipeA, equipeB);
   resultat.equipeA = equipeA;
   resultat.equipeB = equipeB;
   resultat.dureeMs = DELAI_INITIAL_MS + resultat.journal.length * PAS_MS;
+  resultat.elo = await appliquerElo(db, defi.de_user, defi.vers_user, resultat.vainqueur);
 
   const { rows } = await db.query(
     `INSERT INTO combats (defi_id, user_a, user_b, resultat)
@@ -79,11 +83,14 @@ export async function getCombat(userId, combatId) {
   );
   if (rows.length === 0) return null;
   const r = rows[0];
+  const monCamp = r.user_a === userId ? "A" : "B";
   return {
     resultat: r.resultat,
     pseudoA: r.pseudo_a,
     pseudoB: r.pseudo_b,
-    monCamp: r.user_a === userId ? "A" : "B",
+    monCamp,
+    // Variation d'elo du joueur (null pour un combat d'avant l'elo)
+    eloDelta: r.resultat.elo ? r.resultat.elo[monCamp] : null,
     ecouleMs: Date.now() - new Date(r.created_at).getTime(),
     // Rythme du replay : le client s'en sert pour se caler sur le direct.
     delaiInitialMs: DELAI_INITIAL_MS,
@@ -95,6 +102,7 @@ export async function combatsDuJoueur(userId) {
   const { rows } = await pool.query(
     `SELECT c.id, c.user_a, u1.pseudo AS pseudo_a, u2.pseudo AS pseudo_b,
             c.resultat->>'vainqueur' AS vainqueur,
+            c.resultat->'elo' AS elo,
             (c.user_a = $1) AS lance_par_moi,
             (c.created_at + (COALESCE((c.resultat->>'dureeMs')::int, 0) * interval '1 millisecond') > now()) AS recent
      FROM combats c
@@ -114,6 +122,7 @@ export async function combatsDuJoueur(userId) {
       id: r.id,
       adversaire: monCamp === "A" ? r.pseudo_b : r.pseudo_a,
       issue,
+      eloDelta: r.elo ? r.elo[monCamp] : null,
       recent: r.recent,
       lanceParMoi: !!r.lance_par_moi,
     };

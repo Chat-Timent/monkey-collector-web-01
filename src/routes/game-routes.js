@@ -4,6 +4,7 @@ import { getResumeMonkeydex, getClassement } from "../services/collection-servic
 import { choisirStarter, getStarter } from "../services/starter-service.js";
 import { definirEquipe, getEquipe, nbSlotsDuJoueur } from "../services/team-service.js";
 import { getArbre, getPointsArbre, prendreNoeud } from "../services/arbre-service.js";
+import { getElo } from "../services/elo-service.js";
 import { effectuerTirage, getQuota } from "../services/tirage-service.js";
 import { ErreurJeu } from "../erreurs.js";
 
@@ -19,9 +20,9 @@ gameRoutes.get("/monkeydex", authentifie, async (req, res) => {
 });
 
 gameRoutes.get("/profil", authentifie, async (req, res) => {
-  const [starter, quota] = await Promise.all([getStarter(req.userId), getQuota(req.userId)]);
+  const [starter, quota, elo] = await Promise.all([getStarter(req.userId), getQuota(req.userId), getElo(req.userId)]);
   const pointsArbre = starter ? await getPointsArbre(req.userId, starter.niveau) : 0;
-  res.json({ starter, quota, pointsArbre });
+  res.json({ starter, quota, pointsArbre, elo });
 });
 
 // Arbre du starter : état complet, et déblocage d'un nœud (renvoie l'état mis à jour)

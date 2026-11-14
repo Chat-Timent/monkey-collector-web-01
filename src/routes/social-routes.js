@@ -9,6 +9,7 @@ import {
   repondreDefi,
 } from "../services/combat-service.js";
 import { envoyerChatGlobal, lireChatGlobal } from "../services/chat-service.js";
+import { classementElo } from "../services/elo-service.js";
 import { ErreurJeu } from "../erreurs.js";
 
 export const socialRoutes = Router();
@@ -35,6 +36,10 @@ socialRoutes.post("/presence", authentifie, async (req, res) => {
 
 socialRoutes.get("/joueurs", authentifie, async (req, res) => {
   res.json({ joueurs: await listerJoueurs(req.userId) });
+});
+
+socialRoutes.get("/classement/elo", authentifie, async (req, res) => {
+  res.json({ joueurs: await classementElo(req.userId) });
 });
 
 socialRoutes.get("/defis", authentifie, async (req, res) => {

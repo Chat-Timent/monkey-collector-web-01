@@ -5,6 +5,7 @@ import { getEspece, getImageUrl, getNiveau, statsFinales } from "../src/game/mon
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import { agregerEffets, etatArbre, pointsDepenses } from "../src/game/starter-arbre.js";
 import { debutFenetre, etatQuota } from "../src/game/quota.js";
+import { calculerElo } from "../src/game/elo.js";
 import { creerApplication } from "../src/app.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
 
@@ -67,6 +68,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /arbre",
     "GET /chat",
     "GET /classement",
+    "GET /classement/elo",
     "GET /combats",
     "GET /combats/:id",
     "GET /combats/:id/messages",
@@ -249,4 +251,20 @@ test("le rang de renfort (slots 7 à 9) entre en jeu quand les deux premiers gro
   assert.equal(resultat.vainqueur, "A");
   assert.ok(resultat.journal.some((e) => e.type === "degats" && e.de === "A7"));
   assert.ok(resultat.journal.some((e) => e.type === "KO" && e.nom === "A1"));
+});
+
+test("l'elo suit la formule classique (K = 32) et reste à somme nulle", () => {
+  // À égalité : +16 / -16, match nul : 0
+  assert.deepEqual(calculerElo(1000, 1000, "A"), { A: 16, B: -16 });
+  assert.deepEqual(calculerElo(1000, 1000, "B"), { A: -16, B: 16 });
+  assert.deepEqual(calculerElo(1000, 1000, null), { A: 0, B: 0 });
+  // Battre plus faible rapporte peu, perdre contre lui coûte cher
+  assert.deepEqual(calculerElo(1200, 1000, "A"), { A: 8, B: -8 });
+  assert.deepEqual(calculerElo(1200, 1000, "B"), { A: -24, B: 24 });
+  // Match nul entre niveaux différents : le plus faible gagne un peu
+  assert.deepEqual(calculerElo(1200, 1000, null), { A: -8, B: 8 });
+  for (const [a, b, v] of [[1500, 900, "A"], [873, 1432, "A"], [1000, 1001, null]]) {
+    const d = calculerElo(a, b, v);
+    assert.equal(d.A + d.B, 0);
+  }
 });

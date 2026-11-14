@@ -7,7 +7,8 @@ CREATE TABLE users (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   pseudo        text NOT NULL UNIQUE,
   password_hash text NOT NULL,
-  created_at    timestamptz NOT NULL DEFAULT now()
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  elo           integer NOT NULL DEFAULT 1000  -- classement PVP (voir src/game/elo.js)
 );
 
 CREATE TABLE sessions (

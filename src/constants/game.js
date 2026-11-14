@@ -43,3 +43,7 @@ export const DUREE_RESET_MS = 10 * 60 * 1000;
 export const LOTERIE_CHANCE_BASE = 0.25;
 // Emplacements d'équipe sans bonus (le nœud « Rang de renfort » en ajoute)
 export const NB_SLOTS_BASE = 6;
+
+// Elo PVP : facteur K, et nombre de combats qui comptent contre un même adversaire sur 24 h
+export const ELO_K = 32;
+export const ELO_COMBATS_PAR_JOUR = 3;
