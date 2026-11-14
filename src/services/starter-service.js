@@ -1,5 +1,5 @@
 import { pool } from "../config/database.js";
-import { RECOMPENSES, STARTERS } from "../constants/game.js";
+import { STARTERS } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { appliquerGains } from "../game/progression.js";
 
@@ -23,12 +23,10 @@ export async function choisirStarter(userId, choix) {
   return getStarter(userId);
 }
 
+// `gains` : { xp, coins } déjà calculés (voir gainsDuTirage).
 // `starterDejaLu` doit avoir été lu avec `verrouiller` dans la même transaction `db`
 // si des appels concurrents sont possibles.
-export async function gagnerRecompense(userId, rarete, starterDejaLu, db = pool) {
-  const gains = RECOMPENSES[rarete];
-  if (!gains) return null;
-
+export async function gagnerRecompense(userId, gains, starterDejaLu, db = pool) {
   const starter = starterDejaLu ?? await getStarter(userId, db);
   if (!starter) return null;
 

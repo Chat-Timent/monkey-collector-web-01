@@ -2,9 +2,6 @@
 -- Relevé depuis la base le 2026-11-14 : colonnes, contraintes et index sont ceux en production.
 -- Le serveur se connecte directement (rôle propriétaire) : la RLS est activée sans politique,
 -- ce qui bloque l'accès via l'API publique Supabase sans gêner le serveur.
---
--- Table présente en base mais pas encore utilisée par le code (travail en cours) :
--- starter_noeuds. Elle n'est pas décrite ici.
 
 CREATE TABLE users (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -32,6 +29,14 @@ CREATE TABLE starter (
   niveau  integer NOT NULL DEFAULT 1,
   xp      integer NOT NULL DEFAULT 0,
   coins   integer NOT NULL DEFAULT 0
+);
+
+-- Nœuds de l'arbre du starter débloqués par le joueur (identifiants de src/data/skills.json).
+CREATE TABLE starter_noeuds (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  noeud   text NOT NULL,
+  pris_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, noeud)
 );
 
 -- Quota de tirages : tirages restants dans la fenêtre de reset commencée à `dernier_reset`.
@@ -98,6 +103,7 @@ ALTER TABLE sessions    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE starter     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tirages_etat ENABLE ROW LEVEL SECURITY;
+ALTER TABLE starter_noeuds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE equipe      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presence    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE defis       ENABLE ROW LEVEL SECURITY;

@@ -36,3 +36,10 @@ export const PAS_MS = 700;
 // Les fenêtres sont calées sur l'horloge (:00, :10, :20…), identiques pour tous les joueurs.
 export const TIRAGES_PAR_RESET = 20;
 export const DUREE_RESET_MS = 10 * 60 * 1000;
+
+// Arbre du starter
+// Chance de base qu'un tirage rapporte des coins une fois « Loterie rentable » débloquée
+// (« Valeur marchande » s'y ajoute). Sans ce nœud, un tirage ne rapporte aucun coin.
+export const LOTERIE_CHANCE_BASE = 0.25;
+// Emplacements d'équipe sans bonus (le nœud « Rang de renfort » en ajoute)
+export const NB_SLOTS_BASE = 6;

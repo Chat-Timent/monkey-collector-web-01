@@ -6,13 +6,17 @@ import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js
 import { lireCollection } from "./collection-service.js";
 import { traiterReponseDefi } from "./challenge-service.js";
 import { getEquipe } from "./team-service.js";
+import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 
+// Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 async function preparerEquipe(userId) {
-  const equipe = await getEquipe(userId);
-  const collection = await lireCollection(userId);
-  const slots = Array(6).fill(null);
+  const [equipe, collection, effets] = await Promise.all([
+    getEquipe(userId), lireCollection(userId), effetsDuJoueur(userId),
+  ]);
+  const slots = Array(nbSlots(effets)).fill(null);
 
   for (const { slot, espece } of equipe) {
+    if (slot > slots.length) continue;
     const e = SINGES[espece];
     if (!e) continue; // espèce retirée de monkeys.json : slot laissé vide plutôt que planter
     const amount = collection.singes[espece]?.amount ?? 1;
@@ -23,9 +27,9 @@ async function preparerEquipe(userId) {
       nom: e.nom,
       image: getImageUrl(espece),
       rarete: e.rarete,
-      hp: s.hp, atk: s.atk, def: s.def,
-      spd: s.spd, prec: s.prec, esq: s.esq,
-      crit: s.crit, critdmg: s.critdmg,
+      hp: s.hp, atk: Math.round(s.atk * (1 + effets.atk_pct)), def: s.def,
+      spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
+      crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
       perk: null,
     };
   }

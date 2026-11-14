@@ -1,5 +1,5 @@
 // Fonction pure : aucun accès base de données ni Express.
-// Équipes : tableaux de 6 entrées, singe préparé ou null.
+// Équipes : tableaux de 6 à 9 entrées (singe préparé ou null), par groupes de 3.
 
 const MAX_TOURS = 200;
 
@@ -7,11 +7,14 @@ function estVivant(s) {
   return s.pv > 0;
 }
 
-// Singes vivants du groupe actif : groupe 1 (slots 1-3) tant qu'il a des vivants, sinon groupe 2.
+// Singes vivants du groupe actif : groupe 1 (slots 1-3) tant qu'il a des vivants,
+// puis groupe 2 (4-6), puis le rang de renfort (7-9) s'il existe.
 function rotationActive(camp) {
-  const groupe1 = camp.slice(0, 3).filter((s) => s && estVivant(s));
-  if (groupe1.length > 0) return groupe1;
-  return camp.slice(3, 6).filter((s) => s && estVivant(s));
+  for (let debut = 0; debut < camp.length; debut += 3) {
+    const groupe = camp.slice(debut, debut + 3).filter((s) => s && estVivant(s));
+    if (groupe.length > 0) return groupe;
+  }
+  return [];
 }
 
 function tousVivants(camp) {
@@ -48,7 +51,7 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
     journal.push({ type: "tour", numero: tour });
 
     // Ordre fixe : slot 1 A, slot 1 B, slot 2 A, slot 2 B, etc.
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < Math.max(A.length, B.length); i++) {
       for (const [camp, adverses] of [[A, B], [B, A]]) {
         const attaquant = camp[i];
         if (!attaquant || !estVivant(attaquant)) continue;

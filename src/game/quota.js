@@ -7,14 +7,14 @@ export function debutFenetre(maintenant) {
 }
 
 // État du quota d'un joueur à partir de sa ligne `tirages_etat` (ou null s'il n'a jamais tiré).
-// Une ligne d'une fenêtre précédente compte comme un quota plein.
-export function etatQuota(ligne, maintenant) {
+// Une ligne d'une fenêtre précédente compte comme un quota plein (`max`, bonus de l'arbre compris).
+export function etatQuota(ligne, maintenant, max = TIRAGES_PAR_RESET) {
   const debut = debutFenetre(maintenant);
   const aJour = ligne && new Date(ligne.dernier_reset).getTime() >= debut;
   const prochain = debut + DUREE_RESET_MS;
   return {
-    restants: aJour ? ligne.tirages_restants : TIRAGES_PAR_RESET,
-    max: TIRAGES_PAR_RESET,
+    restants: aJour ? ligne.tirages_restants : max,
+    max,
     prochainReset: new Date(prochain).toISOString(),
     // Délai calculé par le serveur : le client n'a pas à faire confiance à sa propre horloge
     msAvantReset: prochain - maintenant,

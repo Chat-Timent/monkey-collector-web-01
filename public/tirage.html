@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Monkey Collector V0.1</title>
   <link rel="stylesheet" href="/css/commun.css">
+  <link rel="stylesheet" href="/css/arbre.css">
   <style>
     :root { --topbar-h: 84px; }
 
@@ -323,9 +324,10 @@
 <body>
 
   <header id="topbar">
-    <div class="starter-bloc">
+    <div class="starter-bloc" id="starter-bloc" role="button" tabindex="0" title="Arbre de compétences">
       <div class="avatar">
         <img id="starter-img" alt="">
+        <span id="points-arbre" title="Points d'arbre à dépenser"></span>
       </div>
       <div class="starter-info">
         <div class="starter-ligne">
@@ -395,7 +397,20 @@
     </aside>
   </div>
 
+  <div id="arbre" role="dialog" aria-label="Arbre de compétences">
+    <div class="arbre-fenetre">
+      <button id="arbre-fermer" aria-label="Fermer">×</button>
+      <div class="arbre-entete">
+        <h2>Arbre de compétences</h2>
+        <span id="arbre-points"></span>
+      </div>
+      <p id="arbre-message"></p>
+      <div id="arbre-branches"></div>
+    </div>
+  </div>
+
   <script src="/js/commun.js"></script>
+  <script src="/js/arbre.js"></script>
   <script>
     const IMAGES_STARTERS = {
       "Fire monkey": "/images/Starters/fire_starter.png",
@@ -436,7 +451,31 @@
       }
       afficherStarter(profil.data.starter);
       afficherQuota(profil.data.quota);
+      afficherPointsArbre(profil.data.pointsArbre);
     }
+
+    // ---------- Arbre de compétences ----------
+
+    function afficherPointsArbre(points) {
+      if (points === undefined) return;
+      const pastille = document.getElementById("points-arbre");
+      pastille.textContent = points;
+      pastille.classList.toggle("visible", points > 0);
+    }
+
+    initArbre({
+      // Après un déblocage : points à jour, et quota relu (le bonus de reset peut changer le max)
+      onChangement: (etat) => {
+        afficherPointsArbre(etat.points);
+        rafraichirQuota();
+      },
+    });
+
+    const blocStarter = document.getElementById("starter-bloc");
+    blocStarter.addEventListener("click", ouvrirArbre);
+    blocStarter.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); ouvrirArbre(); }
+    });
 
     // ---------- Quota de tirages ----------
 
@@ -506,8 +545,14 @@
         }
         return;
       }
-      document.getElementById("message").textContent = "";
+      // Bonus de l'arbre tombés sur ce tirage
+      const bonus = [];
+      if (data.gains?.coins > 0) bonus.push(`💰 +${data.gains.coins} coins !`);
+      if (data.gains?.copieBonus) bonus.push("Doublon chanceux : une copie en plus !");
+      if (data.starter?.niveauxGagnes > 0) bonus.push("Niveau supérieur : +1 point d'arbre !");
+      document.getElementById("message").textContent = bonus.join(" · ");
       afficherQuota(data.quota);
+      afficherPointsArbre(data.pointsArbre);
       const { espece, niveau, image, stats } = data;
 
       const rarete = infoRarete(espece.rarete);

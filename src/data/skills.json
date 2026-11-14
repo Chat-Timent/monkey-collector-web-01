@@ -1,0 +1,122 @@
+{
+  "farm.racine": {
+    "branche": "farm",
+    "nom": "Éveil",
+    "cout": 1,
+    "prerequis": [],
+    "mode": "tous",
+    "effet": {}
+  },
+  "farm.xp_1": {
+    "branche": "farm",
+    "nom": "Apprenti",
+    "cout": 1,
+    "prerequis": ["farm.racine"],
+    "mode": "tous",
+    "effet": { "xp_pct": 0.05 }
+  },
+  "farm.xp_2": {
+    "branche": "farm",
+    "nom": "Érudit",
+    "cout": 1,
+    "prerequis": ["farm.xp_1"],
+    "mode": "tous",
+    "effet": { "xp_pct": 0.10 }
+  },
+  "farm.coins_1": {
+    "branche": "farm",
+    "nom": "Épargne",
+    "cout": 1,
+    "prerequis": ["farm.racine"],
+    "mode": "tous",
+    "effet": { "coins_pct": 0.05 }
+  },
+  "farm.loterie_coins": {
+    "branche": "farm",
+    "nom": "Loterie rentable",
+    "cout": 1,
+    "prerequis": ["farm.xp_1", "farm.coins_1"],
+    "mode": "tous",
+    "effet": { "lottery_coins": true }
+  },
+  "farm.reset_1": {
+    "branche": "farm",
+    "nom": "Ressourcement",
+    "cout": 1,
+    "prerequis": ["farm.coins_1"],
+    "mode": "tous",
+    "effet": { "reset_bonus": 2 }
+  },
+  "farm.or_1": {
+    "branche": "farm",
+    "nom": "Valeur marchande",
+    "cout": 1,
+    "prerequis": ["farm.loterie_coins"],
+    "mode": "tous",
+    "effet": { "valeur_or_pct": 0.02 }
+  },
+  "farm.copie_1": {
+    "branche": "farm",
+    "nom": "Doublon chanceux",
+    "cout": 1,
+    "prerequis": ["farm.reset_1", "farm.xp_2"],
+    "mode": "tous",
+    "effet": { "copie_bonus": 0.03 }
+  },
+  "pvp.racine": {
+    "branche": "pvp",
+    "nom": "Combattant",
+    "cout": 1,
+    "prerequis": [],
+    "mode": "tous",
+    "effet": {}
+  },
+  "pvp.atk_1": {
+    "branche": "pvp",
+    "nom": "Force",
+    "cout": 1,
+    "prerequis": ["pvp.racine"],
+    "mode": "tous",
+    "effet": { "atk_pct": 0.03 }
+  },
+  "pvp.prec_1": {
+    "branche": "pvp",
+    "nom": "Œil de lynx",
+    "cout": 1,
+    "prerequis": ["pvp.racine"],
+    "mode": "tous",
+    "effet": { "prec_flat": 5 }
+  },
+  "pvp.crit_1": {
+    "branche": "pvp",
+    "nom": "Coup précis",
+    "cout": 1,
+    "prerequis": ["pvp.atk_1"],
+    "mode": "tous",
+    "effet": { "crit_flat": 3 }
+  },
+  "pvp.critdmg_1": {
+    "branche": "pvp",
+    "nom": "Coup brutal",
+    "cout": 1,
+    "prerequis": ["pvp.atk_1"],
+    "mode": "tous",
+    "effet": { "critdmg_flat": 10 }
+  },
+  "pvp.esq_1": {
+    "branche": "pvp",
+    "nom": "Reflexes",
+    "cout": 1,
+    "prerequis": ["pvp.prec_1", "pvp.atk_1"],
+    "mode": "au_moins_un",
+    "effet": { "esq_flat": 5 }
+  },
+  "pvp.slot_1": {
+    "branche": "pvp",
+    "nom": "Rang de renfort",
+    "cout": 1,
+    "prerequis": ["pvp.crit_1", "pvp.critdmg_1"],
+    "mode": "tous",
+    "effet": { "slots_bonus": 1 }
+  }
+}

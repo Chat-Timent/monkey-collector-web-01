@@ -2,7 +2,8 @@ import { Router } from "express";
 import { authentifie } from "../middleware/authentifie.js";
 import { getResumeMonkeydex, getClassement } from "../services/collection-service.js";
 import { choisirStarter, getStarter } from "../services/starter-service.js";
-import { definirEquipe, getEquipe } from "../services/team-service.js";
+import { definirEquipe, getEquipe, nbSlotsDuJoueur } from "../services/team-service.js";
+import { getArbre, getPointsArbre, prendreNoeud } from "../services/arbre-service.js";
 import { effectuerTirage, getQuota } from "../services/tirage-service.js";
 import { ErreurJeu } from "../erreurs.js";
 
@@ -19,7 +20,17 @@ gameRoutes.get("/monkeydex", authentifie, async (req, res) => {
 
 gameRoutes.get("/profil", authentifie, async (req, res) => {
   const [starter, quota] = await Promise.all([getStarter(req.userId), getQuota(req.userId)]);
-  res.json({ starter, quota });
+  const pointsArbre = starter ? await getPointsArbre(req.userId, starter.niveau) : 0;
+  res.json({ starter, quota, pointsArbre });
+});
+
+// Arbre du starter : état complet, et déblocage d'un nœud (renvoie l'état mis à jour)
+gameRoutes.get("/arbre", authentifie, async (req, res) => {
+  res.json(await getArbre(req.userId));
+});
+
+gameRoutes.post("/arbre/noeuds", authentifie, async (req, res) => {
+  res.json(await prendreNoeud(req.userId, req.body?.noeud));
 });
 
 gameRoutes.post("/starter", authentifie, async (req, res) => {
@@ -29,7 +40,8 @@ gameRoutes.post("/starter", authentifie, async (req, res) => {
 });
 
 gameRoutes.get("/equipe", authentifie, async (req, res) => {
-  res.json({ equipe: await getEquipe(req.userId) });
+  const [equipe, nbSlots] = await Promise.all([getEquipe(req.userId), nbSlotsDuJoueur(req.userId)]);
+  res.json({ equipe, nbSlots });
 });
 
 gameRoutes.post("/equipe", authentifie, async (req, res) => {

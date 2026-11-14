@@ -1,6 +1,7 @@
 import { pool, transaction } from "../config/database.js";
 import { ErreurJeu } from "../erreurs.js";
 import { lireCollection } from "./collection-service.js";
+import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 
 export async function getEquipe(userId) {
   const { rows } = await pool.query(
@@ -10,9 +11,16 @@ export async function getEquipe(userId) {
   return rows;
 }
 
+export async function nbSlotsDuJoueur(userId) {
+  return nbSlots(await effetsDuJoueur(userId));
+}
+
+// `especes` : une entrée par emplacement (null = vide). Un client qui envoie moins
+// d'emplacements que son maximum (6 de base, plus le bonus de l'arbre) reste accepté.
 export async function definirEquipe(userId, especes) {
-  if (!Array.isArray(especes) || especes.length !== 6) {
-    throw new ErreurJeu("6 emplacements attendus");
+  const max = await nbSlotsDuJoueur(userId);
+  if (!Array.isArray(especes) || especes.length < 6 || especes.length > max) {
+    throw new ErreurJeu(`entre 6 et ${max} emplacements attendus`);
   }
 
   const choisis = especes.filter((e) => e !== null);

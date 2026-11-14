@@ -256,11 +256,12 @@
   <script src="/js/commun.js"></script>
   <script src="/js/session.js"></script>
   <script>
-    const NB_SLOTS = 6;
+    // Emplacements d'équipe : 6 de base, plus le bonus de l'arbre (envoyé par le serveur)
+    let nbSlots = 6;
     const INTERVALLE_RAFRAICHISSEMENT_MS = 3000;
 
     let possedes = [];
-    let equipe = Array(NB_SLOTS).fill(null);
+    let equipe = Array(nbSlots).fill(null);
     let defisEnvoyes = [];
     let defisRecus = [];
     let premierRafraichissementCombats = true;
@@ -555,7 +556,8 @@
         }
 
         possedes = resDex.data.singes;
-        equipe = Array(NB_SLOTS).fill(null);
+        nbSlots = resEquipe.data.nbSlots ?? 6;
+        equipe = Array(nbSlots).fill(null);
         for (const { slot, espece } of resEquipe.data.equipe) {
           equipe[slot - 1] = espece;
         }

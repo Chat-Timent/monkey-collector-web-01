@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { combat } from "../src/game/combat-engine.js";
 import { getEspece, getImageUrl, getNiveau, statsFinales } from "../src/game/monkeys.js";
-import { appliquerGains } from "../src/game/progression.js";
+import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
+import { agregerEffets, etatArbre, pointsDepenses } from "../src/game/starter-arbre.js";
 import { debutFenetre, etatQuota } from "../src/game/quota.js";
 import { creerApplication } from "../src/app.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
@@ -63,6 +64,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     .sort();
 
   assert.deepEqual(routes, [
+    "GET /arbre",
     "GET /chat",
     "GET /classement",
     "GET /combats",
@@ -74,6 +76,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /moi",
     "GET /monkeydex",
     "GET /profil",
+    "POST /arbre/noeuds",
     "POST /chat",
     "POST /combats/:id/messages",
     "POST /connexion",
@@ -188,4 +191,62 @@ test("une erreur métier peut renvoyer des détails au client", () => {
   gererErreurs(new ErreurJeu("plus de tirages", 429, { quota: { restants: 0 } }), {}, res, () => {});
   assert.equal(statut, 429);
   assert.deepEqual(corps, { quota: { restants: 0 }, erreur: "plus de tirages" });
+});
+
+test("l'arbre du starter : 1 point par niveau gagné, prérequis respectés", () => {
+  const arbre = {
+    "a.racine": { branche: "farm", nom: "R", cout: 1, prerequis: [], mode: "tous", effet: {} },
+    "a.un": { branche: "farm", nom: "Un", cout: 1, prerequis: ["a.racine"], mode: "tous", effet: { xp_pct: 0.05 } },
+    "a.deux": { branche: "farm", nom: "Deux", cout: 2, prerequis: ["a.racine"], mode: "tous", effet: { xp_pct: 0.1 } },
+    "a.les2": { branche: "farm", nom: "Les2", cout: 1, prerequis: ["a.un", "a.deux"], mode: "tous", effet: {} },
+    "a.l1": { branche: "farm", nom: "L1", cout: 1, prerequis: ["a.un", "a.deux"], mode: "au_moins_un", effet: {} },
+  };
+  const etat = (niveau, pris) => Object.fromEntries(etatArbre(niveau, pris, arbre).noeuds.map((n) => [n.id, n.etat]));
+
+  // Niveau 1 : aucun point
+  assert.equal(etatArbre(1, [], arbre).points, 0);
+  assert.equal(etat(1, [])["a.racine"], "verrouille");
+  // Niveau 2 : 1 point, seule la racine est disponible
+  assert.deepEqual(etat(2, []), { "a.racine": "disponible", "a.un": "verrouille", "a.deux": "verrouille", "a.les2": "verrouille", "a.l1": "verrouille" });
+  // Le coût compte : a.deux coûte 2 points
+  assert.equal(pointsDepenses(["a.racine", "a.deux"], arbre), 3);
+  assert.equal(etat(3, ["a.racine"])["a.deux"], "verrouille");
+  assert.equal(etat(4, ["a.racine"])["a.deux"], "disponible");
+  // Mode "tous" contre "au_moins_un"
+  const e = etat(10, ["a.racine", "a.un"]);
+  assert.equal(e["a.les2"], "verrouille");
+  assert.equal(e["a.l1"], "disponible");
+  // Effets cumulés ; un nœud retiré du JSON est ignoré et remboursé
+  assert.ok(Math.abs(etatArbre(10, ["a.racine", "a.un", "a.deux", "disparu"], arbre).effets.xp_pct - 0.15) < 1e-9);
+  assert.equal(etatArbre(10, ["a.racine", "disparu"], arbre).points, 8);
+});
+
+test("les gains du tirage suivent les effets de l'arbre", () => {
+  const neutre = agregerEffets([]);
+  const toujours = () => 0;
+  const jamais = () => 0.999;
+
+  // Sans arbre : XP de base, aucun coin, pas de copie bonus
+  assert.deepEqual(gainsDuTirage("rare", neutre, toujours), { xp: 100, coins: 0, copieBonus: false });
+
+  // Bonus d'XP et de coins ; coins seulement avec la loterie et si la chance tombe
+  const effets = { ...neutre, xp_pct: 0.15, coins_pct: 0.05, lottery_coins: true, valeur_or_pct: 0.02, copie_bonus: 0.03 };
+  assert.deepEqual(gainsDuTirage("rare", effets, toujours), { xp: 115, coins: 63, copieBonus: true });
+  assert.deepEqual(gainsDuTirage("rare", effets, jamais), { xp: 115, coins: 0, copieBonus: false });
+
+  // La chance de coins vaut 25 % + Valeur marchande
+  assert.equal(gainsDuTirage("rare", effets, () => 0.269).coins, 63);
+  assert.equal(gainsDuTirage("rare", effets, () => 0.271).coins, 0);
+  assert.equal(gainsDuTirage("rare", { ...effets, valeur_or_pct: 0 }, () => 0.26).coins, 0);
+});
+
+test("le rang de renfort (slots 7 à 9) entre en jeu quand les deux premiers groupes sont K.O.", () => {
+  const singe = (nom, hp, atk) => ({ nom, hp, atk, def: 0, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 100, perk: null });
+  const A = [singe("A1", 1, 1), null, null, null, null, null, singe("A7", 50, 100)];
+  const B = [singe("B1", 100, 1), null, null, null, null, null];
+  const resultat = combat(A, B, () => 0);
+  // A1 tombe, puis A7 (renfort) prend le relais et gagne
+  assert.equal(resultat.vainqueur, "A");
+  assert.ok(resultat.journal.some((e) => e.type === "degats" && e.de === "A7"));
+  assert.ok(resultat.journal.some((e) => e.type === "KO" && e.nom === "A1"));
 });
