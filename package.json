@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node --test",
     "check": "node -e \"const fs=require('fs'),{execFileSync}=require('child_process');const js=(d)=>fs.readdirSync(d,{recursive:true}).filter(f=>f.endsWith('.js')).map(f=>d+'/'+f);for(const f of ['index.js',...js('src'),...js('public/js')])execFileSync(process.execPath,['--check',f],{stdio:'inherit'})\"",
+    "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "keywords": [],
