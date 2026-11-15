@@ -9,10 +9,31 @@ const RARETES_AFFICHAGE = {
   legendary: { label: "Légendaire", couleur: "#fe9308" },
 };
 
+// ---------- Version du site ----------
+// Le serveur écrit sa version dans la page (<meta name="version">) et l'annonce dans chaque
+// réponse (en-tête X-Version). Après une mise à jour, un onglet resté ouvert sur l'ancienne
+// version se recharge tout seul, pour ne pas mélanger ancien et nouveau code.
+const VERSION_PAGE = document.querySelector('meta[name="version"]')?.content ?? null;
+
+function avecVersion(url) {
+  return VERSION_PAGE ? `${url}${url.includes("?") ? "&" : "?"}v=${VERSION_PAGE}` : url;
+}
+
+function verifierVersion(reponse) {
+  const serveur = reponse.headers.get("X-Version");
+  if (!VERSION_PAGE || !serveur || serveur === VERSION_PAGE) return;
+  // Une seule tentative par version : évite une boucle si la page servie était encore l'ancienne
+  try {
+    if (sessionStorage.getItem("rechargement-version") === serveur) return;
+    sessionStorage.setItem("rechargement-version", serveur);
+  } catch { /* stockage indisponible : on recharge quand même */ }
+  location.reload();
+}
+
 // Libellé, couleur et icône d'une rareté (gris neutre si la rareté est inconnue).
 function infoRarete(rarete) {
   const r = RARETES_AFFICHAGE[rarete] ?? { label: rarete, couleur: "#777" };
-  return { ...r, icone: `/images/MonkeysRarities/rarity_${rarete}.png` };
+  return { ...r, icone: avecVersion(`/images/MonkeysRarities/rarity_${rarete}.png`) };
 }
 
 // Familles de singes (champ "categorie" de monkeys.json) : réunir des singes d'une même famille
@@ -89,6 +110,7 @@ async function api(chemin, { methode, corps } = {}) {
     options.body = JSON.stringify(corps);
   }
   const reponse = await fetch(chemin, options);
+  verifierVersion(reponse);
   let data;
   try {
     data = await reponse.json();

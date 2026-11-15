@@ -26,6 +26,7 @@
     if (estPagePvp) return;
     try {
       const reponse = await fetch("/defis");
+      verifierVersion(reponse);
       if (!reponse.ok) return;
       const { recus } = await reponse.json();
       for (const defi of recus) {
