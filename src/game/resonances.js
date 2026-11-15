@@ -28,6 +28,14 @@ export function resonancesActives(equipe, donnees = RESONANCES) {
   return actives;
 }
 
+// Données de résonance avec tous les bonus augmentés de `pct` (Harmonie, Chœur), arrondis au dixième.
+export function resonancesAvecBonus(pct = 0, donnees = RESONANCES) {
+  if (!pct) return donnees;
+  const augmenter = (bonus) => Object.fromEntries(Object.entries(bonus).map(([cle, v]) => [cle, Math.round(v * (1 + pct) * 10 + 1e-9) / 10]));
+  const categories = Object.fromEntries(Object.entries(donnees.categories).map(([nom, c]) => [nom, { ...c, bonus: c.bonus.map(augmenter) }]));
+  return { ...donnees, categories };
+}
+
 // Équipe avec les bonus appliqués aux singes de chaque catégorie en résonance.
 // Renvoie { equipe, resonances } ; l'équipe d'origine n'est pas modifiée.
 export function appliquerResonances(equipe, donnees = RESONANCES) {

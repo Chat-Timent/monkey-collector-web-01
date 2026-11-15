@@ -1,6 +1,7 @@
 import { pool, transaction } from "../config/database.js";
 import { ErreurJeu } from "../erreurs.js";
-import { getEspece, getImageUrl, getNiveau, statsFinales, tirer } from "../game/monkeys.js";
+import { ETINCELLE_SEUIL } from "../constants/game.js";
+import { estRare, getEspece, getImageUrl, getNiveau, statsFinales, tirer } from "../game/monkeys.js";
 import { gainsDuTirage } from "../game/progression.js";
 import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../game/quota.js";
 import { agregerEffets, pointsDepenses, pointsDisponibles } from "../game/starter-arbre.js";
@@ -26,18 +27,32 @@ async function lireLigneVerrouillee(userId, db) {
     [userId]
   );
   const { rows } = await db.query(
-    "SELECT tirages_restants, dernier_reset, tirages_bonus FROM tirages_etat WHERE user_id = $1 FOR UPDATE",
+    "SELECT tirages_restants, dernier_reset, tirages_bonus, tirages_sans_rare FROM tirages_etat WHERE user_id = $1 FOR UPDATE",
     [userId]
   );
   return rows[0];
 }
 
 // L'ancien stock bonus est désormais compris dans le stock : remis à 0.
-async function enregistrerQuota(userId, quota, db) {
+// `sansRare` : nouveau compteur d'Étincelle (inchangé s'il est omis).
+async function enregistrerQuota(userId, quota, db, sansRare = null) {
   await db.query(
-    "UPDATE tirages_etat SET tirages_restants = $2, dernier_reset = $3, tirages_bonus = 0 WHERE user_id = $1",
-    [userId, quota.stock, new Date(quota.debutRecharge)]
+    `UPDATE tirages_etat SET tirages_restants = $2, dernier_reset = $3, tirages_bonus = 0,
+       tirages_sans_rare = COALESCE($4, tirages_sans_rare)
+     WHERE user_id = $1`,
+    [userId, quota.stock, new Date(quota.debutRecharge), sansRare]
   );
+}
+
+// Étincelle : la rareté est forcée si le joueur a le nœud et a enchaîné assez de tirages sans rare.
+export function etincelleDeclenchee(effets, sansRare, seuil = ETINCELLE_SEUIL) {
+  return Boolean(effets.etincelle) && sansRare >= seuil;
+}
+
+// Compteur de tirages d'affilée sans rare ou mieux : il avance à chaque tirage, nœud pris ou non,
+// et repart à 0 sur un rare, un épique ou un légendaire.
+export function compteurSansRare(sansRare, rarete) {
+  return estRare(rarete) ? 0 : sansRare + 1;
 }
 
 // Ajoute des tirages gagnés (donjon, Aventure…) au stock du joueur, sans plafond
@@ -66,24 +81,26 @@ export async function effectuerTirage(userId) {
 
     const pris = await lireNoeudsPris(userId, db);
     const effets = agregerEffets(pris);
-    const quota = etatQuota(await lireLigneVerrouillee(userId, db), Date.now(), parametresQuota(effets));
+    const ligne = await lireLigneVerrouillee(userId, db);
+    const quota = etatQuota(ligne, Date.now(), parametresQuota(effets));
     if (!consommerTirage(quota)) {
       throw new ErreurJeu("plus de tirages disponibles, attends la recharge", 429, {
         quota: quotaPublic(quota),
       });
     }
 
-    const id = tirer();
+    const etincelle = etincelleDeclenchee(effets, ligne.tirages_sans_rare);
+    const id = tirer(effets, { forcerRare: etincelle });
     const espece = getEspece(id);
     if (!espece) throw new Error(`tirage impossible : aucune espèce pour ${id}`);
 
-    const gains = gainsDuTirage(espece.rarete, effets);
+    const gains = { ...gainsDuTirage(espece.rarete, effets), etincelle };
     let amount = await ajouterCopie(userId, id, db);
     if (gains.copieBonus) amount = await ajouterCopie(userId, id, db);
     const niveau = getNiveau(espece.rarete, amount);
     const starter = await gagnerRecompense(userId, gains, starterAvant, db);
 
-    await enregistrerQuota(userId, quota, db);
+    await enregistrerQuota(userId, quota, db, compteurSansRare(ligne.tirages_sans_rare, espece.rarete));
 
     return {
       id,

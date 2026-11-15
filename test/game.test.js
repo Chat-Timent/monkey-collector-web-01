@@ -2,20 +2,21 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { combat, degatsDe } from "../src/game/combat-engine.js";
 import { PALIER_RARETE, puissance, puissanceCible, statsAuNiveau } from "../src/game/puissance.js";
-import { RESONANCES, appliquerResonances, resonancesActives } from "../src/game/resonances.js";
+import { RESONANCES, appliquerResonances, resonancesActives, resonancesAvecBonus } from "../src/game/resonances.js";
 import { SINGES } from "../src/game/monkeys.js";
-import { getEspece, getImageUrl, getNiveau, statsFinales } from "../src/game/monkeys.js";
+import { estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirerRarete } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import {
   ARBRE, COURBE_COUTS, agregerEffets, coutAttendu, estGratuit, etatArbre, noeudsPris, peutPrendre,
   pointsDepenses, profondeurs, validerArbre, voisins,
 } from "../src/game/starter-arbre.js";
 import { nbSlots } from "../src/services/arbre-service.js";
+import { compteurSansRare, etincelleDeclenchee } from "../src/services/tirage-service.js";
 import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../src/game/quota.js";
-import { ennemisEtage, recompensesEtage, singeBonus } from "../src/game/aventure.js";
+import { ennemisEtage, recompensesAvecBonus, recompensesEtage, singeBonus } from "../src/game/aventure.js";
 import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles, ticketsParJour } from "../src/game/ressources.js";
-import { calculerElo } from "../src/game/elo.js";
-import { bonusDefense, effetPerk, perkExiste, tirerPerk, xpDoublon } from "../src/game/perks.js";
+import { calculerElo, limiteCombatsElo } from "../src/game/elo.js";
+import { bonusDefense, effetPerk, perkExiste, renforcerPerk, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
 import { VERSION, avecVersion, versionnerHtml } from "../src/version.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
@@ -377,6 +378,101 @@ test("Clé de donjon : un ticket de plus par jour dans chaque donjon", () => {
   assert.equal(ticketsDisponibles({ jour: "2026-11-14", tickets: 0 }, "2026-11-15", undefined, avecCle), 3);
   // Jour en cours : le stock enregistré fait foi
   assert.equal(ticketsDisponibles({ jour: "2026-11-15", tickets: 1 }, "2026-11-15", undefined, avecCle), 1);
+});
+
+test("Flair : rare, épique et légendaire 10 % plus lourds au tirage", () => {
+  const neutre = poidsRaretes(agregerEffets([]));
+  const flair = poidsRaretes(agregerEffets(["farm.flair"]));
+  const parNom = (poids) => Object.fromEntries(poids.map((r) => [r.nom, r.poids]));
+  const [n, f] = [parNom(neutre), parNom(flair)];
+  assert.equal(f.common, n.common);
+  assert.equal(f.uncommon, n.uncommon);
+  for (const r of ["rare", "epic", "legendary"]) assert.ok(Math.abs(f[r] - n[r] * 1.1) < 1e-12);
+  // Part des raretés rare et mieux : 7,25 % → 7,92 %
+  const partRare = (poids) => poids.filter((r) => estRare(r.nom)).reduce((t, r) => t + r.poids, 0) / poids.reduce((t, r) => t + r.poids, 0);
+  assert.ok(Math.abs(partRare(neutre) - 0.0725) < 0.0005);
+  assert.ok(Math.abs(partRare(flair) - 0.0792) < 0.0005);
+  // Le tirage suit les poids : tout en bas, commun ; tout en haut, légendaire
+  assert.equal(tirerRarete(null, { hasard: () => 0 }), "common");
+  assert.equal(tirerRarete(null, { hasard: () => 0.9999 }), "legendary");
+});
+
+test("Étincelle : après 50 tirages sans rare, le suivant est rare ou mieux", () => {
+  const avec = agregerEffets(["farm.etincelle"]);
+  const sans = agregerEffets([]);
+  // Déclenchement : nœud pris et seuil atteint
+  assert.equal(etincelleDeclenchee(avec, 49), false);
+  assert.equal(etincelleDeclenchee(avec, 50), true);
+  assert.equal(etincelleDeclenchee(sans, 200), false);
+  // Rareté forcée : seulement rare, épique ou légendaire, dans leurs proportions
+  assert.deepEqual(poidsRaretes(avec, { forcerRare: true }).map((r) => r.nom), ["rare", "epic", "legendary"]);
+  for (const h of [0, 0.3, 0.6, 0.9, 0.9999]) assert.ok(estRare(tirerRarete(avec, { forcerRare: true, hasard: () => h })));
+  // Compteur : +1 par tirage sans rare, remis à 0 sur un rare ou mieux
+  assert.equal(compteurSansRare(0, "common"), 1);
+  assert.equal(compteurSansRare(49, "uncommon"), 50);
+  assert.equal(compteurSansRare(50, "rare"), 0);
+  assert.equal(compteurSansRare(12, "legendary"), 0);
+});
+
+test("Duelliste : un combat classé de plus par jour contre un même adversaire", () => {
+  const sans = agregerEffets([]);
+  const duelliste = agregerEffets(["pvp.duel"]);
+  assert.equal(limiteCombatsElo(sans, sans), 3);
+  // Il suffit que l'un des deux joueurs ait le nœud ; le bonus ne s'additionne pas entre eux
+  assert.equal(limiteCombatsElo(duelliste, sans), 4);
+  assert.equal(limiteCombatsElo(sans, duelliste), 4);
+  assert.equal(limiteCombatsElo(duelliste, duelliste), 4);
+});
+
+test("Explorateur : +10 % d'XP et de coins en Aventure, tirages inchangés", () => {
+  const base = { xp: 155, coins: 42, tirages: 5 };
+  assert.deepEqual(recompensesAvecBonus(base, agregerEffets([])), base);
+  assert.deepEqual(recompensesAvecBonus(base, agregerEffets(["strat.explorateur"])), { xp: 171, coins: 46, tirages: 5 });
+});
+
+test("Harmonie et Chœur : bonus de résonance augmentés de 10 % puis 25 %", () => {
+  assert.equal(resonancesAvecBonus(0), RESONANCES);
+  const pct = agregerEffets(["strat.harmonie", "strat.choeur"]).resonance_pct;
+  assert.ok(Math.abs(pct - 0.25) < 1e-9);
+  const augmentees = resonancesAvecBonus(pct);
+  // Amour, palier 4 : { hp: 47, atk: 9, def: 19 } → +25 %, arrondi au dixième
+  assert.deepEqual(augmentees.categories.Amour.bonus[1], { hp: 58.8, atk: 11.3, def: 23.8 });
+  assert.deepEqual(augmentees.paliers, RESONANCES.paliers);
+  // Les données d'origine ne sont pas modifiées
+  assert.deepEqual(RESONANCES.categories.Amour.bonus[1], { hp: 47, atk: 9, def: 19 });
+  // Appliqué à une équipe : deux singes Amour reçoivent le palier 2 augmenté
+  const singe = (categorie) => ({ hp: 1000, atk: 100, def: 100, categorie });
+  const { equipe } = appliquerResonances([singe("Amour"), singe("Amour")], resonancesAvecBonus(0.1));
+  assert.deepEqual([equipe[0].hp, equipe[0].atk, equipe[0].def], [1110, 102, 104]);
+});
+
+test("Maître des perks : Peau de fer et Floraison 15 % plus fortes", () => {
+  const pct = agregerEffets(["strat.maitre_perks"]).perk_pct;
+  assert.deepEqual(renforcerPerk(effetPerk("ironskin", 4), pct).defensePct, 28.8);
+  assert.deepEqual(renforcerPerk(effetPerk("blossoming", 5), pct).soinPct, 34.5);
+  // Sans le nœud, ou pour un perk sans valeur, rien ne change
+  assert.deepEqual(renforcerPerk(effetPerk("ironskin", 1), 0), effetPerk("ironskin", 1));
+  assert.deepEqual(renforcerPerk(effetPerk("taunt", 1), pct), effetPerk("taunt", 1));
+  assert.equal(renforcerPerk(null, pct), null);
+});
+
+test("l'arbre complet : 115 points, trois emplacements au plus, effets de la phase B", () => {
+  const tous = Object.keys(ARBRE);
+  assert.equal(pointsDepenses(tous), 115);
+  const effets = agregerEffets(tous);
+  const proche = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≠ ${b}`);
+  assert.equal(effets.slots_bonus, 3);
+  assert.equal(nbSlots(effets), 9);
+  proche(effets.coins_pct, 0.30);
+  proche(effets.valeur_or_pct, 0.05);
+  proche(effets.copie_bonus, 0.12);
+  proche(effets.atk_pct, 0.12);
+  proche(effets.hp_pct, 0.09);
+  proche(effets.def_pct, 0.09);
+  assert.equal(effets.tirages_max, 30);
+  assert.equal(effets.recharge_sec, 3);
+  assert.equal(effets.etincelle, true);
+  assert.equal(effets.elo_combats_bonus, 1);
 });
 
 test("les gains du tirage suivent les effets de l'arbre", () => {

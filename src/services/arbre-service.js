@@ -1,5 +1,5 @@
 import { pool, transaction } from "../config/database.js";
-import { LOTERIE_CHANCE_BASE, NB_SLOTS_BASE } from "../constants/game.js";
+import { ETINCELLE_SEUIL, LOTERIE_CHANCE_BASE, NB_SLOTS_BASE } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { agregerEffets, ARBRE, etatArbre, noeudsPris, peutPrendre, pointsDepenses, pointsDisponibles } from "../game/starter-arbre.js";
 import { getStarter } from "./starter-service.js";
@@ -22,7 +22,7 @@ export function nbSlots(effets) {
 export async function getArbre(userId) {
   const [starter, pris] = await Promise.all([getStarter(userId), lireNoeudsPris(userId)]);
   if (!starter) throw new ErreurJeu("aucun starter, choisis-en un d'abord");
-  return { niveau: starter.niveau, chanceLoterie: LOTERIE_CHANCE_BASE, ...etatArbre(starter.niveau, pris) };
+  return { niveau: starter.niveau, chanceLoterie: LOTERIE_CHANCE_BASE, seuilEtincelle: ETINCELLE_SEUIL, ...etatArbre(starter.niveau, pris) };
 }
 
 export async function getPointsArbre(userId, niveau) {

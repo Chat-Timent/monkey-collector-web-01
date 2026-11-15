@@ -78,6 +78,12 @@ export function recompensesEtage(etage, donjon = AVENTURE) {
   };
 }
 
+// Explorateur : XP et coins d'un étage augmentés de `aventure_pct` (arrondis). Les tirages ne changent pas.
+export function recompensesAvecBonus(recompenses, effets) {
+  const mult = 1 + (effets?.aventure_pct ?? 0);
+  return { ...recompenses, xp: Math.round(recompenses.xp * mult), coins: Math.round(recompenses.coins * mult) };
+}
+
 // Singe bonus : avec la chance prévue, une copie d'un des ennemis battus (id), sinon null.
 export function singeBonus(ennemis, hasard = Math.random, donjon = AVENTURE) {
   if (hasard() >= donjon.recompenses.singe.chance) return null;

@@ -356,6 +356,7 @@
       const bonus = [];
       if (data.gains?.coins > 0) bonus.push(`💰 +${data.gains.coins} coins !`);
       if (data.gains?.copieBonus) bonus.push("Doublon chanceux : une copie en plus !");
+      if (data.gains?.etincelle) bonus.push("Étincelle : rare garanti !");
       if (data.starter?.niveauxGagnes > 0) bonus.push("Niveau supérieur : +1 point d'arbre !");
       document.getElementById("message").textContent = bonus.join(" · ");
       afficherQuota(data.quota);

@@ -43,8 +43,10 @@ export const RECHARGE_TIRAGE_MIN_MS = 5 * 1000;
 // Chance de base qu'un tirage rapporte des coins une fois « Loterie rentable » débloquée
 // (« Valeur marchande » s'y ajoute). Sans ce nœud, un tirage ne rapporte aucun coin.
 export const LOTERIE_CHANCE_BASE = 0.25;
-// Emplacements d'équipe sans bonus (le nœud « Rang de renfort » en ajoute)
+// Emplacements d'équipe sans bonus (les Rangs de renfort, d'élite et suprême en ajoutent)
 export const NB_SLOTS_BASE = 6;
+// Étincelle : après ce nombre de tirages d'affilée sans rare ou mieux, le suivant en est un
+export const ETINCELLE_SEUIL = 50;
 
 // Elo PVP : facteur K, et nombre de combats qui comptent contre un même adversaire sur 24 h
 export const ELO_K = 32;

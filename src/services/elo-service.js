@@ -1,6 +1,6 @@
 import { pool, transaction } from "../config/database.js";
-import { ELO_COMBATS_PAR_JOUR } from "../constants/game.js";
-import { calculerElo } from "../game/elo.js";
+import { calculerElo, limiteCombatsElo } from "../game/elo.js";
+import { effetsDuJoueur } from "./arbre-service.js";
 
 // Fin du replay d'un combat (même règle que pour les combats « en cours »)
 const FIN_COMBAT = "created_at + (COALESCE((resultat->>'dureeMs')::int, 0) * interval '1 millisecond')";
@@ -53,7 +53,8 @@ export async function classementElo(userId) {
 
 // Variations d'elo d'un combat PVP, calculées au lancement depuis l'elo actuel des deux joueurs
 // (dans la transaction `db`). Elles ne sont appliquées qu'à la fin du combat (reglerEloTermines).
-// Anti-farm : contre un même adversaire, seuls ELO_COMBATS_PAR_JOUR combats sur 24 h glissantes comptent.
+// Anti-farm : contre un même adversaire, seuls ELO_COMBATS_PAR_JOUR combats sur 24 h glissantes comptent
+// (un de plus si l'un des deux joueurs a Duelliste, voir limiteCombatsElo).
 // Renvoie { A, B, compte, applique } à enregistrer avec le combat.
 export async function eloDuCombat(db, userA, userB, vainqueur) {
   const { rows } = await db.query("SELECT id, elo FROM users WHERE id = ANY($1)", [[userA, userB]]);
@@ -66,7 +67,8 @@ export async function eloDuCombat(db, userA, userB, vainqueur) {
        AND (resultat->'elo'->>'compte')::boolean`,
     [userA, userB]
   );
-  if (recents[0].n >= ELO_COMBATS_PAR_JOUR) return { A: 0, B: 0, compte: false };
+  const limite = limiteCombatsElo(await effetsDuJoueur(userA, db), await effetsDuJoueur(userB, db));
+  if (recents[0].n >= limite) return { A: 0, B: 0, compte: false };
 
   return { ...calculerElo(elo[userA], elo[userB], vainqueur), compte: true, applique: false };
 }

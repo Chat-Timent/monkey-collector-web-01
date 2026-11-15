@@ -10,8 +10,8 @@ const ZOOM_MAX = 2.5;
 const SEUIL_GLISSER = 6;   // px : au-delà, un appui devient un déplacement, pas un clic
 const ZOOM_NOMS = 0.45;    // en dessous, les noms des nœuds payants sont masqués
 
-// Texte affiché pour chaque effet ; `chanceLoterie` vient du serveur.
-function decrireEffet(cle, valeur, chanceLoterie) {
+// Texte affiché pour chaque effet ; `chanceLoterie` et `seuilEtincelle` viennent du serveur.
+function decrireEffet(cle, valeur, { chanceLoterie, seuilEtincelle }) {
   const pct = (v) => `${Math.round(v * 1000) / 10} %`;
   switch (cle) {
     case "xp_pct": return `+${pct(valeur)} d'XP par tirage`;
@@ -30,6 +30,12 @@ function decrireEffet(cle, valeur, chanceLoterie) {
     case "critdmg_flat": return `+${valeur} % de dégâts critiques`;
     case "slots_bonus": return `+${valeur} emplacement d'équipe`;
     case "tickets_donjon": return `+${valeur} ticket par jour dans chaque donjon`;
+    case "rarete_pct": return `Singes rares, épiques et légendaires ${pct(valeur)} plus fréquents`;
+    case "etincelle": return `Après ${seuilEtincelle} tirages sans rare ou mieux, le suivant en est un`;
+    case "elo_combats_bonus": return `+${valeur} combat classé par jour contre un même adversaire`;
+    case "aventure_pct": return `+${pct(valeur)} d'XP et de coins en Aventure`;
+    case "resonance_pct": return `Bonus de résonance +${pct(valeur)}`;
+    case "perk_pct": return `Perks ${pct(valeur)} plus efficaces (Peau de fer, Floraison)`;
     default: return `${cle} : ${valeur}`;
   }
 }
@@ -335,7 +341,7 @@ function afficherBulle() {
   const effets = Object.entries(n.effet);
   for (const [cle, valeur] of effets) {
     const ligne = document.createElement("p");
-    ligne.textContent = decrireEffet(cle, valeur, Arbre.etat.chanceLoterie);
+    ligne.textContent = decrireEffet(cle, valeur, Arbre.etat);
     bulle.appendChild(ligne);
   }
   if (n.cout > 0) {

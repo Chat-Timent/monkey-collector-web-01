@@ -31,7 +31,13 @@ const DEFAUT = {
   critdmg_flat: 0,
   slots_bonus: 0,
   tickets_donjon: 0,
+  rarete_pct: 0,
+  elo_combats_bonus: 0,
+  aventure_pct: 0,
+  resonance_pct: 0,
+  perk_pct: 0,
   lottery_coins: false,
+  etincelle: false,
 };
 
 // Plafonds appliqués après agrégation
