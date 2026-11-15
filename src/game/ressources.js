@@ -37,6 +37,12 @@ export function ticketsParJour(effets, regles = RESSOURCES) {
   return regles.ticketsParJour + (effets?.tickets_donjon ?? 0);
 }
 
+// Tickets après un cadeau (déblocage de Clé de donjon) : le stock actuel, calculé avec les effets
+// d'avant le déblocage, plus `nombre`. Le cadeau est immédiat, sans attendre le prochain jour.
+export function ticketsApresCadeau(ligne, aujourdhui, nombre, effetsAvant, regles = RESSOURCES) {
+  return ticketsDisponibles(ligne, aujourdhui, regles, effetsAvant) + nombre;
+}
+
 // Tickets disponibles : pleins si la ligne date d'un jour passé (ou n'existe pas).
 // Un bonus débloqué en cours de journée compte donc à partir du lendemain si les tickets du jour sont entamés.
 export function ticketsDisponibles(ligne, aujourdhui, regles = RESSOURCES, effets = null) {
