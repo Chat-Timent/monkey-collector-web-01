@@ -5,6 +5,7 @@ import { gameRoutes } from "./routes/game-routes.js";
 import { socialRoutes } from "./routes/social-routes.js";
 import { aventureRoutes } from "./routes/aventure-routes.js";
 import { ressourcesRoutes } from "./routes/ressources-routes.js";
+import { perksRoutes } from "./routes/perks-routes.js";
 import { gererErreurs } from "./erreurs.js";
 
 export function creerApplication() {
@@ -23,6 +24,7 @@ export function creerApplication() {
   app.use(socialRoutes);
   app.use(aventureRoutes);
   app.use(ressourcesRoutes);
+  app.use(perksRoutes);
   app.use(gererErreurs);
   return app;
 }

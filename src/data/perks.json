@@ -1,0 +1,25 @@
+{
+  "prix": 500,
+  "xpDoublon": { "unique": 50, "1": 50, "2": 100, "3": 250, "4": 500, "5": 1000, "6": 5000 },
+  "chancesTiers": {
+    "4": [55, 28, 13, 4],
+    "5": [50, 27, 14, 7, 2]
+  },
+  "perks": {
+    "ironskin": {
+      "nom": "Peau de fer",
+      "icone": "🛡️",
+      "tiers": [{ "defense": 500 }, { "defense": 1500 }, { "defense": 3000 }, { "defense": 5000 }]
+    },
+    "taunt": {
+      "nom": "Taunt",
+      "icone": "🎯",
+      "tiers": null
+    },
+    "blossoming": {
+      "nom": "Floraison",
+      "icone": "🌸",
+      "tiers": [{ "soinPct": 15 }, { "soinPct": 25 }, { "soinPct": 35 }, { "soinPct": 50 }, { "soinPct": 60 }]
+    }
+  }
+}

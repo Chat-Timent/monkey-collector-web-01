@@ -92,6 +92,8 @@
     .bulle.degats { color: #ff6b6b; }
     .bulle.rate { color: #bbb; }
     .bulle.ko { color: #ff3b3b; font-size: 20px; }
+    .bulle.soin { color: #7fdc9a; }
+    .carte .perk { position: absolute; top: 6px; left: 8px; font-size: 16px; }
 
     @keyframes secousse {
       0%, 100% { transform: translateX(0); }
@@ -252,6 +254,7 @@
       return `
         <div class="${classes.join(" ")}" ${bordure}>
           ${bulle}
+          ${m.perk ? `<span class="perk" title="${m.perk.nom}">${m.perk.icone}</span>` : ""}
           <img src="${m.image}" alt="">
           <span class="nom">${m.nom}</span>
           <div class="barre"><div style="width:${pct}%"></div></div>
@@ -271,6 +274,7 @@
       else if (e.type === "degats") txt = `${e.de} → ${e.sur} : ${e.degats} dégâts${e.critique ? " (critique)" : ""} · PV restants ${e.pvRestants}`;
       else if (e.type === "rate") txt = `${e.de} rate ${e.sur}`;
       else if (e.type === "KO") txt = `${e.nom} est K.O.`;
+      else if (e.type === "soin") txt = `🌸 ${e.de} soigne ${e.sur} : +${e.soin} PV · PV ${e.pvRestants}`;
       if (!txt) return;
 
       const d = document.createElement("div");
@@ -293,6 +297,10 @@
       } else if (e.type === "KO") {
         etat[e.camp][e.slot].dead = true;
         fx = { camp: e.camp, slot: e.slot, type: "ko", texte: "K.O." };
+      } else if (e.type === "soin") {
+        actif = { camp: e.deCamp, slot: e.deSlot };
+        etat[e.surCamp][e.surSlot].pv = e.pvRestants;
+        fx = { camp: e.surCamp, slot: e.surSlot, type: "soin", texte: `+${e.soin}` };
       }
       ajouterLog(e);
     }

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perks</title>
+  <link rel="stylesheet" href="/css/commun.css">
+  <link rel="stylesheet" href="/css/arbre.css">
+  <link rel="stylesheet" href="/css/barre.css">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #161616;
+      color: var(--texte);
+      margin: 0;
+      min-height: 100vh;
+    }
+    .contenu { max-width: 900px; margin: 28px auto; padding: 0 16px 40px; }
+
+    /* ---------- Loterie ---------- */
+    .loterie { text-align: center; margin-bottom: 30px; }
+    #tirer {
+      padding: 16px 34px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font: inherit;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #tirer:disabled { background: #333; color: #888; cursor: default; }
+    #resultat { min-height: 28px; margin-top: 14px; font-size: 18px; font-weight: bold; }
+    #resultat.nouveau { color: var(--vert); }
+    #resultat.doublon { color: var(--or); }
+
+    /* ---------- Perks obtenus ---------- */
+    h2 { font-size: 13px; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px; }
+    .perks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .perk {
+      position: relative;
+      background: #242424;
+      border: 1px solid #333;
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      text-align: center;
+    }
+    .perk.flash { border-color: var(--vert); box-shadow: 0 0 14px rgba(127, 220, 154, 0.4); }
+    .perk .icone { font-size: 36px; line-height: 1; }
+    .perk .nom { font-weight: bold; font-size: 15px; }
+    .perk .effet { font-size: 13px; color: var(--texte-doux); }
+    .porteur { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: bold; }
+    .porteur img { width: 32px; height: 32px; object-fit: contain; }
+    .actions { display: flex; gap: 6px; margin-top: 4px; }
+    .actions button {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #2a2640;
+      color: var(--texte);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .actions button.principal { border: none; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: bold; }
+    .vide { color: #777; font-size: 14px; }
+
+    /* Liste des singes pour équiper */
+    .menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(260px, 85vw);
+      max-height: 320px;
+      overflow-y: auto;
+      background: #242424;
+      border: 1px solid #444;
+      border-radius: 12px;
+      padding: 6px;
+      z-index: 20;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      text-align: left;
+    }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 6px 8px;
+      background: none;
+      border: none;
+      border-radius: 8px;
+      color: var(--texte);
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .option:hover { background: #2f2f2f; }
+    .option img { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+    .option .nom-singe { flex: 1; font-weight: bold; }
+    .option .marque { font-size: 11px; color: var(--or); }
+    #message { min-height: 1.2em; color: var(--or); text-align: center; margin: 14px 0 0; }
+  </style>
+</head>
+<body>
+  <main class="contenu">
+    <section class="loterie">
+      <button id="tirer" type="button" disabled>🎰 Tirer un perk</button>
+      <div id="resultat"></div>
+    </section>
+
+    <h2>Mes perks</h2>
+    <div id="perks" class="perks"></div>
+    <p id="message"></p>
+  </main>
+
+  <script src="/js/commun.js"></script>
+  <script src="/js/arbre.js"></script>
+  <script src="/js/barre.js"></script>
+  <script src="/js/session.js"></script>
+  <script>
+    const ROMAINS = ["", "I", "II", "III", "IV", "V", "VI"];
+    let donnees = null;          // réponse /perks
+    let singes = [];             // singes possédés, ceux de l'équipe en premier
+    let dernierTire = null;      // "perk:tier" à mettre en valeur
+    const message = document.getElementById("message");
+    const bouton = document.getElementById("tirer");
+
+    function nomPerk(perk, tier) {
+      const c = donnees.catalogue[perk];
+      return c.nbTiers > 0 ? `${c.nom} ${ROMAINS[tier]}` : c.nom;
+    }
+
+    function effetPerk(perk, tier) {
+      const v = donnees.catalogue[perk].tiers[tier - 1] ?? {};
+      if (perk === "ironskin") return `+${v.defense} DEF`;
+      if (perk === "taunt") return "Attire les attaques ennemies";
+      if (perk === "blossoming") return `Soigne ${v.soinPct} % tous les 2 tours`;
+      return "";
+    }
+
+    function majBouton(coins) {
+      bouton.textContent = `🎰 Tirer un perk · ${donnees.prix} 💰`;
+      bouton.disabled = coins < donnees.prix;
+    }
+
+    function fermerMenus() {
+      document.querySelectorAll(".menu").forEach((m) => m.remove());
+    }
+
+    async function equiper(perk, tier, espece) {
+      fermerMenus();
+      const { ok, data } = await api("/perks/equiper", { corps: { perk, tier, espece } });
+      if (!ok) {
+        message.textContent = data.erreur;
+        return;
+      }
+      message.textContent = "";
+      donnees = data;
+      afficherPerks();
+    }
+
+    function ouvrirMenu(carte, perk, tier) {
+      const dejaOuvert = carte.querySelector(".menu");
+      fermerMenus();
+      if (dejaOuvert) return;
+      const porteurs = Object.fromEntries(donnees.obtenus.filter((p) => p.espece).map((p) => [p.espece, p]));
+      const menu = document.createElement("div");
+      menu.className = "menu";
+      if (singes.length === 0) menu.innerHTML = `<p class="vide">Aucun singe : va tirer !</p>`;
+      for (const s of singes) {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "option";
+        const deja = porteurs[s.id];
+        option.innerHTML = `<img src="${s.image}" alt=""><span class="nom-singe"></span><span class="marque"></span>`;
+        option.querySelector(".nom-singe").textContent = s.espece.nom;
+        option.querySelector(".marque").textContent =
+          (s.dansEquipe ? "équipe " : "") + (deja ? donnees.catalogue[deja.perk].icone : "");
+        option.addEventListener("click", (e) => { e.stopPropagation(); equiper(perk, tier, s.id); });
+        menu.appendChild(option);
+      }
+      menu.addEventListener("click", (e) => e.stopPropagation());
+      carte.appendChild(menu);
+    }
+
+    function afficherPerks() {
+      const zone = document.getElementById("perks");
+      zone.innerHTML = "";
+      if (donnees.obtenus.length === 0) {
+        zone.innerHTML = `<p class="vide">Aucun perk pour l'instant.</p>`;
+        return;
+      }
+      for (const p of donnees.obtenus) {
+        const c = donnees.catalogue[p.perk];
+        if (!c) continue;
+        const carte = document.createElement("div");
+        carte.className = "perk" + (dernierTire === `${p.perk}:${p.tier}` ? " flash" : "");
+        carte.innerHTML = `<span class="icone"></span><span class="nom"></span><span class="effet"></span>`;
+        carte.querySelector(".icone").textContent = c.icone;
+        carte.querySelector(".nom").textContent = nomPerk(p.perk, p.tier);
+        carte.querySelector(".effet").textContent = effetPerk(p.perk, p.tier);
+
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        const porteur = p.espece ? singes.find((s) => s.id === p.espece) : null;
+        if (porteur) {
+          const ligne = document.createElement("div");
+          ligne.className = "porteur";
+          ligne.innerHTML = `<img src="${porteur.image}" alt=""><span></span>`;
+          ligne.querySelector("span").textContent = porteur.espece.nom;
+          carte.appendChild(ligne);
+          const changer = document.createElement("button");
+          changer.type = "button";
+          changer.textContent = "Changer";
+          changer.addEventListener("click", (e) => { e.stopPropagation(); ouvrirMenu(carte, p.perk, p.tier); });
+          const retirer = document.createElement("button");
+          retirer.type = "button";
+          retirer.textContent = "Retirer";
+          retirer.addEventListener("click", () => equiper(p.perk, p.tier, null));
+          actions.append(changer, retirer);
+        } else {
+          const eq = document.createElement("button");
+          eq.type = "button";
+          eq.className = "principal";
+          eq.textContent = "Équiper";
+          eq.addEventListener("click", (e) => { e.stopPropagation(); ouvrirMenu(carte, p.perk, p.tier); });
+          actions.append(eq);
+        }
+        carte.appendChild(actions);
+        zone.appendChild(carte);
+      }
+    }
+
+    bouton.addEventListener("click", async () => {
+      if (bouton.disabled) return;
+      bouton.disabled = true;
+      message.textContent = "";
+      const resultat = document.getElementById("resultat");
+      try {
+        const { ok, data } = await api("/perks/loterie", { methode: "POST" });
+        if (!ok) {
+          message.textContent = data.erreur;
+          return;
+        }
+        const c = donnees.catalogue[data.perk];
+        resultat.className = data.doublon ? "doublon" : "nouveau";
+        resultat.textContent = data.doublon
+          ? `${c.icone} ${nomPerk(data.perk, data.tier)} déjà obtenu : +${data.xp} XP`
+          : `${c.icone} ${nomPerk(data.perk, data.tier)} !`;
+        dernierTire = data.doublon ? null : `${data.perk}:${data.tier}`;
+        Barre.afficherStarter(data.starter);
+        Barre.afficherPoints(data.pointsArbre);
+        const r = await api("/perks");
+        if (r.ok) donnees = r.data;
+        afficherPerks();
+        majBouton(data.starter.coins);
+      } catch {
+        message.textContent = "Erreur réseau, réessaie.";
+      } finally {
+        if (donnees) majBouton(Number(document.getElementById("coins").textContent));
+      }
+    });
+
+    async function charger() {
+      const [rp, rd, re] = await Promise.all([api("/perks"), api("/monkeydex"), api("/equipe")]);
+      if (!rp.ok) {
+        message.textContent = rp.data.erreur;
+        return;
+      }
+      donnees = rp.data;
+      const equipe = new Set(re.ok ? re.data.equipe.map((e) => e.espece) : []);
+      singes = (rd.ok ? rd.data.singes : []).map((s) => ({ ...s, dansEquipe: equipe.has(s.id) }));
+      singes.sort((a, b) => Number(b.dansEquipe) - Number(a.dansEquipe));
+      majBouton(donnees.coins);
+      afficherPerks();
+    }
+
+    document.addEventListener("click", fermerMenus);
+    exigerConnexion().then((moi) => { if (moi) charger(); });
+  </script>
+</body>
+</html>

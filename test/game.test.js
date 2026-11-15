@@ -8,6 +8,7 @@ import { consommerTirage, debutFenetre, etatQuota } from "../src/game/quota.js";
 import { ennemisEtage, recompensesEtage, singeBonus } from "../src/game/aventure.js";
 import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles } from "../src/game/ressources.js";
 import { calculerElo } from "../src/game/elo.js";
+import { effetPerk, perkExiste, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
 
@@ -80,6 +81,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /joueurs",
     "GET /moi",
     "GET /monkeydex",
+    "GET /perks",
     "GET /profil",
     "GET /ressources",
     "POST /arbre/noeuds",
@@ -92,6 +94,8 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /defis/:id/repondre",
     "POST /equipe",
     "POST /inscription",
+    "POST /perks/equiper",
+    "POST /perks/loterie",
     "POST /presence",
     "POST /ressources/combat",
     "POST /starter",
@@ -356,4 +360,73 @@ test("les tickets de donjon reviennent à minuit, heure de Paris", () => {
   assert.equal(ticketsDisponibles({ tickets: 0, jour: "2026-11-14" }, "2026-11-15"), 2);
   assert.equal(ticketsDisponibles({ tickets: 1, jour: "2026-11-15" }, "2026-11-15"), 1);
   assert.equal(ticketsDisponibles({ tickets: 0, jour: "2026-11-15" }, "2026-11-15"), 0);
+});
+
+test("loterie des perks : perk au hasard, tiers élevés plus rares, doublons convertis en XP", () => {
+  // Suite de nombres imposée : [choix du perk, choix du tier]
+  const suite = (...v) => () => v.shift();
+  // 3 perks à chances égales (ordre : ironskin, taunt, blossoming)
+  assert.deepEqual(tirerPerk(suite(0.1, 0)), { perk: "ironskin", tier: 1 });
+  assert.deepEqual(tirerPerk(suite(0.5)), { perk: "taunt", tier: 1 });
+  assert.equal(tirerPerk(suite(0.9, 0)).perk, "blossoming");
+  // Peau de fer : 55 / 28 / 13 / 4 %
+  assert.equal(tirerPerk(suite(0.1, 0.54)).tier, 1);
+  assert.equal(tirerPerk(suite(0.1, 0.56)).tier, 2);
+  assert.equal(tirerPerk(suite(0.1, 0.84)).tier, 3);
+  assert.equal(tirerPerk(suite(0.1, 0.97)).tier, 4);
+  // Floraison : le tier V (2 %) n'arrive qu'en toute fin
+  assert.equal(tirerPerk(suite(0.9, 0.97)).tier, 4);
+  assert.equal(tirerPerk(suite(0.9, 0.99)).tier, 5);
+  // Sur beaucoup de tirages, les tiers bas dominent
+  const tiers = Array.from({ length: 4000 }, () => tirerPerk()).filter((t) => t.perk === "ironskin").map((t) => t.tier);
+  const part = (t) => tiers.filter((x) => x === t).length / tiers.length;
+  assert.ok(part(1) > part(2) && part(2) > part(3) && part(3) > part(4));
+
+  // Conversion des doublons (table du bot)
+  assert.equal(xpDoublon("taunt", 1), 50);
+  assert.deepEqual([1, 2, 3, 4].map((t) => xpDoublon("ironskin", t)), [50, 100, 250, 500]);
+  assert.equal(xpDoublon("blossoming", 5), 1000);
+
+  // Validité et valeurs des tiers
+  assert.ok(perkExiste("taunt", 1) && perkExiste("ironskin", 4) && perkExiste("blossoming", 5));
+  assert.ok(!perkExiste("taunt", 2) && !perkExiste("ironskin", 5) && !perkExiste("constructor", 1) && !perkExiste("ironskin", "1"));
+  assert.equal(effetPerk("ironskin", 2).defense, 1500);
+  assert.equal(effetPerk("blossoming", 3).soinPct, 35);
+  assert.equal(effetPerk("taunt", 1).icone, "🎯");
+});
+
+test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 tours", () => {
+  const singe = (nom, hp, atk, def, perk = null) => ({ nom, hp, atk, def, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 100, perk });
+
+  // Taunt : tant qu'il est en vie, le porteur (slot 2) prend toutes les attaques, quel que soit le hasard ;
+  // une fois K.O., les autres redeviennent des cibles
+  for (const h of [0, 0.5, 0.94]) {
+    const r = combat(
+      [singe("A1", 100, 1, 0), singe("A2", 100, 1, 0, effetPerk("taunt", 1)), singe("A3", 100, 1, 0)],
+      [singe("B1", 100, 10, 0)],
+      () => h
+    );
+    const ko = r.journal.findIndex((e) => e.type === "KO" && e.nom === "A2");
+    assert.ok(ko > 0, `hasard ${h} : A2 tombe`);
+    const avantKo = r.journal.slice(0, ko).filter((e) => e.type === "degats" && e.deCamp === "B");
+    assert.ok(avantKo.length === 10 && avantKo.every((e) => e.sur === "A2"), `hasard ${h}`);
+    assert.ok(r.journal.slice(ko).some((e) => e.type === "degats" && e.deCamp === "B" && e.sur !== "A2"));
+  }
+
+  // Floraison I (15 %) : aux tours 2, 4… le porteur soigne le singe le plus bas de son équipe
+  const r = combat(
+    [singe("Soigneur", 1000, 1, 0, effetPerk("blossoming", 1)), singe("Blessé", 1000, 1, 0)],
+    [singe("Brute", 100000, 300, 0)],
+    () => 0
+  );
+  const soins = r.journal.filter((e) => e.type === "soin");
+  assert.ok(soins.length > 0);
+  assert.ok(soins.every((e) => r.journal.find((t) => t.type === "tour" && t.numero === e.tour).numero % 2 === 0));
+  assert.ok(soins.every((e) => e.de === "Soigneur" && e.soin <= 150));
+  assert.equal(soins[0].soin, 150);
+  // Le soin vise le plus bas en PV : la Brute frappe au hasard 0, donc toujours le slot 1 (Soigneur)
+  assert.equal(soins[0].sur, "Soigneur");
+  // Personne n'est blessé (toutes les attaques ratent) : pas de soin
+  const calme = combat([singe("S", 1000, 1, 0, effetPerk("blossoming", 5))], [singe("X", 1000, 1, 0)], () => 0.99);
+  assert.equal(calme.journal.filter((e) => e.type === "soin").length, 0);
 });

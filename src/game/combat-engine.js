@@ -21,13 +21,32 @@ function tousVivants(camp) {
   return camp.filter((s) => s && estVivant(s));
 }
 
-// Taunt présent dans le groupe actif : la cible est forcée sur le slot 1 du groupe.
+// Perk taunt : un singe vivant du groupe actif qui le porte attire toutes les attaques.
 // Sinon, tirage aléatoire parmi les vivants du groupe actif.
 function choisirCible(camp, hasard) {
   const actifs = rotationActive(camp);
   if (actifs.length === 0) return null;
-  if (actifs.some((s) => s.perk?.name === "taunt")) return actifs[0];
+  const provocateur = actifs.find((s) => s.perk?.id === "taunt");
+  if (provocateur) return provocateur;
   return actifs[Math.floor(hasard() * actifs.length)];
+}
+
+// Perk floraison : tous les 2 tours, chaque porteur vivant soigne le singe vivant
+// le plus bas en PV de son équipe, d'un pourcentage de ses PV max (sans dépasser le max).
+function floraison(camp, tour, journal) {
+  for (const porteur of camp) {
+    if (!porteur || !estVivant(porteur) || porteur.perk?.id !== "blossoming") continue;
+    const cible = tousVivants(camp).reduce((bas, s) => (s.pv < bas.pv ? s : bas));
+    const soin = Math.min(Math.round(cible.hp * (porteur.perk.soinPct / 100)), cible.hp - cible.pv);
+    if (soin <= 0) continue;
+    cible.pv += soin;
+    journal.push({
+      type: "soin", tour,
+      de: porteur.nom, deCamp: porteur.camp, deSlot: porteur.slot,
+      sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
+      soin, pvRestants: cible.pv,
+    });
+  }
 }
 
 // Quasi toujours 100 % de toucher. La précision et l'esquive ne retirent
@@ -49,6 +68,10 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
     if (tousVivants(A).length === 0 || tousVivants(B).length === 0) break;
 
     journal.push({ type: "tour", numero: tour });
+    if (tour % 2 === 0) {
+      floraison(A, tour, journal);
+      floraison(B, tour, journal);
+    }
 
     // Ordre fixe : slot 1 A, slot 1 B, slot 2 A, slot 2 B, etc.
     for (let i = 0; i < Math.max(A.length, B.length); i++) {

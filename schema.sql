@@ -40,6 +40,17 @@ CREATE TABLE starter_noeuds (
 );
 
 -- Donjons de ressources : palier courant et tickets du jour (heure de Paris) par donjon.
+-- Perks obtenus (src/data/perks.json) et singe qui les porte : un perk par singe au maximum.
+CREATE TABLE perks_obtenus (
+  user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  perk      text NOT NULL,
+  tier      integer NOT NULL,             -- 1 pour un perk sans tier
+  espece    text,                         -- singe qui le porte (null = non équipé)
+  obtenu_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, perk, tier),
+  UNIQUE (user_id, espece)
+);
+
 CREATE TABLE donjons_progression (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   donjon  text NOT NULL,                       -- 'tirages', 'coins', 'xp'

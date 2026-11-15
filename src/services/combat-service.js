@@ -8,6 +8,7 @@ import { traiterReponseDefi } from "./challenge-service.js";
 import { getEquipe } from "./team-service.js";
 import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 import { appliquerElo } from "./elo-service.js";
+import { perksDesSinges } from "./perks-service.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 // `db` : la connexion de la transaction en cours, pour ne pas en ouvrir d'autres
@@ -16,6 +17,7 @@ export async function preparerEquipe(userId, db = pool) {
   const equipe = await getEquipe(userId, db);
   const collection = await lireCollection(userId, db);
   const effets = await effetsDuJoueur(userId, db);
+  const perks = await perksDesSinges(userId, db);
   const slots = Array(nbSlots(effets)).fill(null);
 
   for (const { slot, espece } of equipe) {
@@ -25,15 +27,18 @@ export async function preparerEquipe(userId, db = pool) {
     const amount = collection.singes[espece]?.amount ?? 1;
     const niveau = getNiveau(e.rarete, amount).niveau;
     const s = statsFinales(e, niveau);
+    const perk = perks[espece] ?? null;
+    // Peau de fer : défense supplémentaire pour le porteur
+    const bonusDef = perk?.defense ?? 0;
     slots[slot - 1] = {
       id: espece,
       nom: e.nom,
       image: getImageUrl(espece),
       rarete: e.rarete,
-      hp: s.hp, atk: Math.round(s.atk * (1 + effets.atk_pct)), def: s.def,
+      hp: s.hp, atk: Math.round(s.atk * (1 + effets.atk_pct)), def: s.def + bonusDef,
       spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
       crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
-      perk: null,
+      perk,
     };
   }
   return slots;

@@ -168,6 +168,6 @@ body.avec-barre { padding-top: var(--topbar-h); box-sizing: border-box; }
   .starter-bloc .avatar img { width: 42px; height: 42px; }
   #starter-xp { display: none; }
   .onglets { justify-content: space-between; gap: 4px; }
-  .onglets a { flex: 1; text-align: center; padding: 8px 4px; font-size: 14px; }
+  .onglets a { flex: 1; text-align: center; padding: 8px 2px; font-size: 13px; }
   #deconnexion { display: none; }
 }

@@ -50,6 +50,8 @@
     .slot-bouton .nom { font-weight: bold; font-size: 13px; }
     .slot-bouton .ajouter { color: #777; font-size: 28px; line-height: 1; }
     .slot-bouton .sous { font-size: 12px; color: var(--or); }
+    .slot-bouton { position: relative; }
+    .slot-bouton .perk { position: absolute; top: 6px; left: 8px; font-size: 16px; }
 
     .pastille {
       display: inline-flex;
@@ -129,6 +131,7 @@
     const RANGEES = ["Ligne 1", "Ligne 2", "Renfort"];
 
     let possedes = [];
+    let perksPortes = {}; // espece → { icone, nom } du perk porté
     let equipe = Array(6).fill(null);
     let minuteurMessage = null;
     const message = document.getElementById("message");
@@ -213,7 +216,8 @@
       const id = equipe[index];
       const singe = id ? trouverSinge(id) : null;
       const contenu = singe
-        ? `<img src="${singe.image}" alt="">
+        ? `${perksPortes[id] ? `<span class="perk" title="${perksPortes[id].nom}">${perksPortes[id].icone}</span>` : ""}
+           <img src="${singe.image}" alt="">
            <span class="nom">${singe.espece.nom}</span>
            ${pastilleHTML(singe.espece.rarete)}
            <span class="sous">Lvl ${singe.niveau.niveau}</span>`
@@ -249,7 +253,14 @@
     }
 
     async function charger() {
-      const [resDex, resEquipe] = await Promise.all([api("/monkeydex"), api("/equipe")]);
+      const [resDex, resEquipe, resPerks] = await Promise.all([api("/monkeydex"), api("/equipe"), api("/perks")]);
+      perksPortes = {};
+      if (resPerks.ok) {
+        for (const p of resPerks.data.obtenus) {
+          const c = resPerks.data.catalogue[p.perk];
+          if (p.espece && c) perksPortes[p.espece] = { icone: c.icone, nom: c.nom };
+        }
+      }
       if (!resDex.ok || !resEquipe.ok) {
         afficherMessage("Erreur de chargement, réessaie.");
         return;
