@@ -14,8 +14,8 @@ const ONGLETS = [
 ];
 
 const IMAGES_STARTERS = {
-  "Fire monkey": "/images/Starters/fire_starter.png",
-  "Ice monkey": "/images/Starters/ice_starter.png",
+  "Fire monkey": avecVersion("/images/Starters/fire_starter.png"),
+  "Ice monkey": avecVersion("/images/Starters/ice_starter.png"),
 };
 
 const Barre = (() => {

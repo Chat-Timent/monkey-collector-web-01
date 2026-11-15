@@ -13,6 +13,7 @@ import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibl
 import { calculerElo } from "../src/game/elo.js";
 import { bonusDefense, effetPerk, perkExiste, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
+import { VERSION, avecVersion, versionnerHtml } from "../src/version.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
 
 test("les paliers de niveau restent identiques", () => {
@@ -23,7 +24,7 @@ test("les paliers de niveau restent identiques", () => {
 
 test("les données et statistiques d'un singe sont inchangées", () => {
   const espece = getEspece("basic_monkey");
-  assert.equal(getImageUrl("basic_monkey"), "/images/MonkeysIcons/basic_monkey.png");
+  assert.equal(getImageUrl("basic_monkey"), `/images/MonkeysIcons/basic_monkey.png?v=${VERSION}`);
   // niveau 3 = base + 2 × croissance, pour chaque stat
   const attendu = Object.fromEntries(Object.keys(espece.base).map((k) => [k, espece.base[k] + 2 * espece.croissance[k]]));
   assert.deepEqual(statsFinales(espece, 3), attendu);
@@ -508,4 +509,41 @@ test("Peau de fer : la défense du porteur augmente du pourcentage de son tier",
   assert.equal(bonusDefense(effetPerk("ironskin", 4), 281), 70);  // +25 %, arrondi
   assert.equal(bonusDefense(effetPerk("taunt", 1), 300), 0);
   assert.equal(bonusDefense(null, 300), 0);
+});
+
+test("version : les pages réécrivent scripts, styles et images avec ?v= et portent la version", () => {
+  const html = '<html><head><link rel="stylesheet" href="/css/commun.css"><script src="/js/commun.js"></script>' +
+    '<img src="/images/Starters/fire_starter.png"><a href="/equipe.html">x</a><script src="https://cdn.example/x.js"></script></head></html>';
+  const v = versionnerHtml(html, "abc123");
+  assert.ok(v.includes('<meta name="version" content="abc123">'));
+  assert.ok(v.includes('href="/css/commun.css?v=abc123"'));
+  assert.ok(v.includes('src="/js/commun.js?v=abc123"'));
+  assert.ok(v.includes('src="/images/Starters/fire_starter.png?v=abc123"'));
+  assert.ok(v.includes('href="/equipe.html"'));            // liens de pages inchangés
+  assert.ok(v.includes('src="https://cdn.example/x.js"')); // ressources externes inchangées
+  assert.equal(avecVersion("/a.png?x=1", "z"), "/a.png?x=1&v=z");
+});
+
+test("version : pages HTML non mises en cache, en-tête X-Version sur toutes les réponses", async () => {
+  const serveur = creerApplication().listen(0);
+  const base = `http://localhost:${serveur.address().port}`;
+  try {
+    for (const chemin of ["/", "/equipe.html"]) {
+      const r = await fetch(base + chemin);
+      assert.equal(r.status, 200);
+      assert.equal(r.headers.get("x-version"), VERSION);
+      assert.equal(r.headers.get("cache-control"), "no-cache");
+      const page = await r.text();
+      assert.ok(page.includes(`<meta name="version" content="${VERSION}">`));
+      assert.ok(page.includes(`/js/commun.js?v=${VERSION}`));
+    }
+    const js = await fetch(base + "/js/commun.js?v=" + VERSION);
+    assert.equal(js.headers.get("cache-control"), "no-cache");
+    const api = await fetch(base + "/moi");
+    assert.equal(api.headers.get("x-version"), VERSION);
+    assert.equal((await fetch(base + "/../package.json")).status, 404);
+    assert.equal((await fetch(base + "/inexistant.html")).status, 404);
+  } finally {
+    serveur.close();
+  }
 });

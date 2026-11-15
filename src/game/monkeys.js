@@ -1,5 +1,6 @@
 import { PALIERS, RARETES } from "../constants/game.js";
 import fs from "node:fs";
+import { avecVersion } from "../version.js";
 
 // Catalogue des espèces, indexé par identifiant (ex. "basic_monkey").
 export const SINGES = JSON.parse(fs.readFileSync(new URL("../data/monkeys.json", import.meta.url), "utf8"));
@@ -27,7 +28,7 @@ export function getEspece(id) {
 }
 
 export function getImageUrl(id) {
-  return `/images/MonkeysIcons/${id}.png`;
+  return avecVersion(`/images/MonkeysIcons/${id}.png`);
 }
 
 export function getNiveau(rarete, amount) {
