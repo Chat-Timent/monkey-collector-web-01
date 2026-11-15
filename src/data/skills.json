@@ -78,7 +78,7 @@
     "nom": "Savant",
     "cout": 2,
     "x": -315, "y": -423,
-    "liens": ["farm.xp_2", "strat.cle_donjon"],
+    "liens": ["farm.xp_2"],
     "effet": { "xp_pct": 0.10 }
   },
   "farm.reserve_1": {
@@ -86,7 +86,7 @@
     "nom": "Réserve",
     "cout": 2,
     "x": 315, "y": -423,
-    "liens": ["farm.reset_1", "pvp.crit_2"],
+    "liens": ["farm.reset_1"],
     "effet": { "tirages_max": 10, "recharge_sec": 1 }
   },
   "farm.copie_1": {
@@ -293,7 +293,7 @@
     "cout": 4,
     "multiplicateur": 2,
     "x": -308, "y": 313,
-    "liens": ["strat.cle_donjon", "pvp.critdmg_2"],
+    "liens": ["strat.cle_donjon"],
     "effet": { "slots_bonus": 1 }
   },
   "strat.explorateur": {
