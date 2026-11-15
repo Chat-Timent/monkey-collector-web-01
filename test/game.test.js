@@ -410,7 +410,7 @@ test("loterie des perks : perk au hasard, tiers élevés plus rares, doublons co
   assert.ok(perkExiste("taunt", 1) && perkExiste("ironskin", 4) && perkExiste("blossoming", 5));
   assert.ok(!perkExiste("taunt", 2) && !perkExiste("ironskin", 5) && !perkExiste("constructor", 1) && !perkExiste("ironskin", "1"));
   assert.deepEqual([1, 2, 3, 4].map((tier) => effetPerk("ironskin", tier).defensePct), [10, 15, 20, 25]);
-  assert.equal(effetPerk("blossoming", 3).soinPct, 35);
+  assert.deepEqual([1, 2, 3, 4, 5].map((tier) => effetPerk("blossoming", tier).soinPct), [10, 15, 20, 25, 30]);
   assert.equal(effetPerk("taunt", 1).icone, "🎯");
 });
 
@@ -432,7 +432,7 @@ test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 t
     assert.ok(r.journal.slice(ko).some((e) => e.type === "degats" && e.deCamp === "B" && e.sur !== "A2"));
   }
 
-  // Floraison I (15 %) : aux tours 2, 4… le porteur soigne le singe le plus bas de son équipe
+  // Floraison I (10 %) : aux tours 2, 4… le porteur soigne le singe le plus bas de son équipe
   const r = combat(
     [singe("Soigneur", 1000, 1, 0, effetPerk("blossoming", 1)), singe("Blessé", 1000, 1, 0)],
     [singe("Brute", 100000, 300, 0)],
@@ -441,8 +441,8 @@ test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 t
   const soins = r.journal.filter((e) => e.type === "soin");
   assert.ok(soins.length > 0);
   assert.ok(soins.every((e) => r.journal.find((t) => t.type === "tour" && t.numero === e.tour).numero % 2 === 0));
-  assert.ok(soins.every((e) => e.de === "Soigneur" && e.soin <= 150));
-  assert.equal(soins[0].soin, 150);
+  assert.ok(soins.every((e) => e.de === "Soigneur" && e.soin <= 100));
+  assert.equal(soins[0].soin, 100);
   // Le soin vise le plus bas en PV : la Brute frappe au hasard 0, donc toujours le slot 1 (Soigneur)
   assert.equal(soins[0].sur, "Soigneur");
   // Personne n'est blessé (toutes les attaques ratent) : pas de soin
