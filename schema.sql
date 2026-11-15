@@ -1,7 +1,6 @@
--- Schéma PostgreSQL du jeu (base Supabase).
--- Relevé depuis la base le 2026-11-14 : colonnes, contraintes et index sont ceux en production.
--- Le serveur se connecte directement (rôle propriétaire) : la RLS est activée sans politique,
--- ce qui bloque l'accès via l'API publique Supabase sans gêner le serveur.
+-- Schéma PostgreSQL du jeu (PostgreSQL 17, base locale du Raspberry Pi).
+-- Installation : psql "$DATABASE_URL" -f schema.sql  (sur une base vide).
+-- Évolutions : migrations additives uniquement (ALTER TABLE ... ADD COLUMN), puis mise à jour ici.
 
 CREATE TABLE users (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -118,18 +117,3 @@ CREATE TABLE chat_global (
   CONSTRAINT chat_global_texte_max CHECK (char_length(texte) <= 200),
   CONSTRAINT chat_global_texte_non_vide CHECK (char_length(btrim(texte)) > 0)
 );
-
-ALTER TABLE users       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sessions    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
-ALTER TABLE starter     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tirages_etat ENABLE ROW LEVEL SECURITY;
-ALTER TABLE starter_noeuds ENABLE ROW LEVEL SECURITY;
-ALTER TABLE equipe      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE presence    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE defis       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE combats     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_global ENABLE ROW LEVEL SECURITY;
-ALTER TABLE aventure    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE donjons_progression ENABLE ROW LEVEL SECURITY;

@@ -11,7 +11,7 @@ import { appliquerElo } from "./elo-service.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 // `db` : la connexion de la transaction en cours, pour ne pas en ouvrir d'autres
-// (le pooler Supabase limite le nombre de connexions simultanées).
+// (le nombre de connexions simultanées à la base est limité).
 export async function preparerEquipe(userId, db = pool) {
   const equipe = await getEquipe(userId, db);
   const collection = await lireCollection(userId, db);
