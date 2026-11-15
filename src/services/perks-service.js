@@ -23,10 +23,10 @@ export async function perksDesSinges(userId, db = pool) {
   return perks;
 }
 
-// Catalogue envoyé au client : nom, icône et valeurs de chaque tier.
+// Catalogue envoyé au client : nom, icône et valeurs de chaque tier (un seul pour un perk sans tier).
 function catalogue() {
   return Object.fromEntries(Object.entries(PERKS.perks).map(([id, p]) => [id, {
-    nom: p.nom, icone: p.icone, nbTiers: nbTiers(id), tiers: p.tiers ?? [{}],
+    nom: p.nom, icone: p.icone, nbTiers: nbTiers(id), tiers: p.tiers ?? [p.valeurs ?? {}],
   }]));
 }
 

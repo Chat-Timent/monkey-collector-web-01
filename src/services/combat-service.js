@@ -9,7 +9,7 @@ import { getEquipe } from "./team-service.js";
 import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 import { eloDuCombat, reglerEloTermines } from "./elo-service.js";
 import { perksDesSinges } from "./perks-service.js";
-import { bonusDefense, renforcerPerk } from "../game/perks.js";
+import { bonusDefense, bonusPv, renforcerPerk } from "../game/perks.js";
 import { appliquerResonances, resonancesAvecBonus } from "../game/resonances.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
@@ -33,13 +33,15 @@ export async function preparerEquipe(userId, db = pool) {
     const perk = renforcerPerk(perks[espece] ?? null, effets.perk_pct);
     // Peau de fer : défense du porteur augmentée de defensePct % (de sa défense de base, sans l'arbre)
     const bonusDef = bonusDefense(perk, s.def);
+    // Taunt : PV du porteur augmentés de pvPct % (de ses PV de base, sans l'arbre)
+    const bonusHp = bonusPv(perk, s.hp);
     slots[slot - 1] = {
       id: espece,
       nom: e.nom,
       image: getImageUrl(espece),
       rarete: e.rarete,
       categorie: e.categorie,
-      hp: Math.round(s.hp * (1 + effets.hp_pct)),
+      hp: Math.round(s.hp * (1 + effets.hp_pct)) + bonusHp,
       atk: Math.round(s.atk * (1 + effets.atk_pct)),
       def: Math.round(s.def * (1 + effets.def_pct)) + bonusDef,
       spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,

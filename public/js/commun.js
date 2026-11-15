@@ -191,7 +191,7 @@ function valeursPerk(catalogue, perk, tier) {
 function effetPerk(catalogue, perk, tier) {
   const v = valeursPerk(catalogue, perk, tier);
   if (perk === "ironskin") return `+${v.defensePct} % DEF`;
-  if (perk === "taunt") return "Attire les attaques";
+  if (perk === "taunt") return `Attire les attaques · +${v.pvPct} % PV`;
   if (perk === "blossoming") return `Soin ${v.soinPct} % / 2 tours`;
   return "";
 }
@@ -202,10 +202,17 @@ function bonusDefensePerk(catalogue, perk, tier, def) {
   return Math.round((def * pct) / 100);
 }
 
+// PV ajoutés par Taunt à un singe de `hp` PV (même calcul que le serveur).
+function bonusPvPerk(catalogue, perk, tier, hp) {
+  const pct = valeursPerk(catalogue, perk, tier).pvPct ?? 0;
+  return Math.round((hp * pct) / 100);
+}
+
 // Effet en quelques mots, chiffré pour le singe qui le porte (`stats` : ses stats actuelles).
 function effetPerkSur(catalogue, perk, tier, stats) {
   const texte = effetPerk(catalogue, perk, tier);
   if (perk === "ironskin" && stats) return `${texte} (+${bonusDefensePerk(catalogue, perk, tier, stats.def)})`;
+  if (perk === "taunt" && stats) return `${texte} (+${bonusPvPerk(catalogue, perk, tier, stats.hp)})`;
   return texte;
 }
 
@@ -213,7 +220,7 @@ function effetPerkSur(catalogue, perk, tier, stats) {
 function descriptionPerk(catalogue, perk, tier) {
   const v = valeursPerk(catalogue, perk, tier);
   if (perk === "ironskin") return `Le singe qui le porte gagne +${v.defensePct} % de DEF.`;
-  if (perk === "taunt") return "Les ennemis attaquent en priorité le singe qui le porte, tant qu'il est en vie.";
+  if (perk === "taunt") return `Les ennemis attaquent en priorité le singe qui le porte, tant qu'il est en vie. Il gagne +${v.pvPct} % de PV.`;
   if (perk === "blossoming") return `Tous les 2 tours, soigne l'allié qui a le moins de PV de ${v.soinPct} % de ses PV max.`;
   return "";
 }
