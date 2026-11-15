@@ -9,6 +9,7 @@ import { getEquipe } from "./team-service.js";
 import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 import { appliquerElo } from "./elo-service.js";
 import { perksDesSinges } from "./perks-service.js";
+import { appliquerResonances } from "../game/resonances.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 // `db` : la connexion de la transaction en cours, pour ne pas en ouvrir d'autres
@@ -28,20 +29,22 @@ export async function preparerEquipe(userId, db = pool) {
     const niveau = getNiveau(e.rarete, amount).niveau;
     const s = statsFinales(e, niveau);
     const perk = perks[espece] ?? null;
-    // Peau de fer : défense supplémentaire pour le porteur
-    const bonusDef = perk?.defense ?? 0;
+    // Peau de fer : défense du porteur augmentée de defensePct %
+    const bonusDef = Math.round((s.def * (perk?.defensePct ?? 0)) / 100);
     slots[slot - 1] = {
       id: espece,
       nom: e.nom,
       image: getImageUrl(espece),
       rarete: e.rarete,
+      categorie: e.categorie,
       hp: s.hp, atk: Math.round(s.atk * (1 + effets.atk_pct)), def: s.def + bonusDef,
       spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
       crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
       perk,
     };
   }
-  return slots;
+  // Résonances de catégorie : tous les singes de l'équipe comptent, rotation active ou non
+  return appliquerResonances(slots).equipe;
 }
 
 // Combat PVP : calcul, elo des deux joueurs, puis enregistrement (dans la transaction `db`).

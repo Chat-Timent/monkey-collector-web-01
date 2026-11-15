@@ -99,7 +99,7 @@ function valeursPerk(catalogue, perk, tier) {
 // Effet en quelques mots.
 function effetPerk(catalogue, perk, tier) {
   const v = valeursPerk(catalogue, perk, tier);
-  if (perk === "ironskin") return `+${v.defense} DEF`;
+  if (perk === "ironskin") return `+${v.defensePct} % DEF`;
   if (perk === "taunt") return "Attire les attaques";
   if (perk === "blossoming") return `Soin ${v.soinPct} % / 2 tours`;
   return "";
@@ -108,7 +108,7 @@ function effetPerk(catalogue, perk, tier) {
 // Description détaillée.
 function descriptionPerk(catalogue, perk, tier) {
   const v = valeursPerk(catalogue, perk, tier);
-  if (perk === "ironskin") return `Le singe qui le porte gagne +${v.defense} DEF.`;
+  if (perk === "ironskin") return `Le singe qui le porte gagne +${v.defensePct} % de DEF.`;
   if (perk === "taunt") return "Les ennemis attaquent en priorité le singe qui le porte, tant qu'il est en vie.";
   if (perk === "blossoming") return `Tous les 2 tours, soigne l'allié qui a le moins de PV de ${v.soinPct} % de ses PV max.`;
   return "";

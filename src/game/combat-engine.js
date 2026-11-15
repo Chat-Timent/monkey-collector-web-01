@@ -56,6 +56,13 @@ function chanceTouche(attaquant, cible) {
   return Math.min(100, Math.max(85, brut));
 }
 
+// Dégâts d'une attaque : l'attaque au carré divisée par (attaque + défense).
+// Une défense égale à l'attaque réduit les dégâts de moitié, le double d'un tiers…
+// La défense réduit toujours les dégâts sans jamais les annuler (minimum 1).
+export function degatsDe(atk, def) {
+  return Math.max(1, Math.round((atk * atk) / (atk + def)));
+}
+
 export function combat(equipeA, equipeB, hasard = Math.random) {
   const preparer = (equipe, camp) =>
     equipe.map((s, slot) => (s ? { ...s, camp, slot, pv: s.hp } : null));
@@ -94,7 +101,7 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
         }
 
         const critique = hasard() * 100 < attaquant.crit;
-        let degats = Math.max(1, attaquant.atk - cible.def);
+        let degats = degatsDe(attaquant.atk, cible.def);
         if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
 
         cible.pv = Math.max(0, cible.pv - degats);

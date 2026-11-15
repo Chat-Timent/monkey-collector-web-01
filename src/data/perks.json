@@ -9,7 +9,7 @@
     "ironskin": {
       "nom": "Peau de fer",
       "icone": "🛡️",
-      "tiers": [{ "defense": 500 }, { "defense": 1500 }, { "defense": 3000 }, { "defense": 5000 }]
+      "tiers": [{ "defensePct": 10 }, { "defensePct": 15 }, { "defensePct": 20 }, { "defensePct": 25 }]
     },
     "taunt": {
       "nom": "Taunt",
