@@ -1,5 +1,5 @@
 // Perks : fonctions pures, sans base de données. Données dans src/data/perks.json.
-// Un perk sans tier (ex. taunt) est enregistré avec le tier 1.
+// Un perk sans tier (ex. taunt) est enregistré avec le tier 1 ; ses valeurs sont dans `valeurs`.
 import fs from "node:fs";
 
 export const PERKS = JSON.parse(fs.readFileSync(new URL("../data/perks.json", import.meta.url), "utf8"));
@@ -48,13 +48,18 @@ export function bonusDefense(perk, def) {
   return Math.round((def * (perk?.defensePct ?? 0)) / 100);
 }
 
-// Maître des perks : valeurs chiffrées d'un perk (Peau de fer, Floraison) augmentées de `pct`,
-// arrondies au dixième. Un perk sans valeur (Taunt) est rendu tel quel.
+// Taunt : PV ajoutés au porteur (pourcentage de ses PV, arrondi). 0 pour un autre perk.
+export function bonusPv(perk, hp) {
+  return Math.round((hp * (perk?.pvPct ?? 0)) / 100);
+}
+
+// Maître des perks : valeurs chiffrées d'un perk (Peau de fer, Taunt, Floraison) augmentées de `pct`,
+// arrondies au dixième.
 export function renforcerPerk(perk, pct = 0) {
   if (!perk || !pct) return perk;
   const renforce = { ...perk };
   // (+1e-9 : arrondi au dixième supérieur malgré les flottants, 25 × 1,15 valant 28,7499…)
-  for (const cle of ["defensePct", "soinPct"]) {
+  for (const cle of ["defensePct", "pvPct", "soinPct"]) {
     if (typeof renforce[cle] === "number") renforce[cle] = Math.round(renforce[cle] * (1 + pct) * 10 + 1e-9) / 10;
   }
   return renforce;
@@ -64,5 +69,5 @@ export function renforcerPerk(perk, pct = 0) {
 export function effetPerk(perk, tier, donnees = PERKS) {
   const p = donnees.perks[perk];
   if (!p) return null;
-  return { id: perk, tier, nom: p.nom, icone: p.icone, ...(p.tiers?.[tier - 1] ?? {}) };
+  return { id: perk, tier, nom: p.nom, icone: p.icone, ...(p.tiers?.[tier - 1] ?? p.valeurs ?? {}) };
 }

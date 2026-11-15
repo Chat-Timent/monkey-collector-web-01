@@ -16,7 +16,7 @@ import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPubli
 import { ennemisEtage, recompensesAvecBonus, recompensesEtage, singeBonus } from "../src/game/aventure.js";
 import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles, ticketsParJour } from "../src/game/ressources.js";
 import { calculerElo, limiteCombatsElo } from "../src/game/elo.js";
-import { bonusDefense, effetPerk, perkExiste, renforcerPerk, tirerPerk, xpDoublon } from "../src/game/perks.js";
+import { bonusDefense, bonusPv, effetPerk, nbTiers, perkExiste, renforcerPerk, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
 import { VERSION, avecVersion, versionnerHtml } from "../src/version.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
@@ -446,13 +446,13 @@ test("Harmonie et Chœur : bonus de résonance augmentés de 10 % puis 25 %", ()
   assert.deepEqual([equipe[0].hp, equipe[0].atk, equipe[0].def], [1110, 102, 104]);
 });
 
-test("Maître des perks : Peau de fer et Floraison 15 % plus fortes", () => {
+test("Maître des perks : Peau de fer, Taunt et Floraison 15 % plus forts", () => {
   const pct = agregerEffets(["strat.maitre_perks"]).perk_pct;
   assert.deepEqual(renforcerPerk(effetPerk("ironskin", 4), pct).defensePct, 28.8);
   assert.deepEqual(renforcerPerk(effetPerk("blossoming", 5), pct).soinPct, 34.5);
-  // Sans le nœud, ou pour un perk sans valeur, rien ne change
+  assert.equal(renforcerPerk(effetPerk("taunt", 1), pct).pvPct, 11.5);
+  // Sans le nœud, rien ne change
   assert.deepEqual(renforcerPerk(effetPerk("ironskin", 1), 0), effetPerk("ironskin", 1));
-  assert.deepEqual(renforcerPerk(effetPerk("taunt", 1), pct), effetPerk("taunt", 1));
   assert.equal(renforcerPerk(null, pct), null);
 });
 
@@ -737,6 +737,19 @@ test("Peau de fer : la défense du porteur augmente du pourcentage de son tier",
   assert.equal(bonusDefense(effetPerk("ironskin", 4), 281), 70);  // +25 %, arrondi
   assert.equal(bonusDefense(effetPerk("taunt", 1), 300), 0);
   assert.equal(bonusDefense(null, 300), 0);
+});
+
+test("Taunt : le porteur gagne 10 % de PV et le perk reste sans tier", () => {
+  const taunt = effetPerk("taunt", 1);
+  assert.equal(taunt.pvPct, 10);
+  assert.equal(bonusPv(taunt, 1900), 190);
+  assert.equal(bonusPv(taunt, 1625), 163);  // arrondi
+  assert.equal(bonusPv(effetPerk("ironskin", 4), 1900), 0);
+  assert.equal(bonusPv(null, 1900), 0);
+  // Toujours un perk unique : pas de tiers, doublon payé au tarif « unique »
+  assert.equal(nbTiers("taunt"), 0);
+  assert.ok(perkExiste("taunt", 1) && !perkExiste("taunt", 2));
+  assert.equal(xpDoublon("taunt", 1), 50);
 });
 
 test("version : les pages réécrivent scripts, styles et images avec ?v= et portent la version", () => {
