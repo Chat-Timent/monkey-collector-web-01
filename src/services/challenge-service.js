@@ -1,6 +1,7 @@
 import { pool } from "../config/database.js";
 import { DUREE_DEFI_SEC, SEUIL_EN_LIGNE_SEC } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
+import { reglerEloTermines } from "./elo-service.js";
 
 async function expirerDefis() {
   await pool.query(
@@ -17,6 +18,7 @@ export async function marquerPresence(userId) {
 }
 
 export async function listerJoueurs(userId) {
+  await reglerEloTermines();
   const { rows } = await pool.query(
     `SELECT u.id, u.pseudo, u.elo,
             COALESCE(p.last_seen > now() - make_interval(secs => $2), false) AS en_ligne
