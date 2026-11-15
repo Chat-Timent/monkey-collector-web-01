@@ -11,7 +11,7 @@ import { consommerTirage, debutFenetre, etatQuota } from "../src/game/quota.js";
 import { ennemisEtage, recompensesEtage, singeBonus } from "../src/game/aventure.js";
 import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles } from "../src/game/ressources.js";
 import { calculerElo } from "../src/game/elo.js";
-import { effetPerk, perkExiste, tirerPerk, xpDoublon } from "../src/game/perks.js";
+import { bonusDefense, effetPerk, perkExiste, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
 import { ErreurJeu, gererErreurs } from "../src/erreurs.js";
 
@@ -501,4 +501,11 @@ test("résonances : les singes du catalogue ont une catégorie connue (sauf les 
 test("les ennemis de l'aventure ne profitent pas des résonances", () => {
   const ennemis = ennemisEtage(30).filter(Boolean);
   assert.ok(ennemis.length > 0 && ennemis.every((e) => e.categorie === undefined));
+});
+
+test("Peau de fer : la défense du porteur augmente du pourcentage de son tier", () => {
+  assert.equal(bonusDefense(effetPerk("ironskin", 1), 300), 30);  // +10 %
+  assert.equal(bonusDefense(effetPerk("ironskin", 4), 281), 70);  // +25 %, arrondi
+  assert.equal(bonusDefense(effetPerk("taunt", 1), 300), 0);
+  assert.equal(bonusDefense(null, 300), 0);
 });

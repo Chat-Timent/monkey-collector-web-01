@@ -15,6 +15,70 @@ function infoRarete(rarete) {
   return { ...r, icone: `/images/MonkeysRarities/rarity_${rarete}.png` };
 }
 
+// Familles de singes (champ "categorie" de monkeys.json) : réunir des singes d'une même famille
+// déclenche une résonance en combat. Icône et couleur identiques sur toutes les pages.
+const FAMILLES_AFFICHAGE = {
+  "Amour":      { icone: "💗", couleur: "#ff5c9a" },
+  "Tristesse":  { icone: "💧", couleur: "#4da3ff" },
+  "Joie":       { icone: "😄", couleur: "#ffd23f" },
+  "Sang-froid": { icone: "😐", couleur: "#9fb3c8" },
+  "Chaos":      { icone: "🔥", couleur: "#ff5a36" },
+};
+
+// Icône, couleur et nom d'une famille, ou null pour un singe sans famille.
+function infoFamille(categorie) {
+  const f = FAMILLES_AFFICHAGE[categorie];
+  return f ? { nom: categorie, ...f } : null;
+}
+
+// Panneau listant toutes les familles et leurs bonus par palier.
+// `resonances` : catalogue renvoyé par /equipe ; `compte` : { famille: nombre dans l'équipe } ;
+// `enAvant` : famille à faire défiler et à mettre en évidence.
+function ouvrirInfosFamilles(resonances, compte = {}, enAvant = null) {
+  let dialogue = document.getElementById("infos-familles");
+  if (!dialogue) {
+    dialogue = document.createElement("dialog");
+    dialogue.id = "infos-familles";
+    dialogue.setAttribute("aria-labelledby", "infos-familles-titre");
+    // Clic en dehors du panneau : fermeture
+    dialogue.addEventListener("click", (e) => { if (e.target === dialogue) dialogue.close(); });
+    document.body.appendChild(dialogue);
+  }
+  const familles = Object.keys(resonances.categories).filter((nom) => infoFamille(nom));
+  const sections = familles.map((nom) => {
+    const nb = compte[nom] ?? 0;
+    const lignes = resonances.paliers.map((seuil, i) => {
+      const b = resonances.categories[nom].bonus[i];
+      const atteint = nb >= seuil && (resonances.paliers[i + 1] === undefined || nb < resonances.paliers[i + 1]);
+      return `<tr class="${atteint ? "atteint" : ""}">
+                <th scope="row">${seuil} singes</th>
+                <td>+${b.hp} % PV</td><td>+${b.atk} % ATK</td><td>+${b.def} % DEF</td>
+              </tr>`;
+    }).join("");
+    return `<section class="infos-famille${nom === enAvant ? " en-avant" : ""}" data-famille="${nom}">
+              <h3>${badgeFamilleHTML(nom, true)} <span class="dans-equipe">${nb} dans l'équipe</span></h3>
+              <table>${lignes}</table>
+            </section>`;
+  }).join("");
+  dialogue.innerHTML = `
+    <div class="infos-familles-entete">
+      <h2 id="infos-familles-titre">Familles</h2>
+      <button type="button" class="fermer" aria-label="Fermer">×</button>
+    </div>
+    <p class="infos-familles-aide">Les singes d'une même famille dans l'équipe (renfort compris) gagnent ces bonus.</p>
+    ${sections}`;
+  dialogue.querySelector(".fermer").addEventListener("click", () => dialogue.close());
+  if (!dialogue.open) dialogue.showModal();
+  dialogue.querySelector(".en-avant")?.scrollIntoView({ block: "nearest" });
+}
+
+// Badge de famille (chaîne vide pour un singe sans famille). `grand` : version pour les fiches.
+function badgeFamilleHTML(categorie, grand = false) {
+  const f = infoFamille(categorie);
+  if (!f) return "";
+  return `<span class="famille${grand ? " grand" : ""}" style="--famille:${f.couleur}">${f.icone} ${f.nom}</span>`;
+}
+
 // Appel au serveur. `corps` présent → POST JSON. Renvoie { ok, status, data } ;
 // `data.erreur` contient le message du serveur en cas d'échec.
 // Une coupure réseau fait échouer la promesse, comme fetch.
@@ -103,6 +167,19 @@ function effetPerk(catalogue, perk, tier) {
   if (perk === "taunt") return "Attire les attaques";
   if (perk === "blossoming") return `Soin ${v.soinPct} % / 2 tours`;
   return "";
+}
+
+// Défense ajoutée par Peau de fer à un singe de défense `def` (même calcul que le serveur).
+function bonusDefensePerk(catalogue, perk, tier, def) {
+  const pct = valeursPerk(catalogue, perk, tier).defensePct ?? 0;
+  return Math.round((def * pct) / 100);
+}
+
+// Effet en quelques mots, chiffré pour le singe qui le porte (`stats` : ses stats actuelles).
+function effetPerkSur(catalogue, perk, tier, stats) {
+  const texte = effetPerk(catalogue, perk, tier);
+  if (perk === "ironskin" && stats) return `${texte} (+${bonusDefensePerk(catalogue, perk, tier, stats.def)})`;
+  return texte;
 }
 
 // Description détaillée.

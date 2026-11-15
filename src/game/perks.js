@@ -43,6 +43,11 @@ export function xpDoublon(perk, tier, donnees = PERKS) {
   return donnees.xpDoublon[cle] ?? 0;
 }
 
+// Peau de fer : défense ajoutée au porteur (pourcentage de sa défense, arrondi). 0 pour un autre perk.
+export function bonusDefense(perk, def) {
+  return Math.round((def * (perk?.defensePct ?? 0)) / 100);
+}
+
 // Perk tel qu'il est porté en combat : identité, affichage et valeurs du tier.
 export function effetPerk(perk, tier, donnees = PERKS) {
   const p = donnees.perks[perk];

@@ -117,6 +117,12 @@
     .fiche h2 { margin: 0 0 6px; font-size: 22px; }
     .fiche .description { font-style: italic; color: #bbb; font-size: 14px; margin: 0 0 10px; }
     .fiche .niveau { color: #ffb86b; font-size: 13px; }
+    .fiche .detail-famille:not(:empty) { margin-top: 8px; }
+    .bouton-famille {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: none; border: none; padding: 0; color: var(--texte-doux); font: inherit; cursor: pointer;
+    }
+    .bouton-famille:hover .famille { filter: brightness(1.25); }
     .fiche table {
       width: 100%;
       border-collapse: collapse;
@@ -155,6 +161,7 @@
           <h2 id="detail-nom"></h2>
           <p class="description" id="detail-description"></p>
           <div class="niveau" id="detail-niveau"></div>
+          <div id="detail-famille" class="detail-famille"></div>
         </div>
       </div>
       <table>
@@ -185,6 +192,7 @@
 
     const PAR_PAGE = 12;
     let singes = [];
+    let familles = null; // { resonances, compte } pour le panneau des familles (réponse /equipe)
     let page = 0;
     let renduVersion = 0;
     const grille = document.getElementById("grille");
@@ -199,6 +207,7 @@
             <img src="${r.icone}" alt="">
             ${r.label}
           </span>
+          ${badgeFamilleHTML(s.espece.categorie)}
           <div class="niv">Lvl ${s.niveau.niveau} (${s.niveau.progression}/${s.niveau.prochain})</div>
         </button>`;
     }
@@ -232,6 +241,19 @@
       document.getElementById("detail-description").textContent = s.espece.description ?? "";
       document.getElementById("detail-niveau").textContent =
         `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}`;
+      const zoneFamille = document.getElementById("detail-famille");
+      zoneFamille.innerHTML = "";
+      if (infoFamille(s.espece.categorie)) {
+        // Badge cliquable : ouvre les bonus de toutes les familles, celle-ci en évidence
+        const bouton = document.createElement("button");
+        bouton.type = "button";
+        bouton.className = "bouton-famille";
+        bouton.setAttribute("aria-label", `Famille ${s.espece.categorie} : voir les bonus`);
+        bouton.innerHTML = `${badgeFamilleHTML(s.espece.categorie, true)} <span>ⓘ</span>`;
+        bouton.disabled = !familles;
+        bouton.addEventListener("click", () => ouvrirInfosFamilles(familles.resonances, familles.compte, s.espece.categorie));
+        zoneFamille.appendChild(bouton);
+      }
 
       const lignes = STATS_FICHE.map(({ cle, libelle, suffixe }) => {
         const base = s.espece.base[cle] ?? 0;
@@ -265,6 +287,7 @@
       if (e.target.id === "detail") fermerFiche();
     });
     document.addEventListener("keydown", (e) => {
+      if (document.getElementById("infos-familles")?.open) return; // Échap ferme d'abord le panneau
       if (e.key === "Escape") fermerFiche();
     });
 
@@ -276,9 +299,10 @@
     document.getElementById("suivant").addEventListener("click", () => { page++; afficher(); });
 
     (async () => {
-      const [moi, { ok, data }] = await Promise.all([
+      const [moi, { ok, data }, resEquipe] = await Promise.all([
         exigerConnexion(),
         api("/monkeydex"),
+        api("/equipe"),
       ]);
       if (!moi) return;
       if (!ok) {
@@ -287,6 +311,14 @@
       }
 
       singes = data.singes;
+      if (resEquipe.ok) {
+        const compte = {};
+        for (const { espece } of resEquipe.data.equipe) {
+          const cat = singes.find((s) => s.id === espece)?.espece.categorie;
+          if (cat) compte[cat] = (compte[cat] ?? 0) + 1;
+        }
+        familles = { resonances: resEquipe.data.resonances, compte };
+      }
       document.getElementById("total").textContent = `Nombre total de singes : ${data.total}`;
 
       const zoneCompteur = document.getElementById("compteur");
