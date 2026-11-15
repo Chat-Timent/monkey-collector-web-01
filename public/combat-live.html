@@ -105,13 +105,29 @@
       to { opacity: 0; top: -45px; }
     }
 
-    #resultat {
+    .haut {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      margin: -30px -20px 0;
+      padding: 16px 20px 0;
+      background: #161616;
+    }
+    .fin {
       max-width: 1000px;
-      margin: 16px auto;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px 18px;
+      padding-bottom: 14px;
+    }
+    .fin:has(#resultat:empty) { display: none; }
+    #resultat {
       text-align: center;
       font-size: 22px;
       font-weight: bold;
-      min-height: 30px;
     }
     .deux-colonnes {
       max-width: 1000px;
@@ -127,9 +143,7 @@
     .sans-chat .chat { display: none; }
     #action {
       display: none;
-      width: max-content;
-      margin: 0 auto 20px;
-      padding: 14px 28px;
+      padding: 12px 26px;
       border-radius: 10px;
       background: linear-gradient(135deg, #ff8a3d, #e5447a);
       color: #fff;
@@ -171,10 +185,17 @@
   </style>
 </head>
 <body>
-  <header>
-    <h1>Combat en direct</h1>
-    <a class="lien" href="/pvp.html">Retour</a>
-  </header>
+  <!-- Toujours visible en haut : retour, puis résultat et bouton de sortie en fin de combat -->
+  <div class="haut">
+    <header>
+      <h1>Combat en direct</h1>
+      <a class="lien" href="/pvp.html">Retour</a>
+    </header>
+    <div class="fin">
+      <div id="resultat"></div>
+      <a id="action" href="/aventure.html"></a>
+    </div>
+  </div>
 
   <div id="banniere">Chargement…</div>
 
@@ -187,9 +208,6 @@
     <h2 id="titre-adv"></h2>
     <div id="grille-adv" class="grille"></div>
   </div>
-
-  <div id="resultat"></div>
-  <a id="action" href="/aventure.html"></a>
 
   <div class="deux-colonnes" id="colonnes">
     <div id="journal"></div>
