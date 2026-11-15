@@ -5,7 +5,7 @@ import { combat } from "../game/combat-engine.js";
 import { RESSOURCES, donjonExiste, ennemisDonjon, gainDonjon, jourParis, ticketsDisponibles } from "../game/ressources.js";
 import { combatEnCours, preparerEquipe } from "./combat-service.js";
 import { gagnerRecompense, getStarter } from "./starter-service.js";
-import { ajouterTiragesBonus } from "./tirage-service.js";
+import { ajouterTirages } from "./tirage-service.js";
 
 async function lireProgression(userId, db = pool) {
   const { rows } = await db.query(
@@ -71,7 +71,7 @@ export async function lancerCombatRessource(userId, donjon) {
       const quantite = gainDonjon(donjon, ligne.palier);
       let niveauxGagnes = 0;
       if (donjon === "tirages") {
-        await ajouterTiragesBonus(userId, quantite, db);
+        await ajouterTirages(userId, quantite, db);
       } else {
         const starter = await getStarter(userId, db, { verrouiller: true });
         if (starter) {

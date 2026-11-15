@@ -60,13 +60,13 @@ CREATE TABLE donjons_progression (
   PRIMARY KEY (user_id, donjon)
 );
 
--- Quota de tirages : tirages restants dans la fenêtre de reset commencée à `dernier_reset`.
--- Une ligne d'une fenêtre passée vaut un quota plein (voir src/game/quota.js).
+-- Stock de tirages : `tirages_restants` tirages au moment `dernier_reset` (début de la recharge en cours),
+-- +1 toutes les 30 s tant que le stock est sous le plafond (voir src/game/quota.js).
 CREATE TABLE tirages_etat (
   user_id          uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   tirages_restants integer NOT NULL DEFAULT 0,
   dernier_reset    timestamptz NOT NULL DEFAULT now(),
-  tirages_bonus    integer NOT NULL DEFAULT 0  -- stock gagné en Aventure, jamais remis à zéro
+  tirages_bonus    integer NOT NULL DEFAULT 0  -- ancien stock séparé, ajouté au stock à la prochaine écriture
 );
 
 -- Aventure (donjon endless) : étage courant du joueur (le prochain à battre).

@@ -11,7 +11,8 @@ function decrireEffet(cle, valeur, chanceLoterie) {
     case "coins_pct": return `+${pct(valeur)} de coins gagnés`;
     case "lottery_coins": return `Les tirages peuvent rapporter des coins (${pct(chanceLoterie)} de chance)`;
     case "valeur_or_pct": return `+${pct(valeur)} de chance de coins au tirage`;
-    case "reset_bonus": return `+${valeur} tirages par reset`;
+    case "tirages_max": return `+${valeur} tirages stockés au maximum`;
+    case "recharge_sec": return `Recharge plus rapide : -${valeur} s par tirage`;
     case "copie_bonus": return `${pct(valeur)} de chance d'obtenir une copie en plus`;
     case "atk_pct": return `+${pct(valeur)} d'ATK en combat`;
     case "prec_flat": return `+${valeur} de précision en combat`;

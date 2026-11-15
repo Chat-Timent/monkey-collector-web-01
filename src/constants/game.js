@@ -32,10 +32,12 @@ export const SEUIL_EN_LIGNE_SEC = 45;
 export const DELAI_INITIAL_MS = 1000;
 export const PAS_MS = 700;
 
-// Tirages limités : TIRAGES_PAR_RESET par fenêtre de DUREE_RESET_MS.
-// Les fenêtres sont calées sur l'horloge (:00, :10, :20…), identiques pour tous les joueurs.
-export const TIRAGES_PAR_RESET = 20;
-export const DUREE_RESET_MS = 10 * 60 * 1000;
+// Tirages : +1 toutes les RECHARGE_TIRAGE_MS tant que le stock est sous TIRAGES_MAX.
+// Les récompenses (donjon, Aventure…) peuvent dépasser ce plafond ; la recharge s'arrête alors.
+export const TIRAGES_MAX = 100;
+export const RECHARGE_TIRAGE_MS = 30 * 1000;
+// Délai minimal, quels que soient les bonus de l'arbre
+export const RECHARGE_TIRAGE_MIN_MS = 5 * 1000;
 
 // Arbre du starter
 // Chance de base qu'un tirage rapporte des coins une fois « Loterie rentable » débloquée

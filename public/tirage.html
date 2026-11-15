@@ -261,53 +261,81 @@
 
     // ---------- Quota de tirages ----------
 
+    // Dernier quota reçu du serveur et instant de réception : la recharge (+1 toutes les
+    // `intervalleMs` sous le plafond) est ensuite simulée ici, seconde par seconde.
+    let quotaRecu = null;
+    let recuA = 0;
     let quotaEpuise = false;
-    let minuteurReset = null;
 
-    // Affiche les tirages restants, ou l'heure du prochain reset quand il n'y en a plus.
-    // Au reset, le quota est relu auprès du serveur et le bouton réactivé.
+    function formaterDuree(ms) {
+      const sec = Math.max(0, Math.ceil(ms / 1000));
+      return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+    }
+
+    // Stock actuel et délai avant le prochain tirage (null quand la recharge est arrêtée)
+    function quotaActuel() {
+      let { restants, max, intervalleMs, msAvantProchain } = quotaRecu;
+      if (msAvantProchain !== null) {
+        msAvantProchain -= performance.now() - recuA;
+        while (msAvantProchain <= 0 && restants < max) {
+          restants += 1;
+          msAvantProchain += intervalleMs;
+        }
+        if (restants >= max) msAvantProchain = null;
+      }
+      return { restants, max, msAvantProchain };
+    }
+
     function afficherQuota(quota) {
       if (!quota) return;
+      quotaRecu = quota;
+      recuA = performance.now();
+      dessinerQuota();
+    }
+
+    function dessinerQuota() {
+      if (!quotaRecu) return;
+      const { restants, max, msAvantProchain } = quotaActuel();
       const zone = document.getElementById("quota");
-      const bonus = quota.bonus ?? 0;
-      quotaEpuise = quota.restants <= 0 && bonus <= 0;
-      boutonTirer.disabled = quotaEpuise;
+      quotaEpuise = restants <= 0;
+      // Pendant un tirage, le bouton reste bloqué : il sera réactivé à la fin
+      if (!tirageEnCours) boutonTirer.disabled = quotaEpuise;
       zone.classList.toggle("epuise", quotaEpuise);
 
       if (quotaEpuise) {
-        zone.textContent = `Plus de tirages ! Prochain reset à ${formaterHeure(quota.prochainReset)}`;
-        clearTimeout(minuteurReset);
-        // Petite marge pour être sûr que le serveur est passé dans la nouvelle fenêtre
-        minuteurReset = setTimeout(rafraichirQuota, quota.msAvantReset + 1000);
-      } else {
-        zone.innerHTML = "";
-        const nombre = document.createElement("strong");
-        nombre.textContent = `${quota.restants} / ${quota.max}`;
-        zone.append("Tirages restants : ", nombre);
-        if (bonus > 0) zone.append(` · +${bonus}`);
+        zone.textContent = `Prochain tirage dans ${formaterDuree(msAvantProchain)}`;
+        return;
       }
+      zone.innerHTML = "";
+      const nombre = document.createElement("strong");
+      nombre.textContent = `${restants} / ${max}`;
+      zone.append("Tirages : ", nombre);
+      if (msAvantProchain !== null) zone.append(` · +1 dans ${formaterDuree(msAvantProchain)}`);
     }
+
+    setInterval(dessinerQuota, 250);
 
     async function rafraichirQuota() {
       try {
         const { ok, data } = await api("/profil");
         if (ok) afficherQuota(data.quota);
-      } catch {
-        minuteurReset = setTimeout(rafraichirQuota, 5000);
-      }
+      } catch { /* on garde le quota simulé */ }
     }
 
     const boutonTirer = document.getElementById("tirer");
+    let tirageEnCours = false;
 
     boutonTirer.addEventListener("click", async () => {
       // Un seul tirage à la fois : évite les doubles clics
       if (boutonTirer.disabled) return;
       boutonTirer.disabled = true;
+      tirageEnCours = true;
       try {
         await tirer();
       } catch {
         document.getElementById("message").textContent = "Erreur réseau, réessaie.";
       } finally {
+        tirageEnCours = false;
         boutonTirer.disabled = quotaEpuise;
       }
     });
@@ -463,7 +491,7 @@
 
     // ---------- Chargement ----------
 
-    // Un déblocage dans l'arbre peut changer le maximum de tirages (Ressourcement)
+    // Un déblocage dans l'arbre peut changer le plafond et la recharge (Ressourcement)
     document.addEventListener("arbre-change", () => rafraichirQuota());
 
     Promise.all([exigerConnexion(), Barre.profil]).then(([moi, profil]) => {
