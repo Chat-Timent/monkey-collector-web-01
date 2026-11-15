@@ -359,7 +359,7 @@
         if (famille) pastille.style.setProperty("--famille", famille.couleur);
         pastille.textContent = `${famille?.icone ?? ""} ${nb}/${prochain}`;
         const b = atteints > 0 ? resonances.categories[cat].bonus[atteints - 1] : null;
-        pastille.title = b ? `${cat} : +${b.hp} % PV, +${b.atk} % ATK, +${b.def} % DEF` : cat;
+        pastille.title = b ? `${cat} : +${pctFr(b.hp)} % PV, +${pctFr(b.atk)} % ATK, +${pctFr(b.def)} % DEF` : cat;
         pastille.setAttribute("aria-label", `${cat} : ${nb} sur ${prochain}, voir les bonus`);
         zone.appendChild(pastille);
       }

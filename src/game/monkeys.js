@@ -5,9 +5,9 @@ import { avecVersion } from "../version.js";
 // Catalogue des espèces, indexé par identifiant (ex. "basic_monkey").
 export const SINGES = JSON.parse(fs.readFileSync(new URL("../data/monkeys.json", import.meta.url), "utf8"));
 
-function tirerPondere(items) {
+function tirerPondere(items, hasard = Math.random) {
   const total = items.reduce((somme, it) => somme + it.poids, 0);
-  let r = Math.random() * total;
+  let r = hasard() * total;
   for (const it of items) {
     r -= it.poids;
     if (r < 0) return it;
@@ -15,8 +15,29 @@ function tirerPondere(items) {
   return items[items.length - 1];
 }
 
-export function tirer() {
-  const rarete = tirerPondere(RARETES).nom;
+// Raretés concernées par Flair et Étincelle
+const RARES = ["rare", "epic", "legendary"];
+export function estRare(rarete) {
+  return RARES.includes(rarete);
+}
+
+// Poids des raretés pour un tirage, effets de l'arbre compris :
+// - Flair (`rarete_pct`) multiplie le poids des raretés rare, épique et légendaire ;
+// - `forcerRare` (Étincelle) ne garde que ces raretés, dans leurs proportions.
+export function poidsRaretes(effets = null, { forcerRare = false } = {}) {
+  const mult = 1 + (effets?.rarete_pct ?? 0);
+  return RARETES
+    .filter((r) => !forcerRare || estRare(r.nom))
+    .map((r) => ({ ...r, poids: estRare(r.nom) ? r.poids * mult : r.poids }));
+}
+
+// Rareté d'un tirage (`hasard` injectable pour les tests).
+export function tirerRarete(effets = null, { forcerRare = false, hasard = Math.random } = {}) {
+  return tirerPondere(poidsRaretes(effets, { forcerRare }), hasard).nom;
+}
+
+export function tirer(effets = null, { forcerRare = false } = {}) {
+  const rarete = tirerRarete(effets, { forcerRare });
   const candidats = Object.entries(SINGES).filter(([, s]) => s.rarete === rarete);
   if (candidats.length === 0) return null;
   const [espece] = candidats[Math.floor(Math.random() * candidats.length)];

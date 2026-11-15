@@ -52,6 +52,11 @@ function infoFamille(categorie) {
   return f ? { nom: categorie, ...f } : null;
 }
 
+// Pourcentage à la française (les bonus augmentés par l'arbre peuvent avoir une décimale : 6,3)
+function pctFr(v) {
+  return v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
+}
+
 // Panneau listant toutes les familles et leurs bonus par palier.
 // `resonances` : catalogue renvoyé par /equipe ; `compte` : { famille: nombre dans l'équipe } ;
 // `enAvant` : famille à faire défiler et à mettre en évidence.
@@ -73,7 +78,7 @@ function ouvrirInfosFamilles(resonances, compte = {}, enAvant = null) {
       const atteint = nb >= seuil && (resonances.paliers[i + 1] === undefined || nb < resonances.paliers[i + 1]);
       return `<tr class="${atteint ? "atteint" : ""}">
                 <th scope="row">${seuil} singes</th>
-                <td>+${b.hp} % PV</td><td>+${b.atk} % ATK</td><td>+${b.def} % DEF</td>
+                <td>+${pctFr(b.hp)} % PV</td><td>+${pctFr(b.atk)} % ATK</td><td>+${pctFr(b.def)} % DEF</td>
               </tr>`;
     }).join("");
     return `<section class="infos-famille${nom === enAvant ? " en-avant" : ""}" data-famille="${nom}">

@@ -2,7 +2,8 @@ import { pool, transaction } from "../config/database.js";
 import { DELAI_INITIAL_MS, PAS_MS } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { combat } from "../game/combat-engine.js";
-import { ennemisEtage, recompensesEtage, singeBonus } from "../game/aventure.js";
+import { ennemisEtage, recompensesAvecBonus, recompensesEtage, singeBonus } from "../game/aventure.js";
+import { effetsDuJoueur } from "./arbre-service.js";
 import { ajouterCopie } from "./collection-service.js";
 import { combatEnCours, preparerEquipe } from "./combat-service.js";
 import { ajouterTirages } from "./tirage-service.js";
@@ -27,11 +28,11 @@ async function classementAventure(userId) {
 // Ce qu'affiche la page Aventure : étage courant, ennemis, récompenses, classement,
 // et le combat en cours s'il y en a un.
 export async function getAventure(userId) {
-  const [etage, enCours, classement] = await Promise.all([
-    lireEtage(userId), combatEnCours(userId, "aventure"), classementAventure(userId),
+  const [etage, enCours, classement, effets] = await Promise.all([
+    lireEtage(userId), combatEnCours(userId, "aventure"), classementAventure(userId), effetsDuJoueur(userId),
   ]);
   const ennemis = ennemisEtage(etage).filter(Boolean).map(({ id, nom, image, rarete, niveau }) => ({ id, nom, image, rarete, niveau }));
-  return { etage, ennemis, recompenses: recompensesEtage(etage), classement, combatEnCours: enCours };
+  return { etage, ennemis, recompenses: recompensesAvecBonus(recompensesEtage(etage), effets), classement, combatEnCours: enCours };
 }
 
 // Lance le combat de l'étage courant. Tout se fait dans une transaction :
@@ -56,7 +57,7 @@ export async function lancerCombatAventure(userId) {
 
     let gains = null;
     if (resultat.vainqueur === "A") {
-      const recompenses = recompensesEtage(etage);
+      const recompenses = recompensesAvecBonus(recompensesEtage(etage), await effetsDuJoueur(userId, db));
       const starter = await getStarter(userId, db, { verrouiller: true });
       const apres = starter
         ? await gagnerRecompense(userId, { xp: recompenses.xp, coins: recompenses.coins }, starter, db)

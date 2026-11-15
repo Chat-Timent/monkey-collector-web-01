@@ -32,8 +32,14 @@ export function jourParis(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Paris" }).format(date);
 }
 
+// Tickets par jour de chaque donjon, bonus de l'arbre compris (Clé de donjon).
+export function ticketsParJour(effets, regles = RESSOURCES) {
+  return regles.ticketsParJour + (effets?.tickets_donjon ?? 0);
+}
+
 // Tickets disponibles : pleins si la ligne date d'un jour passé (ou n'existe pas).
-export function ticketsDisponibles(ligne, aujourdhui, regles = RESSOURCES) {
-  if (!ligne || ligne.jour < aujourdhui) return regles.ticketsParJour;
+// Un bonus débloqué en cours de journée compte donc à partir du lendemain si les tickets du jour sont entamés.
+export function ticketsDisponibles(ligne, aujourdhui, regles = RESSOURCES, effets = null) {
+  if (!ligne || ligne.jour < aujourdhui) return ticketsParJour(effets, regles);
   return ligne.tickets;
 }

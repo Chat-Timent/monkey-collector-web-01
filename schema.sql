@@ -66,7 +66,8 @@ CREATE TABLE tirages_etat (
   user_id          uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   tirages_restants integer NOT NULL DEFAULT 0,
   dernier_reset    timestamptz NOT NULL DEFAULT now(),
-  tirages_bonus    integer NOT NULL DEFAULT 0  -- ancien stock séparé, ajouté au stock à la prochaine écriture
+  tirages_bonus    integer NOT NULL DEFAULT 0, -- ancien stock séparé, ajouté au stock à la prochaine écriture
+  tirages_sans_rare integer NOT NULL DEFAULT 0 -- tirages d'affilée sans rare ou mieux (nœud Étincelle)
 );
 
 -- Aventure (donjon endless) : étage courant du joueur (le prochain à battre).

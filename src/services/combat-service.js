@@ -9,8 +9,8 @@ import { getEquipe } from "./team-service.js";
 import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 import { eloDuCombat, reglerEloTermines } from "./elo-service.js";
 import { perksDesSinges } from "./perks-service.js";
-import { bonusDefense } from "../game/perks.js";
-import { appliquerResonances } from "../game/resonances.js";
+import { bonusDefense, renforcerPerk } from "../game/perks.js";
+import { appliquerResonances, resonancesAvecBonus } from "../game/resonances.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 // `db` : la connexion de la transaction en cours, pour ne pas en ouvrir d'autres
@@ -29,8 +29,9 @@ export async function preparerEquipe(userId, db = pool) {
     const amount = collection.singes[espece]?.amount ?? 1;
     const niveau = getNiveau(e.rarete, amount).niveau;
     const s = statsFinales(e, niveau);
-    const perk = perks[espece] ?? null;
-    // Peau de fer : défense du porteur augmentée de defensePct %
+    // Maître des perks : valeurs du perk augmentées
+    const perk = renforcerPerk(perks[espece] ?? null, effets.perk_pct);
+    // Peau de fer : défense du porteur augmentée de defensePct % (de sa défense de base, sans l'arbre)
     const bonusDef = bonusDefense(perk, s.def);
     slots[slot - 1] = {
       id: espece,
@@ -38,14 +39,17 @@ export async function preparerEquipe(userId, db = pool) {
       image: getImageUrl(espece),
       rarete: e.rarete,
       categorie: e.categorie,
-      hp: s.hp, atk: Math.round(s.atk * (1 + effets.atk_pct)), def: s.def + bonusDef,
+      hp: Math.round(s.hp * (1 + effets.hp_pct)),
+      atk: Math.round(s.atk * (1 + effets.atk_pct)),
+      def: Math.round(s.def * (1 + effets.def_pct)) + bonusDef,
       spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
       crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
       perk,
     };
   }
-  // Résonances de catégorie : tous les singes de l'équipe comptent, rotation active ou non
-  return appliquerResonances(slots).equipe;
+  // Résonances de catégorie : tous les singes de l'équipe comptent, rotation active ou non ;
+  // bonus augmentés par Harmonie et Chœur
+  return appliquerResonances(slots, resonancesAvecBonus(effets.resonance_pct)).equipe;
 }
 
 // Combat PVP : calcul, elo des deux joueurs, puis enregistrement (dans la transaction `db`).

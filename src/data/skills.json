@@ -1,122 +1,359 @@
 {
+  "centre": {
+    "branche": "centre",
+    "nom": "Origine",
+    "cout": 0,
+    "x": 0, "y": 0,
+    "liens": ["farm.racine", "pvp.racine", "strat.racine"],
+    "effet": {}
+  },
+
   "farm.racine": {
     "branche": "farm",
-    "nom": "Éveil",
-    "cout": 1,
-    "prerequis": [],
-    "mode": "tous",
+    "nom": "Farming",
+    "cout": 0,
+    "x": 0, "y": -144,
+    "liens": [],
     "effet": {}
   },
   "farm.xp_1": {
     "branche": "farm",
     "nom": "Apprenti",
     "cout": 1,
-    "prerequis": ["farm.racine"],
-    "mode": "tous",
+    "x": -117, "y": -234,
+    "liens": ["farm.racine"],
     "effet": { "xp_pct": 0.05 }
-  },
-  "farm.xp_2": {
-    "branche": "farm",
-    "nom": "Érudit",
-    "cout": 1,
-    "prerequis": ["farm.xp_1"],
-    "mode": "tous",
-    "effet": { "xp_pct": 0.10 }
   },
   "farm.coins_1": {
     "branche": "farm",
     "nom": "Épargne",
     "cout": 1,
-    "prerequis": ["farm.racine"],
-    "mode": "tous",
+    "x": 117, "y": -234,
+    "liens": ["farm.racine"],
     "effet": { "coins_pct": 0.05 }
   },
   "farm.loterie_coins": {
     "branche": "farm",
     "nom": "Loterie rentable",
-    "cout": 1,
-    "prerequis": ["farm.xp_1", "farm.coins_1"],
-    "mode": "tous",
+    "cout": 2,
+    "multiplicateur": 1.5,
+    "x": 0, "y": -297,
+    "liens": ["farm.xp_1", "farm.coins_1"],
     "effet": { "lottery_coins": true }
+  },
+  "farm.xp_2": {
+    "branche": "farm",
+    "nom": "Érudit",
+    "cout": 1,
+    "x": -234, "y": -351,
+    "liens": ["farm.xp_1"],
+    "effet": { "xp_pct": 0.10 }
   },
   "farm.reset_1": {
     "branche": "farm",
     "nom": "Ressourcement",
     "cout": 1,
-    "prerequis": ["farm.coins_1"],
-    "mode": "tous",
+    "x": 234, "y": -351,
+    "liens": ["farm.coins_1"],
     "effet": { "tirages_max": 10, "recharge_sec": 1 }
   },
   "farm.or_1": {
     "branche": "farm",
     "nom": "Valeur marchande",
-    "cout": 1,
-    "prerequis": ["farm.loterie_coins"],
-    "mode": "tous",
+    "cout": 2,
+    "x": -67, "y": -387,
+    "liens": ["farm.loterie_coins"],
     "effet": { "valeur_or_pct": 0.02 }
+  },
+  "farm.coins_2": {
+    "branche": "farm",
+    "nom": "Trésorier",
+    "cout": 2,
+    "x": 68, "y": -387,
+    "liens": ["farm.loterie_coins"],
+    "effet": { "coins_pct": 0.10 }
+  },
+  "farm.xp_3": {
+    "branche": "farm",
+    "nom": "Savant",
+    "cout": 2,
+    "x": -315, "y": -423,
+    "liens": ["farm.xp_2", "strat.cle_donjon"],
+    "effet": { "xp_pct": 0.10 }
+  },
+  "farm.reserve_1": {
+    "branche": "farm",
+    "nom": "Réserve",
+    "cout": 2,
+    "x": 315, "y": -423,
+    "liens": ["farm.reset_1", "pvp.crit_2"],
+    "effet": { "tirages_max": 10, "recharge_sec": 1 }
   },
   "farm.copie_1": {
     "branche": "farm",
     "nom": "Doublon chanceux",
-    "cout": 1,
-    "prerequis": ["farm.reset_1", "farm.xp_2"],
-    "mode": "tous",
+    "cout": 3,
+    "multiplicateur": 1.5,
+    "x": 0, "y": -630,
+    "liens": ["farm.reset_1", "farm.xp_2"],
     "effet": { "copie_bonus": 0.03 }
   },
+  "farm.copie_2": {
+    "branche": "farm",
+    "nom": "Doublon chanceux II",
+    "cout": 3,
+    "x": 0, "y": -729,
+    "liens": ["farm.copie_1"],
+    "effet": { "copie_bonus": 0.04 }
+  },
+  "farm.or_2": {
+    "branche": "farm",
+    "nom": "Chance du marchand",
+    "cout": 3,
+    "x": -67, "y": -477,
+    "liens": ["farm.or_1"],
+    "effet": { "valeur_or_pct": 0.03 }
+  },
+  "farm.coins_3": {
+    "branche": "farm",
+    "nom": "Magnat",
+    "cout": 3,
+    "x": 68, "y": -477,
+    "liens": ["farm.coins_2"],
+    "effet": { "coins_pct": 0.15 }
+  },
+  "farm.reserve_2": {
+    "branche": "farm",
+    "nom": "Flux continu",
+    "cout": 3,
+    "x": 369, "y": -513,
+    "liens": ["farm.reserve_1"],
+    "effet": { "tirages_max": 10, "recharge_sec": 1 }
+  },
+  "farm.copie_3": {
+    "branche": "farm",
+    "nom": "Doublon chanceux III",
+    "cout": 5,
+    "x": -72, "y": -819,
+    "liens": ["farm.copie_2"],
+    "effet": { "copie_bonus": 0.05 }
+  },
+  "farm.flair": {
+    "branche": "farm",
+    "nom": "Flair",
+    "cout": 8,
+    "multiplicateur": 1.5,
+    "x": 72, "y": -819,
+    "liens": ["farm.copie_2"],
+    "effet": { "rarete_pct": 0.10 }
+  },
+  "farm.etincelle": {
+    "branche": "farm",
+    "nom": "Étincelle",
+    "cout": 11,
+    "multiplicateur": 1.5,
+    "x": 72, "y": -918,
+    "liens": ["farm.flair"],
+    "effet": { "etincelle": true }
+  },
+
   "pvp.racine": {
     "branche": "pvp",
-    "nom": "Combattant",
-    "cout": 1,
-    "prerequis": [],
-    "mode": "tous",
+    "nom": "PVP",
+    "cout": 0,
+    "x": 125, "y": 72,
+    "liens": [],
     "effet": {}
-  },
-  "pvp.atk_1": {
-    "branche": "pvp",
-    "nom": "Force",
-    "cout": 1,
-    "prerequis": ["pvp.racine"],
-    "mode": "tous",
-    "effet": { "atk_pct": 0.03 }
   },
   "pvp.prec_1": {
     "branche": "pvp",
     "nom": "Œil de lynx",
     "cout": 1,
-    "prerequis": ["pvp.racine"],
-    "mode": "tous",
+    "x": 253, "y": 11,
+    "liens": ["pvp.racine"],
     "effet": { "prec_flat": 5 }
+  },
+  "pvp.atk_1": {
+    "branche": "pvp",
+    "nom": "Force",
+    "cout": 1,
+    "x": 170, "y": 192,
+    "liens": ["pvp.racine"],
+    "effet": { "atk_pct": 0.03 }
+  },
+  "pvp.esq_1": {
+    "branche": "pvp",
+    "nom": "Réflexes",
+    "cout": 1,
+    "x": 342, "y": 73,
+    "liens": ["pvp.prec_1", "pvp.atk_1"],
+    "effet": { "esq_flat": 5 }
   },
   "pvp.crit_1": {
     "branche": "pvp",
     "nom": "Coup précis",
     "cout": 1,
-    "prerequis": ["pvp.atk_1"],
-    "mode": "tous",
+    "x": 320, "y": 184,
+    "liens": ["pvp.atk_1"],
     "effet": { "crit_flat": 3 }
   },
   "pvp.critdmg_1": {
     "branche": "pvp",
     "nom": "Coup brutal",
     "cout": 1,
-    "prerequis": ["pvp.atk_1"],
-    "mode": "tous",
+    "x": 194, "y": 330,
+    "liens": ["pvp.atk_1"],
     "effet": { "critdmg_flat": 10 }
   },
-  "pvp.esq_1": {
+  "pvp.crit_2": {
     "branche": "pvp",
-    "nom": "Reflexes",
-    "cout": 1,
-    "prerequis": ["pvp.prec_1", "pvp.atk_1"],
-    "mode": "au_moins_un",
-    "effet": { "esq_flat": 5 }
+    "nom": "Coup précis II",
+    "cout": 2,
+    "x": 443, "y": 152,
+    "liens": ["pvp.crit_1"],
+    "effet": { "crit_flat": 3 }
+  },
+  "pvp.atk_2": {
+    "branche": "pvp",
+    "nom": "Poigne de fer",
+    "cout": 2,
+    "x": 411, "y": 279,
+    "liens": ["pvp.crit_1"],
+    "effet": { "atk_pct": 0.04 }
   },
   "pvp.slot_1": {
     "branche": "pvp",
     "nom": "Rang de renfort",
+    "cout": 4,
+    "multiplicateur": 2,
+    "x": 313, "y": 358,
+    "liens": ["pvp.crit_1", "pvp.critdmg_1"],
+    "effet": { "slots_bonus": 1 }
+  },
+  "pvp.critdmg_2": {
+    "branche": "pvp",
+    "nom": "Coup brutal II",
+    "cout": 2,
+    "x": 203, "y": 440,
+    "liens": ["pvp.critdmg_1"],
+    "effet": { "critdmg_flat": 15 }
+  },
+  "pvp.atk_3": {
+    "branche": "pvp",
+    "nom": "Poigne de fer II",
+    "cout": 3,
+    "x": 496, "y": 328,
+    "liens": ["pvp.atk_2"],
+    "effet": { "atk_pct": 0.05 }
+  },
+  "pvp.duel": {
+    "branche": "pvp",
+    "nom": "Duelliste",
+    "cout": 3,
+    "x": 271, "y": 520,
+    "liens": ["pvp.critdmg_2"],
+    "effet": { "elo_combats_bonus": 1 }
+  },
+
+  "strat.racine": {
+    "branche": "strat",
+    "nom": "Stratège",
+    "cout": 0,
+    "x": -125, "y": 72,
+    "liens": [],
+    "effet": {}
+  },
+  "strat.hp_1": {
+    "branche": "strat",
+    "nom": "Robustesse",
     "cout": 1,
-    "prerequis": ["pvp.crit_1", "pvp.critdmg_1"],
-    "mode": "tous",
+    "x": -248, "y": 39,
+    "liens": ["strat.racine"],
+    "effet": { "hp_pct": 0.04 }
+  },
+  "strat.def_1": {
+    "branche": "strat",
+    "nom": "Garde",
+    "cout": 1,
+    "x": -158, "y": 195,
+    "liens": ["strat.racine"],
+    "effet": { "def_pct": 0.04 }
+  },
+  "strat.cle_donjon": {
+    "branche": "strat",
+    "nom": "Clé de donjon",
+    "cout": 1,
+    "x": -315, "y": 120,
+    "liens": ["strat.hp_1", "strat.def_1"],
+    "effet": { "tickets_donjon": 1 }
+  },
+  "strat.slot_2": {
+    "branche": "strat",
+    "nom": "Rang d'élite",
+    "cout": 4,
+    "multiplicateur": 2,
+    "x": -308, "y": 313,
+    "liens": ["strat.cle_donjon", "pvp.critdmg_2"],
+    "effet": { "slots_bonus": 1 }
+  },
+  "strat.explorateur": {
+    "branche": "strat",
+    "nom": "Explorateur",
+    "cout": 2,
+    "x": -421, "y": 45,
+    "liens": ["strat.cle_donjon"],
+    "effet": { "aventure_pct": 0.10 }
+  },
+  "strat.hp_2": {
+    "branche": "strat",
+    "nom": "Robustesse II",
+    "cout": 2,
+    "x": -422, "y": 150,
+    "liens": ["strat.cle_donjon"],
+    "effet": { "hp_pct": 0.05 }
+  },
+  "strat.def_2": {
+    "branche": "strat",
+    "nom": "Garde II",
+    "cout": 2,
+    "x": -400, "y": 262,
+    "liens": ["strat.cle_donjon"],
+    "effet": { "def_pct": 0.05 }
+  },
+  "strat.harmonie": {
+    "branche": "strat",
+    "nom": "Harmonie",
+    "cout": 5,
+    "multiplicateur": 1.5,
+    "x": -337, "y": 423,
+    "liens": ["strat.slot_2"],
+    "effet": { "resonance_pct": 0.10 }
+  },
+  "strat.maitre_perks": {
+    "branche": "strat",
+    "nom": "Maître des perks",
+    "cout": 5,
+    "multiplicateur": 1.5,
+    "x": -426, "y": 360,
+    "liens": ["strat.slot_2"],
+    "effet": { "perk_pct": 0.15 }
+  },
+  "strat.choeur": {
+    "branche": "strat",
+    "nom": "Chœur",
+    "cout": 8,
+    "multiplicateur": 1.5,
+    "x": -422, "y": 493,
+    "liens": ["strat.harmonie"],
+    "effet": { "resonance_pct": 0.15 }
+  },
+  "strat.slot_3": {
+    "branche": "strat",
+    "nom": "Rang suprême",
+    "cout": 10,
+    "multiplicateur": 2,
+    "x": -509, "y": 450,
+    "liens": ["strat.maitre_perks", "strat.choeur"],
     "effet": { "slots_bonus": 1 }
   }
 }

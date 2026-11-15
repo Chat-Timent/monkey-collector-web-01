@@ -48,6 +48,18 @@ export function bonusDefense(perk, def) {
   return Math.round((def * (perk?.defensePct ?? 0)) / 100);
 }
 
+// Maître des perks : valeurs chiffrées d'un perk (Peau de fer, Floraison) augmentées de `pct`,
+// arrondies au dixième. Un perk sans valeur (Taunt) est rendu tel quel.
+export function renforcerPerk(perk, pct = 0) {
+  if (!perk || !pct) return perk;
+  const renforce = { ...perk };
+  // (+1e-9 : arrondi au dixième supérieur malgré les flottants, 25 × 1,15 valant 28,7499…)
+  for (const cle of ["defensePct", "soinPct"]) {
+    if (typeof renforce[cle] === "number") renforce[cle] = Math.round(renforce[cle] * (1 + pct) * 10 + 1e-9) / 10;
+  }
+  return renforce;
+}
+
 // Perk tel qu'il est porté en combat : identité, affichage et valeurs du tier.
 export function effetPerk(perk, tier, donnees = PERKS) {
   const p = donnees.perks[perk];
