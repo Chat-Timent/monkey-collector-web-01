@@ -5,7 +5,7 @@ import { combat } from "../game/combat-engine.js";
 import { ennemisEtage, recompensesEtage, singeBonus } from "../game/aventure.js";
 import { ajouterCopie } from "./collection-service.js";
 import { combatEnCours, preparerEquipe } from "./combat-service.js";
-import { ajouterTiragesBonus } from "./tirage-service.js";
+import { ajouterTirages } from "./tirage-service.js";
 import { gagnerRecompense, getStarter } from "./starter-service.js";
 
 async function lireEtage(userId, db = pool) {
@@ -62,7 +62,7 @@ export async function lancerCombatAventure(userId) {
         ? await gagnerRecompense(userId, { xp: recompenses.xp, coins: recompenses.coins }, starter, db)
         : null;
 
-      if (recompenses.tirages > 0) await ajouterTiragesBonus(userId, recompenses.tirages, db);
+      if (recompenses.tirages > 0) await ajouterTirages(userId, recompenses.tirages, db);
 
       const singe = singeBonus(ennemis);
       if (singe) await ajouterCopie(userId, singe, db);

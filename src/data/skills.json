@@ -45,7 +45,7 @@
     "cout": 1,
     "prerequis": ["farm.coins_1"],
     "mode": "tous",
-    "effet": { "reset_bonus": 2 }
+    "effet": { "tirages_max": 10, "recharge_sec": 1 }
   },
   "farm.or_1": {
     "branche": "farm",

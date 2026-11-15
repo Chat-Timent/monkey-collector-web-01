@@ -1,9 +1,8 @@
 import { pool, transaction } from "../config/database.js";
 import { ErreurJeu } from "../erreurs.js";
 import { getEspece, getImageUrl, getNiveau, statsFinales, tirer } from "../game/monkeys.js";
-import { TIRAGES_PAR_RESET } from "../constants/game.js";
 import { gainsDuTirage } from "../game/progression.js";
-import { consommerTirage, etatQuota, quotaPublic } from "../game/quota.js";
+import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../game/quota.js";
 import { agregerEffets, pointsDepenses, pointsDisponibles } from "../game/starter-arbre.js";
 import { effetsDuJoueur, lireNoeudsPris } from "./arbre-service.js";
 import { ajouterCopie } from "./collection-service.js";
@@ -17,21 +16,43 @@ async function lireLigneQuota(userId, db) {
   return rows[0] ?? null;
 }
 
-// Ajoute des tirages bonus au stock du joueur (dans la transaction `db`).
-// Ligne de quota absente : créée avec une fenêtre passée, donc un quota gratuit plein.
-export async function ajouterTiragesBonus(userId, nombre, db) {
+// Ligne de quota verrouillée jusqu'à la fin de la transaction `db` : un tirage et une récompense
+// simultanés s'exécutent l'un après l'autre, aucun tirage n'est perdu.
+// Ligne absente : créée avec une recharge partie de loin, donc un stock plein.
+async function lireLigneVerrouillee(userId, db) {
   await db.query(
     `INSERT INTO tirages_etat (user_id, tirages_restants, dernier_reset, tirages_bonus)
-     VALUES ($1, 0, 'epoch', $2)
-     ON CONFLICT (user_id) DO UPDATE SET tirages_bonus = tirages_etat.tirages_bonus + EXCLUDED.tirages_bonus`,
-    [userId, nombre]
+     VALUES ($1, 0, 'epoch', 0) ON CONFLICT (user_id) DO NOTHING`,
+    [userId]
   );
+  const { rows } = await db.query(
+    "SELECT tirages_restants, dernier_reset, tirages_bonus FROM tirages_etat WHERE user_id = $1 FOR UPDATE",
+    [userId]
+  );
+  return rows[0];
+}
+
+// L'ancien stock bonus est désormais compris dans le stock : remis à 0.
+async function enregistrerQuota(userId, quota, db) {
+  await db.query(
+    "UPDATE tirages_etat SET tirages_restants = $2, dernier_reset = $3, tirages_bonus = 0 WHERE user_id = $1",
+    [userId, quota.stock, new Date(quota.debutRecharge)]
+  );
+}
+
+// Ajoute des tirages gagnés (donjon, Aventure…) au stock du joueur, sans plafond
+// (dans la transaction `db`).
+export async function ajouterTirages(userId, nombre, db) {
+  const effets = agregerEffets(await lireNoeudsPris(userId, db));
+  const quota = etatQuota(await lireLigneVerrouillee(userId, db), Date.now(), parametresQuota(effets));
+  ajouterAuQuota(quota, nombre);
+  await enregistrerQuota(userId, quota, db);
 }
 
 // Quota actuel du joueur, pour l'afficher sans tirer (bonus de l'arbre compris).
 export async function getQuota(userId) {
   const [ligne, effets] = await Promise.all([lireLigneQuota(userId, pool), effetsDuJoueur(userId)]);
-  return quotaPublic(etatQuota(ligne, Date.now(), TIRAGES_PAR_RESET + effets.reset_bonus));
+  return quotaPublic(etatQuota(ligne, Date.now(), parametresQuota(effets)));
 }
 
 // Un tirage complet (quota + copie + récompense du starter, effets de l'arbre compris)
@@ -45,9 +66,9 @@ export async function effectuerTirage(userId) {
 
     const pris = await lireNoeudsPris(userId, db);
     const effets = agregerEffets(pris);
-    const quota = etatQuota(await lireLigneQuota(userId, db), Date.now(), TIRAGES_PAR_RESET + effets.reset_bonus);
+    const quota = etatQuota(await lireLigneVerrouillee(userId, db), Date.now(), parametresQuota(effets));
     if (!consommerTirage(quota)) {
-      throw new ErreurJeu("plus de tirages disponibles avant le prochain reset", 429, {
+      throw new ErreurJeu("plus de tirages disponibles, attends la recharge", 429, {
         quota: quotaPublic(quota),
       });
     }
@@ -62,14 +83,7 @@ export async function effectuerTirage(userId) {
     const niveau = getNiveau(espece.rarete, amount);
     const starter = await gagnerRecompense(userId, gains, starterAvant, db);
 
-    await db.query(
-      `INSERT INTO tirages_etat (user_id, tirages_restants, dernier_reset, tirages_bonus)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (user_id) DO UPDATE
-       SET tirages_restants = EXCLUDED.tirages_restants, dernier_reset = EXCLUDED.dernier_reset,
-           tirages_bonus = EXCLUDED.tirages_bonus`,
-      [userId, quota.restants, new Date(quota.debutFenetre), quota.bonus]
-    );
+    await enregistrerQuota(userId, quota, db);
 
     return {
       id,

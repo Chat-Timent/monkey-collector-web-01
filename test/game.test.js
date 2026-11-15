@@ -7,7 +7,7 @@ import { SINGES } from "../src/game/monkeys.js";
 import { getEspece, getImageUrl, getNiveau, statsFinales } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import { agregerEffets, etatArbre, pointsDepenses } from "../src/game/starter-arbre.js";
-import { consommerTirage, debutFenetre, etatQuota } from "../src/game/quota.js";
+import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../src/game/quota.js";
 import { ennemisEtage, recompensesEtage, singeBonus } from "../src/game/aventure.js";
 import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles } from "../src/game/ressources.js";
 import { calculerElo } from "../src/game/elo.js";
@@ -169,30 +169,67 @@ test("les requêtes invalides reçoivent une erreur JSON sans toucher la base", 
   }
 });
 
-test("le quota de tirages se réinitialise à heure fixe toutes les 10 minutes", () => {
-  const dix = 10 * 60 * 1000;
-  const t = Date.UTC(2026, 10, 14, 14, 37, 12); // 14:37:12 UTC
-  const debut = Date.UTC(2026, 10, 14, 14, 30);
+test("les tirages se rechargent de 1 toutes les 30 s jusqu'à 100", () => {
+  const t = Date.UTC(2026, 10, 15, 14, 0, 0);
+  const s30 = 30 * 1000;
 
-  // Fenêtre calée sur l'horloge, indépendante du joueur
-  assert.equal(debutFenetre(t), debut);
-  assert.equal(debutFenetre(debut), debut);
-  assert.equal(debutFenetre(debut - 1), debut - dix);
-
-  // Jamais tiré : quota plein
+  // Jamais tiré : stock plein, pas de recharge en cours
   const neuf = etatQuota(null, t);
-  assert.equal(neuf.restants, 20);
-  assert.equal(neuf.max, 20);
-  assert.equal(neuf.prochainReset, "2026-11-14T14:40:00.000Z");
-  assert.equal(neuf.msAvantReset, Date.UTC(2026, 10, 14, 14, 40) - t);
+  assert.deepEqual(quotaPublic(neuf), { restants: 100, max: 100, intervalleMs: s30, msAvantProchain: null });
 
-  // Ligne de la fenêtre en cours : on garde le compte
-  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(debut) }, t).restants, 0);
-  assert.equal(etatQuota({ tirages_restants: 7, dernier_reset: new Date(debut).toISOString() }, t).restants, 7);
+  // 10 tirages il y a 95 s : +3, et le prochain arrive dans 25 s
+  const q = etatQuota({ tirages_restants: 10, dernier_reset: new Date(t - 95 * 1000) }, t);
+  assert.equal(q.stock, 13);
+  assert.equal(quotaPublic(q).msAvantProchain, 25 * 1000);
+  assert.equal(q.debutRecharge, t - 5 * 1000);
 
-  // Ligne d'une fenêtre passée : reset
-  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(debut - dix) }, t).restants, 20);
-  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(debut) }, debut + dix).restants, 20);
+  // Absent longtemps : plafonné à 100 (date en texte acceptée)
+  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(t - 3600 * 1000).toISOString() }, t).stock, 100);
+  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(t - 50 * 60 * 1000 + 1) }, t).stock, 99);
+
+  // Tirer depuis le plafond : la recharge repart de maintenant
+  const plein = etatQuota({ tirages_restants: 100, dernier_reset: new Date(t - 3600 * 1000) }, t);
+  assert.ok(consommerTirage(plein));
+  assert.equal(plein.stock, 99);
+  assert.equal(quotaPublic(plein).msAvantProchain, s30);
+
+  // Stock vide : rien à consommer, état inchangé
+  const vide = etatQuota({ tirages_restants: 0, dernier_reset: new Date(t - 10 * 1000) }, t);
+  assert.equal(consommerTirage(vide), false);
+  assert.equal(vide.stock, 0);
+  assert.equal(quotaPublic(vide).msAvantProchain, 20 * 1000);
+});
+
+test("les tirages gagnés dépassent le plafond, et la recharge s'arrête au-dessus", () => {
+  const t = Date.UTC(2026, 10, 15, 14, 0, 0);
+
+  // 90 + 20 de recharge accumulée (plafonnée à 100) + 50 gagnés = 150
+  const q = etatQuota({ tirages_restants: 90, dernier_reset: new Date(t - 600 * 1000) }, t);
+  ajouterAuQuota(q, 50);
+  assert.equal(q.stock, 150);
+  assert.equal(quotaPublic(q).msAvantProchain, null);
+
+  // Au-dessus du plafond, le temps ne rajoute rien
+  assert.equal(etatQuota({ tirages_restants: 150, dernier_reset: new Date(t - 3600 * 1000) }, t).stock, 150);
+
+  // Ajout sous le plafond : la recharge en cours continue
+  const bas = etatQuota({ tirages_restants: 10, dernier_reset: new Date(t - 10 * 1000) }, t);
+  ajouterAuQuota(bas, 5);
+  assert.equal(bas.stock, 15);
+  assert.equal(quotaPublic(bas).msAvantProchain, 20 * 1000);
+
+  // L'ancien stock bonus est ajouté au stock
+  const ancien = etatQuota({ tirages_restants: 4, dernier_reset: new Date(t), tirages_bonus: 30 }, t);
+  assert.equal(ancien.stock, 34);
+});
+
+test("Ressourcement : +10 au plafond et une recharge plus rapide d'1 s", () => {
+  assert.deepEqual(parametresQuota(agregerEffets([])), { max: 100, intervalleMs: 30 * 1000 });
+  const params = parametresQuota(agregerEffets(["farm.reset_1"]));
+  assert.deepEqual(params, { max: 110, intervalleMs: 29 * 1000 });
+  const t = Date.UTC(2026, 10, 15, 14, 0, 0);
+  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(t - 58 * 1000) }, t, params).stock, 2);
+  assert.equal(etatQuota(null, t, params).stock, 110);
 });
 
 test("une erreur métier peut renvoyer des détails au client", () => {
@@ -313,22 +350,6 @@ test("Aventure : récompenses par étage", () => {
   assert.equal(singeBonus(ennemis, () => 0.5), null);
   const singe = singeBonus(ennemis, () => 0.05);
   assert.ok(ennemis.filter(Boolean).some((s) => s.id === singe));
-});
-
-test("les tirages bonus sont consommés après le quota gratuit", () => {
-  const maintenant = Date.UTC(2026, 10, 14, 14, 37);
-  const debut = new Date(Date.UTC(2026, 10, 14, 14, 30));
-  const quota = etatQuota({ tirages_restants: 1, dernier_reset: debut, tirages_bonus: 2 }, maintenant);
-  assert.equal(quota.bonus, 2);
-  assert.ok(consommerTirage(quota));
-  assert.deepEqual([quota.restants, quota.bonus], [0, 2]);
-  assert.ok(consommerTirage(quota));
-  assert.ok(consommerTirage(quota));
-  assert.deepEqual([quota.restants, quota.bonus], [0, 0]);
-  assert.equal(consommerTirage(quota), false);
-  // Le stock bonus survit au reset ; sans ligne, il vaut 0
-  assert.equal(etatQuota({ tirages_restants: 0, dernier_reset: new Date(0), tirages_bonus: 3 }, maintenant).bonus, 3);
-  assert.equal(etatQuota(null, maintenant).bonus, 0);
 });
 
 test("donjons de ressources : paliers, gains et ennemis propres à chaque donjon", () => {
