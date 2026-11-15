@@ -491,9 +491,9 @@ test("résonances : paliers à 2, 4 et 6 singes de la même catégorie, tous slo
   assert.equal(origine[0].atk, 100);
 });
 
-test("résonances : les singes du catalogue ont une catégorie connue (sauf les singes sans résonance)", () => {
+test("résonances : les singes du catalogue ont tous une famille connue", () => {
   for (const [id, s] of Object.entries(SINGES)) {
-    assert.ok(RESONANCES.categories[s.categorie] || s.categorie === "Basic Monkeys", `${id} : catégorie ${s.categorie}`);
+    assert.ok(RESONANCES.categories[s.categorie], `${id} : catégorie ${s.categorie}`);
   }
   for (const cat of Object.values(RESONANCES.categories)) assert.equal(cat.bonus.length, RESONANCES.paliers.length);
 });
