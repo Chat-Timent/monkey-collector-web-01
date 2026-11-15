@@ -148,6 +148,7 @@
       margin-bottom: 14px;
     }
     .rarete img { width: 24px; height: 24px; object-fit: contain; }
+    #famille-tiree:not(:empty) { margin-bottom: 14px; }
     #description { font-size: 15px; font-style: italic; color: var(--texte-doux); margin: 0 0 16px; }
     #niveau { color: var(--or); margin-bottom: 16px; }
     #image { width: 200px; height: 200px; object-fit: contain; }
@@ -223,6 +224,7 @@
       <div id="carte">
         <h2 id="nom"></h2>
         <div id="rarete" class="rarete"></div>
+        <div id="famille-tiree"></div>
         <p id="description"></p>
         <div id="niveau"></div>
         <img id="image" alt="">
@@ -346,6 +348,7 @@
       icone.alt = "";
       elRarete.appendChild(icone);
       elRarete.appendChild(document.createTextNode(rarete.label));
+      document.getElementById("famille-tiree").innerHTML = badgeFamilleHTML(espece.categorie, true);
 
       document.getElementById("nom").textContent = espece.nom;
       document.getElementById("description").textContent = espece.description ?? "";

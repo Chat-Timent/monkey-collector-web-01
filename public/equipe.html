@@ -69,6 +69,7 @@
       text-overflow: ellipsis;
     }
     .perk-bouton:hover { border-color: var(--accent); }
+    .perk-bouton .effet { display: block; font-size: 11px; font-weight: normal; color: var(--texte-doux); }
     .perk-bouton.sans { border-style: dashed; color: #888; font-weight: normal; }
     .option .icone-perk { width: 48px; font-size: 30px; text-align: center; flex-shrink: 0; }
 
@@ -118,7 +119,7 @@
     }
     .option:hover:not(:disabled) { background: #2f2f2f; }
     .option:disabled { opacity: 0.4; cursor: default; }
-    .option img { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
+    .option > img { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
     .option .infos { display: flex; flex-direction: column; gap: 3px; }
     .option .nom { font-weight: bold; font-size: 14px; }
     .option .sous { font-size: 12px; color: var(--texte-doux); }
@@ -131,9 +132,12 @@
       display: inline-flex; align-items: center; gap: 6px;
       padding: 6px 12px; border-radius: 999px;
       background: #242424; border: 1px solid #333; color: var(--texte-doux);
-      font-size: 14px; cursor: help;
+      font: inherit; font-size: 14px; cursor: pointer;
     }
-    .resonance.active { border-color: var(--accent); color: var(--texte); font-weight: bold; }
+    .resonance:hover { border-color: var(--famille, var(--accent)); }
+    .resonance.infos { color: var(--texte); }
+    .resonance.active { border-color: var(--famille, var(--accent)); color: var(--famille, var(--texte)); font-weight: bold; }
+    .option .badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 
     #message { min-height: 1.2em; color: var(--or); font-size: 14px; margin: 0; }
 
@@ -208,7 +212,7 @@
             <img src="${s.image}" alt="">
             <div class="infos">
               <span class="nom">${s.espece.nom}</span>
-              ${pastilleHTML(s.espece.rarete)}
+              <span class="badges">${pastilleHTML(s.espece.rarete)} ${badgeFamilleHTML(s.espece.categorie)}</span>
               <span class="sous">Lvl ${s.niveau.niveau}${dispo ? "" : " · déjà placé"}</span>
             </div>
           </button>`;
@@ -238,10 +242,11 @@
       return perks.obtenus.find((p) => p.espece === espece && perks.catalogue[p.perk]) ?? null;
     }
 
-    function texteOption(p) {
+    // `cible` : le singe du slot, pour chiffrer l'effet sur lui (ex. Peau de fer : +25 % DEF (+70))
+    function texteOption(p, cible) {
       const c = perks.catalogue[p.perk];
       const porteur = p.espece ? trouverSinge(p.espece) : null;
-      const sous = effetPerk(perks.catalogue, p.perk, p.tier) + (porteur ? ` · sur ${porteur.espece.nom}` : "");
+      const sous = effetPerkSur(perks.catalogue, p.perk, p.tier, cible?.stats) + (porteur ? ` · sur ${porteur.espece.nom}` : "");
       return `<span class="icone-perk">${c.icone}</span>
               <div class="infos">
                 <span class="nom">${nomPerk(perks.catalogue, p.perk, p.tier)}</span>
@@ -274,7 +279,7 @@
       for (const p of autres) {
         const option = document.createElement("button");
         option.className = "option";
-        option.innerHTML = texteOption(p);
+        option.innerHTML = texteOption(p, trouverSinge(espece));
         option.addEventListener("click", (e) => { e.stopPropagation(); equiperPerk(p, espece); });
         menu.appendChild(option);
       }
@@ -317,13 +322,15 @@
         ? `<img src="${singe.image}" alt="">
            <span class="nom">${singe.espece.nom}</span>
            ${pastilleHTML(singe.espece.rarete)}
+           ${badgeFamilleHTML(singe.espece.categorie)}
            <span class="sous">Lvl ${singe.niveau.niveau}</span>`
         : `<span class="ajouter">+</span>`;
       let perkHTML = "";
       if (singe) {
         const p = perkPorte(id);
         perkHTML = p
-          ? `<button class="perk-bouton" type="button">${perks.catalogue[p.perk].icone} ${nomPerk(perks.catalogue, p.perk, p.tier)}</button>`
+          ? `<button class="perk-bouton" type="button">${perks.catalogue[p.perk].icone} ${nomPerk(perks.catalogue, p.perk, p.tier)}
+               <span class="effet">${effetPerkSur(perks.catalogue, p.perk, p.tier, singe.stats)}</span></button>`
           : `<button class="perk-bouton sans" type="button">+ Perk</button>`;
       }
       return `<button class="slot-bouton ${singe ? "plein" : ""}" type="button" aria-label="Emplacement ${index + 1}">${contenu}</button>
@@ -344,13 +351,24 @@
         const { paliers } = resonances;
         const atteints = paliers.filter((p) => nb >= p).length;
         const prochain = paliers[atteints] ?? paliers[paliers.length - 1];
-        const pastille = document.createElement("span");
+        const pastille = document.createElement("button");
+        pastille.type = "button";
         pastille.className = "resonance" + (atteints > 0 ? " active" : "");
-        pastille.textContent = `${resonances.categories[cat].icone} ${nb}/${prochain}`;
+        pastille.addEventListener("click", () => ouvrirInfosFamilles(resonances, compte, cat));
+        const famille = infoFamille(cat);
+        if (famille) pastille.style.setProperty("--famille", famille.couleur);
+        pastille.textContent = `${famille?.icone ?? ""} ${nb}/${prochain}`;
         const b = atteints > 0 ? resonances.categories[cat].bonus[atteints - 1] : null;
         pastille.title = b ? `${cat} : +${b.hp} % PV, +${b.atk} % ATK, +${b.def} % DEF` : cat;
+        pastille.setAttribute("aria-label", `${cat} : ${nb} sur ${prochain}, voir les bonus`);
         zone.appendChild(pastille);
       }
+      const infos = document.createElement("button");
+      infos.type = "button";
+      infos.className = "resonance infos";
+      infos.textContent = "ⓘ Familles";
+      infos.addEventListener("click", () => ouvrirInfosFamilles(resonances, compte));
+      zone.appendChild(infos);
     }
 
     function afficherSlots() {

@@ -9,6 +9,7 @@ import { getEquipe } from "./team-service.js";
 import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
 import { appliquerElo } from "./elo-service.js";
 import { perksDesSinges } from "./perks-service.js";
+import { bonusDefense } from "../game/perks.js";
 import { appliquerResonances } from "../game/resonances.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
@@ -30,7 +31,7 @@ export async function preparerEquipe(userId, db = pool) {
     const s = statsFinales(e, niveau);
     const perk = perks[espece] ?? null;
     // Peau de fer : défense du porteur augmentée de defensePct %
-    const bonusDef = Math.round((s.def * (perk?.defensePct ?? 0)) / 100);
+    const bonusDef = bonusDefense(perk, s.def);
     slots[slot - 1] = {
       id: espece,
       nom: e.nom,
