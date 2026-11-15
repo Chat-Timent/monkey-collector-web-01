@@ -50,8 +50,27 @@
     .slot-bouton .nom { font-weight: bold; font-size: 13px; }
     .slot-bouton .ajouter { color: #777; font-size: 28px; line-height: 1; }
     .slot-bouton .sous { font-size: 12px; color: var(--or); }
-    .slot-bouton { position: relative; }
-    .slot-bouton .perk { position: absolute; top: 6px; left: 8px; font-size: 16px; }
+
+    /* Perk porté, sous le singe */
+    .perk-bouton {
+      width: 100%;
+      margin-top: 6px;
+      padding: 7px 8px;
+      border-radius: 10px;
+      border: 1px solid #333;
+      background: #1e1b2e;
+      color: var(--texte);
+      font: inherit;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .perk-bouton:hover { border-color: var(--accent); }
+    .perk-bouton.sans { border-style: dashed; color: #888; font-weight: normal; }
+    .option .icone-perk { width: 48px; font-size: 30px; text-align: center; flex-shrink: 0; }
 
     .pastille {
       display: inline-flex;
@@ -113,6 +132,8 @@
       .slot-bouton { min-height: 120px; padding: 6px; }
       .slot-bouton img { width: 56px; height: 56px; }
       .slot-bouton .pastille { display: none; }
+      .slot:nth-child(2) .menu { left: 50%; transform: translateX(-50%); }
+      .perk-bouton { font-size: 12px; padding: 6px 4px; }
     }
   </style>
 </head>
@@ -131,7 +152,7 @@
     const RANGEES = ["Ligne 1", "Ligne 2", "Renfort"];
 
     let possedes = [];
-    let perksPortes = {}; // espece → { icone, nom } du perk porté
+    let perks = { catalogue: {}, obtenus: [] }; // réponse /perks
     let equipe = Array(6).fill(null);
     let minuteurMessage = null;
     const message = document.getElementById("message");
@@ -166,7 +187,9 @@
       if (possedes.length === 0) {
         return html + `<p class="vide">Aucun singe : va tirer !</p>`;
       }
-      for (const s of possedes) {
+      // Singes disponibles d'abord, ceux déjà placés tout en bas
+      const tries = [...possedes].sort((a, b) => dejaUtilises.includes(a.id) - dejaUtilises.includes(b.id));
+      for (const s of tries) {
         const dispo = !dejaUtilises.includes(s.id);
         html += `
           <button class="option" data-id="${s.id}" ${dispo ? "" : "disabled"}>
@@ -183,9 +206,10 @@
 
     function ouvrirMenu(slot, index) {
       const menu = slot.querySelector(".menu");
-      const dejaOuvert = menu.classList.contains("ouvert");
+      const dejaOuvert = menu.classList.contains("ouvert") && menu.dataset.type === "singe";
       fermerMenus();
       if (dejaOuvert) return;
+      menu.dataset.type = "singe";
       menu.innerHTML = construireOptions(index);
       menu.classList.add("ouvert");
       menu.querySelectorAll(".option").forEach((btn) => {
@@ -194,6 +218,68 @@
           choisir(index, btn.dataset.id || null);
         });
       });
+    }
+
+    // ---------- Perks ----------
+
+    function perkPorte(espece) {
+      return perks.obtenus.find((p) => p.espece === espece && perks.catalogue[p.perk]) ?? null;
+    }
+
+    function texteOption(p) {
+      const c = perks.catalogue[p.perk];
+      const porteur = p.espece ? trouverSinge(p.espece) : null;
+      const sous = effetPerk(perks.catalogue, p.perk, p.tier) + (porteur ? ` · sur ${porteur.espece.nom}` : "");
+      return `<span class="icone-perk">${c.icone}</span>
+              <div class="infos">
+                <span class="nom">${nomPerk(perks.catalogue, p.perk, p.tier)}</span>
+                <span class="sous">${sous}</span>
+              </div>`;
+    }
+
+    function ouvrirMenuPerk(slot, espece) {
+      const menu = slot.querySelector(".menu");
+      const dejaOuvert = menu.classList.contains("ouvert") && menu.dataset.type === "perk";
+      fermerMenus();
+      if (dejaOuvert) return;
+      menu.dataset.type = "perk";
+      const actuel = perkPorte(espece);
+      // Perks libres d'abord, ceux portés par un autre singe tout en bas
+      const autres = perks.obtenus
+        .filter((p) => perks.catalogue[p.perk] && p !== actuel)
+        .sort((a, b) => Boolean(a.espece) - Boolean(b.espece));
+      menu.innerHTML = "";
+      if (actuel) {
+        const retirer = document.createElement("button");
+        retirer.className = "option retirer";
+        retirer.textContent = "✕ Retirer le perk";
+        retirer.addEventListener("click", (e) => { e.stopPropagation(); equiperPerk(actuel, null); });
+        menu.appendChild(retirer);
+      }
+      if (perks.obtenus.length === 0) {
+        menu.insertAdjacentHTML("beforeend", `<p class="vide">Aucun perk : tire-en dans l'onglet Perks !</p>`);
+      }
+      for (const p of autres) {
+        const option = document.createElement("button");
+        option.className = "option";
+        option.innerHTML = texteOption(p);
+        option.addEventListener("click", (e) => { e.stopPropagation(); equiperPerk(p, espece); });
+        menu.appendChild(option);
+      }
+      menu.classList.add("ouvert");
+    }
+
+    async function equiperPerk(p, espece) {
+      fermerMenus();
+      try {
+        const { ok, data } = await api("/perks/equiper", { corps: { perk: p.perk, tier: p.tier, espece } });
+        if (!ok) throw new Error(data.erreur);
+        perks = data;
+        afficherSlots();
+        afficherMessage("✓ Sauvegardé", true);
+      } catch (err) {
+        afficherMessage("Erreur : " + err.message);
+      }
     }
 
     async function choisir(index, id) {
@@ -216,13 +302,20 @@
       const id = equipe[index];
       const singe = id ? trouverSinge(id) : null;
       const contenu = singe
-        ? `${perksPortes[id] ? `<span class="perk" title="${perksPortes[id].nom}">${perksPortes[id].icone}</span>` : ""}
-           <img src="${singe.image}" alt="">
+        ? `<img src="${singe.image}" alt="">
            <span class="nom">${singe.espece.nom}</span>
            ${pastilleHTML(singe.espece.rarete)}
            <span class="sous">Lvl ${singe.niveau.niveau}</span>`
         : `<span class="ajouter">+</span>`;
+      let perkHTML = "";
+      if (singe) {
+        const p = perkPorte(id);
+        perkHTML = p
+          ? `<button class="perk-bouton" type="button">${perks.catalogue[p.perk].icone} ${nomPerk(perks.catalogue, p.perk, p.tier)}</button>`
+          : `<button class="perk-bouton sans" type="button">+ Perk</button>`;
+      }
       return `<button class="slot-bouton ${singe ? "plein" : ""}" type="button" aria-label="Emplacement ${index + 1}">${contenu}</button>
+              ${perkHTML}
               <div class="menu"></div>`;
     }
 
@@ -245,6 +338,10 @@
             e.stopPropagation();
             ouvrirMenu(slot, index);
           });
+          slot.querySelector(".perk-bouton")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            ouvrirMenuPerk(slot, equipe[index]);
+          });
           grille.appendChild(slot);
         }
         rangee.append(titre, grille);
@@ -254,13 +351,7 @@
 
     async function charger() {
       const [resDex, resEquipe, resPerks] = await Promise.all([api("/monkeydex"), api("/equipe"), api("/perks")]);
-      perksPortes = {};
-      if (resPerks.ok) {
-        for (const p of resPerks.data.obtenus) {
-          const c = resPerks.data.catalogue[p.perk];
-          if (p.espece && c) perksPortes[p.espece] = { icone: c.icone, nom: c.nom };
-        }
-      }
+      if (resPerks.ok) perks = resPerks.data;
       if (!resDex.ok || !resEquipe.ok) {
         afficherMessage("Erreur de chargement, réessaie.");
         return;

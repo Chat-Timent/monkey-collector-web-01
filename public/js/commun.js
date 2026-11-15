@@ -81,3 +81,35 @@ function ajouterBulleChat(zone, m) {
   zone.appendChild(bulle);
   zone.scrollTop = zone.scrollHeight;
 }
+
+// ---------- Perks : textes communs (pages Équipe et Perks) ----------
+
+const ROMAINS = ["", "I", "II", "III", "IV", "V", "VI"];
+
+// Nom affiché : « Peau de fer II », ou « Taunt » pour un perk sans tier.
+function nomPerk(catalogue, perk, tier) {
+  const c = catalogue[perk];
+  return c.nbTiers > 0 ? `${c.nom} ${ROMAINS[tier]}` : c.nom;
+}
+
+function valeursPerk(catalogue, perk, tier) {
+  return catalogue[perk].tiers?.[tier - 1] ?? {};
+}
+
+// Effet en quelques mots.
+function effetPerk(catalogue, perk, tier) {
+  const v = valeursPerk(catalogue, perk, tier);
+  if (perk === "ironskin") return `+${v.defense} DEF`;
+  if (perk === "taunt") return "Attire les attaques";
+  if (perk === "blossoming") return `Soin ${v.soinPct} % / 2 tours`;
+  return "";
+}
+
+// Description détaillée.
+function descriptionPerk(catalogue, perk, tier) {
+  const v = valeursPerk(catalogue, perk, tier);
+  if (perk === "ironskin") return `Le singe qui le porte gagne +${v.defense} DEF.`;
+  if (perk === "taunt") return "Les ennemis attaquent en priorité le singe qui le porte, tant qu'il est en vie.";
+  if (perk === "blossoming") return `Tous les 2 tours, soigne l'allié qui a le moins de PV de ${v.soinPct} % de ses PV max.`;
+  return "";
+}
