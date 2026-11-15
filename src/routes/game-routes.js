@@ -7,6 +7,7 @@ import { getArbre, getPointsArbre, prendreNoeud } from "../services/arbre-servic
 import { getElo } from "../services/elo-service.js";
 import { effectuerTirage, getQuota } from "../services/tirage-service.js";
 import { ErreurJeu } from "../erreurs.js";
+import { RESONANCES } from "../game/resonances.js";
 
 export const gameRoutes = Router();
 
@@ -42,7 +43,7 @@ gameRoutes.post("/starter", authentifie, async (req, res) => {
 
 gameRoutes.get("/equipe", authentifie, async (req, res) => {
   const [equipe, nbSlots] = await Promise.all([getEquipe(req.userId), nbSlotsDuJoueur(req.userId)]);
-  res.json({ equipe, nbSlots });
+  res.json({ equipe, nbSlots, resonances: RESONANCES });
 });
 
 gameRoutes.post("/equipe", authentifie, async (req, res) => {

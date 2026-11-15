@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { combat } from "../src/game/combat-engine.js";
+import { combat, degatsDe } from "../src/game/combat-engine.js";
+import { PALIER_RARETE, puissance, puissanceCible, statsAuNiveau } from "../src/game/puissance.js";
+import { RESONANCES, appliquerResonances, resonancesActives } from "../src/game/resonances.js";
+import { SINGES } from "../src/game/monkeys.js";
 import { getEspece, getImageUrl, getNiveau, statsFinales } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import { agregerEffets, etatArbre, pointsDepenses } from "../src/game/starter-arbre.js";
@@ -21,16 +24,10 @@ test("les paliers de niveau restent identiques", () => {
 test("les données et statistiques d'un singe sont inchangées", () => {
   const espece = getEspece("basic_monkey");
   assert.equal(getImageUrl("basic_monkey"), "/images/MonkeysIcons/basic_monkey.png");
-  assert.deepEqual(statsFinales(espece, 3), {
-    hp: 490,
-    atk: 390,
-    def: 317,
-    spd: 102,
-    prec: 5,
-    esq: 5,
-    crit: 5,
-    critdmg: 150,
-  });
+  // niveau 3 = base + 2 × croissance, pour chaque stat
+  const attendu = Object.fromEntries(Object.keys(espece.base).map((k) => [k, espece.base[k] + 2 * espece.croissance[k]]));
+  assert.deepEqual(statsFinales(espece, 3), attendu);
+  assert.equal(statsFinales(espece, 1).hp, espece.base.hp);
 });
 
 test("le moteur de combat conserve son journal et son ordre de tour", () => {
@@ -390,7 +387,7 @@ test("loterie des perks : perk au hasard, tiers élevés plus rares, doublons co
   // Validité et valeurs des tiers
   assert.ok(perkExiste("taunt", 1) && perkExiste("ironskin", 4) && perkExiste("blossoming", 5));
   assert.ok(!perkExiste("taunt", 2) && !perkExiste("ironskin", 5) && !perkExiste("constructor", 1) && !perkExiste("ironskin", "1"));
-  assert.equal(effetPerk("ironskin", 2).defense, 1500);
+  assert.deepEqual([1, 2, 3, 4].map((tier) => effetPerk("ironskin", tier).defensePct), [10, 15, 20, 25]);
   assert.equal(effetPerk("blossoming", 3).soinPct, 35);
   assert.equal(effetPerk("taunt", 1).icone, "🎯");
 });
@@ -429,4 +426,79 @@ test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 t
   // Personne n'est blessé (toutes les attaques ratent) : pas de soin
   const calme = combat([singe("S", 1000, 1, 0, effetPerk("blossoming", 5))], [singe("X", 1000, 1, 0)], () => 0.99);
   assert.equal(calme.journal.filter((e) => e.type === "soin").length, 0);
+});
+
+test("défense : les dégâts diminuent sans jamais s'annuler", () => {
+  assert.equal(degatsDe(100, 0), 100);
+  assert.equal(degatsDe(100, 100), 50);  // défense = attaque : moitié des dégâts
+  assert.equal(degatsDe(100, 200), 33);  // double : un tiers
+  assert.equal(degatsDe(100, 100000), 1); // jamais moins de 1
+  // une équipe tout-défense ne rend plus le combat interminable
+  const tank = (nom) => ({ nom, hp: 1000, atk: 100, def: 400, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 100, perk: null });
+  const r = combat([tank("A")], [tank("B")], () => 0);
+  assert.ok(r.vainqueur && r.tours < 100);
+});
+
+test("les singes d'une même rareté ont la même puissance, et le palier entre raretés est respecté", () => {
+  const raretes = ["common", "uncommon", "rare", "epic", "legendary"];
+  for (const [rang, rarete] of raretes.entries()) {
+    const groupe = Object.entries(SINGES).filter(([, s]) => s.rarete === rarete);
+    assert.ok(groupe.length > 0);
+    for (const niveau of [1, 10]) {
+      const cible = puissanceCible(rarete, niveau);
+      for (const [id, s] of groupe) {
+        const p = puissance(statsAuNiveau(s, niveau), rarete, niveau);
+        assert.ok(Math.abs(p - cible) / cible < 0.02, `${id} niveau ${niveau} : ${Math.round(p)} au lieu de ${Math.round(cible)}`);
+      }
+    }
+    assert.ok(Math.abs(puissanceCible(rarete) / puissanceCible("common") - (1 + PALIER_RARETE * rang)) < 1e-9);
+  }
+});
+
+test("aucun singe n'a les mêmes stats qu'un autre, ni la même croissance", () => {
+  const bases = new Set();
+  const croissances = new Set();
+  for (const [id, s] of Object.entries(SINGES)) {
+    const b = JSON.stringify(s.base);
+    const c = JSON.stringify(s.croissance);
+    assert.ok(!bases.has(b), `stats de ${id} déjà utilisées`);
+    assert.ok(!croissances.has(c), `croissance de ${id} déjà utilisée`);
+    bases.add(b);
+    croissances.add(c);
+  }
+});
+
+test("résonances : paliers à 2, 4 et 6 singes de la même catégorie, tous slots confondus", () => {
+  const s = (categorie) => ({ categorie, nom: categorie, hp: 1000, atk: 100, def: 100 });
+  // 1 singe : rien
+  assert.deepEqual(resonancesActives([s("Joie"), s("Chaos"), null]), []);
+  // 2 Joie : palier 2 ; le singe d'une autre catégorie n'est pas touché
+  const deux = appliquerResonances([s("Joie"), s("Chaos"), s("Joie")]);
+  assert.deepEqual(deux.resonances.map((r) => [r.categorie, r.nb, r.palier]), [["Joie", 2, 2]]);
+  const b = RESONANCES.categories.Joie.bonus[0];
+  assert.equal(deux.equipe[0].atk, Math.round(100 * (1 + b.atk / 100)));
+  assert.equal(deux.equipe[1].atk, 100);
+  // les singes hors rotation active (slots 4 à 9) comptent aussi : 4 Joie répartis sur 9 slots = palier 4
+  const neuf = [s("Joie"), null, null, s("Joie"), null, null, s("Joie"), null, s("Joie")];
+  assert.equal(resonancesActives(neuf)[0].palier, 4);
+  // palier 6 atteint, et 5 reste au palier 4
+  assert.equal(resonancesActives(Array(5).fill(0).map(() => s("Amour")))[0].palier, 4);
+  assert.equal(resonancesActives(Array(6).fill(0).map(() => s("Amour")))[0].palier, 6);
+  // plusieurs résonances en même temps, équipe d'origine non modifiée
+  const origine = [s("Joie"), s("Joie"), s("Chaos"), s("Chaos")];
+  const deux2 = appliquerResonances(origine);
+  assert.equal(deux2.resonances.length, 2);
+  assert.equal(origine[0].atk, 100);
+});
+
+test("résonances : les singes du catalogue ont une catégorie connue (sauf les singes sans résonance)", () => {
+  for (const [id, s] of Object.entries(SINGES)) {
+    assert.ok(RESONANCES.categories[s.categorie] || s.categorie === "Basic Monkeys", `${id} : catégorie ${s.categorie}`);
+  }
+  for (const cat of Object.values(RESONANCES.categories)) assert.equal(cat.bonus.length, RESONANCES.paliers.length);
+});
+
+test("les ennemis de l'aventure ne profitent pas des résonances", () => {
+  const ennemis = ennemisEtage(30).filter(Boolean);
+  assert.ok(ennemis.length > 0 && ennemis.every((e) => e.categorie === undefined));
 });

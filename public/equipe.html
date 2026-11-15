@@ -125,6 +125,16 @@
     .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
     .menu .vide { padding: 8px; color: var(--texte-doux); margin: 0; }
 
+    /* Résonances : une pastille par catégorie présente dans l'équipe */
+    #resonances { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; min-height: 34px; }
+    .resonance {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 12px; border-radius: 999px;
+      background: #242424; border: 1px solid #333; color: var(--texte-doux);
+      font-size: 14px; cursor: help;
+    }
+    .resonance.active { border-color: var(--accent); color: var(--texte); font-weight: bold; }
+
     #message { min-height: 1.2em; color: var(--or); font-size: 14px; margin: 0; }
 
     @media (max-width: 640px) {
@@ -139,6 +149,7 @@
 </head>
 <body>
   <main class="contenu">
+    <div id="resonances"></div>
     <div id="rangees"></div>
     <p id="message"></p>
   </main>
@@ -153,6 +164,7 @@
 
     let possedes = [];
     let perks = { catalogue: {}, obtenus: [] }; // réponse /perks
+    let resonances = { paliers: [], categories: {} }; // réponse /equipe
     let equipe = Array(6).fill(null);
     let minuteurMessage = null;
     const message = document.getElementById("message");
@@ -319,7 +331,30 @@
               <div class="menu"></div>`;
     }
 
+    // Pastilles de résonance : icône et nombre de singes de la catégorie / prochain palier.
+    function afficherResonances() {
+      const compte = {};
+      for (const id of equipe) {
+        const cat = id && trouverSinge(id)?.espece.categorie;
+        if (cat && resonances.categories[cat]) compte[cat] = (compte[cat] ?? 0) + 1;
+      }
+      const zone = document.getElementById("resonances");
+      zone.innerHTML = "";
+      for (const [cat, nb] of Object.entries(compte)) {
+        const { paliers } = resonances;
+        const atteints = paliers.filter((p) => nb >= p).length;
+        const prochain = paliers[atteints] ?? paliers[paliers.length - 1];
+        const pastille = document.createElement("span");
+        pastille.className = "resonance" + (atteints > 0 ? " active" : "");
+        pastille.textContent = `${resonances.categories[cat].icone} ${nb}/${prochain}`;
+        const b = atteints > 0 ? resonances.categories[cat].bonus[atteints - 1] : null;
+        pastille.title = b ? `${cat} : +${b.hp} % PV, +${b.atk} % ATK, +${b.def} % DEF` : cat;
+        zone.appendChild(pastille);
+      }
+    }
+
     function afficherSlots() {
+      afficherResonances();
       const zone = document.getElementById("rangees");
       zone.innerHTML = "";
       for (let debut = 0; debut < equipe.length; debut += 3) {
@@ -357,6 +392,7 @@
         return;
       }
       possedes = resDex.data.singes;
+      resonances = resEquipe.data.resonances ?? resonances;
       equipe = Array(resEquipe.data.nbSlots ?? 6).fill(null);
       for (const { slot, espece } of resEquipe.data.equipe) {
         if (slot <= equipe.length) equipe[slot - 1] = espece;
