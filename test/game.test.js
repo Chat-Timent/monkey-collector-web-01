@@ -14,7 +14,7 @@ import { nbSlots } from "../src/services/arbre-service.js";
 import { compteurSansRare, etincelleDeclenchee } from "../src/services/tirage-service.js";
 import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../src/game/quota.js";
 import { ennemisEtage, recompensesAvecBonus, recompensesEtage, singeBonus } from "../src/game/aventure.js";
-import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles, ticketsParJour } from "../src/game/ressources.js";
+import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsApresCadeau, ticketsDisponibles, ticketsParJour } from "../src/game/ressources.js";
 import { calculerElo, limiteCombatsElo } from "../src/game/elo.js";
 import { bonusDefense, bonusPv, effetPerk, nbTiers, perkExiste, renforcerPerk, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
@@ -378,6 +378,14 @@ test("Clé de donjon : un ticket de plus par jour dans chaque donjon", () => {
   assert.equal(ticketsDisponibles({ jour: "2026-11-14", tickets: 0 }, "2026-11-15", undefined, avecCle), 3);
   // Jour en cours : le stock enregistré fait foi
   assert.equal(ticketsDisponibles({ jour: "2026-11-15", tickets: 1 }, "2026-11-15", undefined, avecCle), 1);
+
+  // Au déblocage, un ticket offert tout de suite, quel que soit le stock du jour
+  const sansCle = agregerEffets([]);
+  assert.equal(ticketsApresCadeau({ jour: "2026-11-15", tickets: 0 }, "2026-11-15", 1, sansCle), 1);
+  assert.equal(ticketsApresCadeau({ jour: "2026-11-15", tickets: 2 }, "2026-11-15", 1, sansCle), 3);
+  // Stock d'un jour passé (ou jamais joué) : plein sans la clé (2), plus le cadeau
+  assert.equal(ticketsApresCadeau({ jour: "2026-11-14", tickets: 0 }, "2026-11-15", 1, sansCle), 3);
+  assert.equal(ticketsApresCadeau(null, "2026-11-15", 1, sansCle), 3);
 });
 
 test("Flair : rare, épique et légendaire 10 % plus lourds au tirage", () => {
