@@ -7,7 +7,7 @@ import { lireCollection } from "./collection-service.js";
 import { traiterReponseDefi } from "./challenge-service.js";
 import { getEquipe } from "./team-service.js";
 import { effetsDuJoueur, nbSlots } from "./arbre-service.js";
-import { appliquerElo } from "./elo-service.js";
+import { eloDuCombat, reglerEloTermines } from "./elo-service.js";
 import { perksDesSinges } from "./perks-service.js";
 import { bonusDefense } from "../game/perks.js";
 import { appliquerResonances } from "../game/resonances.js";
@@ -49,13 +49,14 @@ export async function preparerEquipe(userId, db = pool) {
 }
 
 // Combat PVP : calcul, elo des deux joueurs, puis enregistrement (dans la transaction `db`).
-// Les variations d'elo sont gardées avec le résultat : { A, B, compte }.
+// Les variations d'elo sont gardées avec le résultat : { A, B, compte, applique } ;
+// elles ne touchent l'elo des joueurs qu'à la fin du replay (reglerEloTermines).
 async function enregistrerCombat(db, defi, equipeA, equipeB) {
   const resultat = combat(equipeA, equipeB);
   resultat.equipeA = equipeA;
   resultat.equipeB = equipeB;
   resultat.dureeMs = DELAI_INITIAL_MS + resultat.journal.length * PAS_MS;
-  resultat.elo = await appliquerElo(db, defi.de_user, defi.vers_user, resultat.vainqueur);
+  resultat.elo = await eloDuCombat(db, defi.de_user, defi.vers_user, resultat.vainqueur);
 
   const { rows } = await db.query(
     `INSERT INTO combats (defi_id, user_a, user_b, resultat)
@@ -69,6 +70,8 @@ async function enregistrerCombat(db, defi, equipeA, equipeB) {
 // (équipes non vides, combat enregistré). Une double réponse simultanée
 // est rejetée par traiterReponseDefi.
 export async function repondreDefi(userId, defiId, accepter) {
+  // Les combats déjà finis comptent dans l'elo de départ de celui-ci
+  if (accepter) await reglerEloTermines();
   return transaction(async (db) => {
     const defi = await traiterReponseDefi(db, userId, defiId, accepter);
     if (!accepter) return null;
@@ -153,8 +156,9 @@ export async function combatsDuJoueur(userId) {
     return {
       id: r.id,
       adversaire: monCamp === "A" ? r.pseudo_b : r.pseudo_a,
-      issue,
-      eloDelta: r.elo ? r.elo[monCamp] : null,
+      // Combat en cours : l'issue n'est pas encore publiée
+      issue: r.recent ? null : issue,
+      eloDelta: r.elo && !r.recent ? r.elo[monCamp] : null,
       recent: r.recent,
       lanceParMoi: !!r.lance_par_moi,
     };

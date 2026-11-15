@@ -19,7 +19,7 @@
     "blossoming": {
       "nom": "Floraison",
       "icone": "🌸",
-      "tiers": [{ "soinPct": 15 }, { "soinPct": 25 }, { "soinPct": 35 }, { "soinPct": 50 }, { "soinPct": 60 }]
+      "tiers": [{ "soinPct": 10 }, { "soinPct": 15 }, { "soinPct": 20 }, { "soinPct": 25 }, { "soinPct": 30 }]
     }
   }
 }
