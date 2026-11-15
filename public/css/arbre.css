@@ -1,4 +1,4 @@
-/* Arbre de compétences du starter (fenêtre ouverte depuis la page de tirage) */
+/* Arbre de compétences du starter (fenêtre ouverte depuis la barre du haut) */
 
 #arbre {
   position: fixed;
@@ -16,14 +16,16 @@
   background: var(--fond);
   border: 1px solid #3a3555;
   border-radius: 16px;
-  width: min(1000px, 100%);
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-  padding: 20px;
+  width: min(1200px, 100%);
+  height: calc(100vh - 32px);
+  height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
   position: relative;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
-.arbre-entete { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-right: 32px; }
+.arbre-entete { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-right: 32px; }
 .arbre-entete h2 { margin: 0; font-size: 20px; }
 #arbre-points {
   font-size: 13px;
@@ -34,9 +36,20 @@
   color: var(--texte-doux);
 }
 #arbre-points.a-depenser { background: var(--or); color: #1e1b2e; }
+#arbre-recentrer {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #3a3555;
+  background: #2a2640;
+  color: var(--texte);
+  cursor: pointer;
+}
+#arbre-recentrer:hover { border-color: var(--accent); }
 #arbre-fermer {
   position: absolute;
-  top: 12px;
+  top: 10px;
   right: 14px;
   background: none;
   border: none;
@@ -44,54 +57,114 @@
   font-size: 24px;
   cursor: pointer;
 }
-#arbre-message { min-height: 1.2em; margin: 8px 0 0; color: var(--or); font-size: 14px; }
+#arbre-message { min-height: 1.2em; margin: 6px 0; color: var(--or); font-size: 14px; }
 
-#arbre-branches { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 12px; }
-@media (max-width: 800px) {
-  #arbre-branches { grid-template-columns: 1fr; }
-}
+/* ---------- Vue SVG ---------- */
 
-.branche { background: var(--panneau); border: 1px solid var(--panneau-bord); border-radius: 12px; padding: 14px; }
-.branche h3 { margin: 0 0 12px; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
-.branche-pvp h3 { color: #ff6b6b; }
-.branche-farm h3 { color: var(--vert); }
-
-.branche-grille { position: relative; display: flex; flex-direction: column; gap: 28px; }
-.branche-grille svg.liens { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
-.branche-grille svg.liens line { stroke: #444; stroke-width: 2; }
-.branche-grille svg.liens line.actif { stroke: var(--or); }
-
-.rangee { display: flex; justify-content: center; gap: 10px; position: relative; }
-
-.noeud {
-  flex: 1 1 0;
-  max-width: 180px;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 2px solid #3a3a3a;
-  background: #242424;
-  color: var(--texte);
-  font: inherit;
-  text-align: center;
+#arbre-vue {
   position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #15131f;
+  border: 1px solid var(--panneau-bord);
 }
-.noeud strong { font-size: 14px; }
-.noeud .effet { font-size: 12px; color: var(--texte-doux); }
-.noeud .statut { font-size: 11px; color: #888; margin-top: 2px; }
+#arbre-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+#arbre-svg.glisse { cursor: grabbing; }
 
-.noeud.pris { border-color: var(--or); background: #2f2a1f; }
-.noeud.pris .statut { color: var(--or); font-weight: bold; }
+#arbre-svg line { stroke: #3d3b4a; stroke-width: 3; }
+#arbre-svg line.ouvert { stroke: rgba(255, 138, 61, 0.55); }
+#arbre-svg line.actif { stroke: var(--or); }
 
-.noeud.disponible {
-  border-color: var(--accent);
+.noeud { cursor: pointer; outline: none; }
+.noeud circle { fill: #242230; stroke: #55526a; stroke-width: 2; }
+.noeud text { text-anchor: middle; pointer-events: none; }
+.noeud .marque { font-size: 14px; font-weight: bold; fill: #8d8aa0; }
+.noeud .nom {
+  font-size: 12px;
+  fill: var(--texte-doux);
+  paint-order: stroke;
+  stroke: #15131f;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.noeud.pris circle { fill: #3a301f; stroke: var(--or); }
+.noeud.pris .marque { fill: var(--or); }
+.noeud.pris .nom { fill: var(--texte); }
+
+.noeud.disponible circle {
+  fill: #33261c;
+  stroke: var(--accent);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 6px rgba(255, 138, 61, 0.7));
+}
+.noeud.disponible .marque { fill: var(--accent); }
+.noeud.disponible .nom { fill: var(--texte); }
+
+.noeud.verrouille { opacity: 0.6; }
+
+.noeud.selection circle,
+.noeud:focus-visible circle { stroke: #fff; stroke-width: 4; }
+
+/* Centre et racines des bras : nom du bras, couleur du bras */
+.noeud.gratuit circle { fill: #2a2640; stroke-width: 3; }
+.noeud.gratuit .nom { font-size: 15px; font-weight: bold; }
+.noeud.branche-centre circle { stroke: var(--or); }
+.noeud.branche-farm.gratuit circle { stroke: var(--vert); }
+.noeud.branche-farm.gratuit .nom { fill: var(--vert); }
+.noeud.branche-pvp.gratuit circle { stroke: #ff6b6b; }
+.noeud.branche-pvp.gratuit .nom { fill: #ff6b6b; }
+.noeud.branche-strat.gratuit circle { stroke: #7fb4ff; }
+.noeud.branche-strat.gratuit .nom { fill: #7fb4ff; }
+
+/* Vue éloignée : seuls les noms des bras restent */
+#arbre-svg.loin .noeud:not(.gratuit) .nom { display: none; }
+
+/* ---------- Infobulle ---------- */
+
+#arbre-bulle {
+  position: absolute;
+  max-width: 240px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #24212f;
+  border: 1px solid #4a4560;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+  z-index: 1;
+}
+#arbre-bulle[hidden] { display: none; }
+#arbre-bulle strong { display: block; font-size: 15px; margin-bottom: 4px; }
+#arbre-bulle p { margin: 2px 0; color: var(--texte-doux); }
+#arbre-bulle .cout { color: var(--texte); margin-top: 6px; }
+#arbre-bulle .statut { font-size: 12px; }
+#arbre-bulle .statut.pris { color: var(--or); font-weight: bold; }
+#arbre-bulle .statut.verrouille { color: #ff8f8f; }
+#arbre-bulle button {
+  margin-top: 8px;
+  width: 100%;
+  font: inherit;
+  font-weight: bold;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #1e1b2e;
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(255, 138, 61, 0.35);
 }
-.noeud.disponible .statut { color: var(--accent); font-weight: bold; }
-.noeud.disponible:hover { background: #2f2a26; transform: translateY(-1px); }
+#arbre-bulle button:hover { filter: brightness(1.1); }
 
-.noeud.verrouille { opacity: 0.55; }
+@media (max-width: 600px) {
+  #arbre { padding: 8px; }
+  .arbre-fenetre { padding: 12px; height: calc(100vh - 16px); height: calc(100dvh - 16px); }
+  .arbre-entete h2 { font-size: 17px; }
+}

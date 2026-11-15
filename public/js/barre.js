@@ -56,9 +56,13 @@ const Barre = (() => {
         <div class="arbre-entete">
           <h2>Arbre de compétences</h2>
           <span id="arbre-points"></span>
+          <button id="arbre-recentrer" type="button">Recentrer</button>
         </div>
         <p id="arbre-message"></p>
-        <div id="arbre-branches"></div>
+        <div id="arbre-vue">
+          <svg id="arbre-svg" aria-label="Nœuds de l'arbre"><g id="arbre-monde"></g></svg>
+          <div id="arbre-bulle" hidden></div>
+        </div>
       </div>
     </div>`);
 

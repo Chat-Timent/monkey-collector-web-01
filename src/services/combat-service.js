@@ -30,7 +30,7 @@ export async function preparerEquipe(userId, db = pool) {
     const niveau = getNiveau(e.rarete, amount).niveau;
     const s = statsFinales(e, niveau);
     const perk = perks[espece] ?? null;
-    // Peau de fer : défense du porteur augmentée de defensePct %
+    // Peau de fer : défense du porteur augmentée de defensePct % (de sa défense de base, sans l'arbre)
     const bonusDef = bonusDefense(perk, s.def);
     slots[slot - 1] = {
       id: espece,
@@ -38,7 +38,9 @@ export async function preparerEquipe(userId, db = pool) {
       image: getImageUrl(espece),
       rarete: e.rarete,
       categorie: e.categorie,
-      hp: s.hp, atk: Math.round(s.atk * (1 + effets.atk_pct)), def: s.def + bonusDef,
+      hp: Math.round(s.hp * (1 + effets.hp_pct)),
+      atk: Math.round(s.atk * (1 + effets.atk_pct)),
+      def: Math.round(s.def * (1 + effets.def_pct)) + bonusDef,
       spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
       crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
       perk,

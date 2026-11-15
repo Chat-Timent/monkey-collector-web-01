@@ -6,10 +6,14 @@ import { RESONANCES, appliquerResonances, resonancesActives } from "../src/game/
 import { SINGES } from "../src/game/monkeys.js";
 import { getEspece, getImageUrl, getNiveau, statsFinales } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
-import { agregerEffets, etatArbre, pointsDepenses } from "../src/game/starter-arbre.js";
+import {
+  ARBRE, COURBE_COUTS, agregerEffets, coutAttendu, estGratuit, etatArbre, noeudsPris, peutPrendre,
+  pointsDepenses, profondeurs, validerArbre, voisins,
+} from "../src/game/starter-arbre.js";
+import { nbSlots } from "../src/services/arbre-service.js";
 import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../src/game/quota.js";
 import { ennemisEtage, recompensesEtage, singeBonus } from "../src/game/aventure.js";
-import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles } from "../src/game/ressources.js";
+import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsDisponibles, ticketsParJour } from "../src/game/ressources.js";
 import { calculerElo } from "../src/game/elo.js";
 import { bonusDefense, effetPerk, perkExiste, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
@@ -240,32 +244,139 @@ test("une erreur métier peut renvoyer des détails au client", () => {
   assert.deepEqual(corps, { quota: { restants: 0 }, erreur: "plus de tirages" });
 });
 
-test("l'arbre du starter : 1 point par niveau gagné, prérequis respectés", () => {
-  const arbre = {
-    "a.racine": { branche: "farm", nom: "R", cout: 1, prerequis: [], mode: "tous", effet: {} },
-    "a.un": { branche: "farm", nom: "Un", cout: 1, prerequis: ["a.racine"], mode: "tous", effet: { xp_pct: 0.05 } },
-    "a.deux": { branche: "farm", nom: "Deux", cout: 2, prerequis: ["a.racine"], mode: "tous", effet: { xp_pct: 0.1 } },
-    "a.les2": { branche: "farm", nom: "Les2", cout: 1, prerequis: ["a.un", "a.deux"], mode: "tous", effet: {} },
-    "a.l1": { branche: "farm", nom: "L1", cout: 1, prerequis: ["a.un", "a.deux"], mode: "au_moins_un", effet: {} },
+// Petit arbre de test : centre gratuit, une racine gratuite, deux chemins qui se rejoignent
+function arbreTest(extra = {}) {
+  const n = (branche, cout, liens, effet = {}, plus = {}) => ({ branche, nom: "N", cout, x: 0, y: 0, liens, effet, ...plus });
+  return {
+    centre: n("centre", 0, ["a.racine"]),
+    "a.racine": n("farm", 0, []),
+    "a.un": n("farm", 1, ["a.racine"], { xp_pct: 0.05 }),
+    "a.deux": n("farm", 2, ["a.racine"], { xp_pct: 0.1 }),
+    "a.bout": n("farm", 1, ["a.un", "a.deux"]),
+    "a.loin": n("farm", 3, ["a.bout"], { slots_bonus: 1 }, { multiplicateur: 2 }),
+    ...extra,
   };
+}
+
+test("l'arbre du starter : 1 point par niveau gagné, nœuds gratuits pris d'office", () => {
+  const arbre = arbreTest();
   const etat = (niveau, pris) => Object.fromEntries(etatArbre(niveau, pris, arbre).noeuds.map((n) => [n.id, n.etat]));
 
-  // Niveau 1 : aucun point
+  // Niveau 1 : aucun point ; le centre et la racine sont déjà pris, sans rien coûter
   assert.equal(etatArbre(1, [], arbre).points, 0);
-  assert.equal(etat(1, [])["a.racine"], "verrouille");
-  // Niveau 2 : 1 point, seule la racine est disponible
-  assert.deepEqual(etat(2, []), { "a.racine": "disponible", "a.un": "verrouille", "a.deux": "verrouille", "a.les2": "verrouille", "a.l1": "verrouille" });
-  // Le coût compte : a.deux coûte 2 points
-  assert.equal(pointsDepenses(["a.racine", "a.deux"], arbre), 3);
-  assert.equal(etat(3, ["a.racine"])["a.deux"], "verrouille");
-  assert.equal(etat(4, ["a.racine"])["a.deux"], "disponible");
-  // Mode "tous" contre "au_moins_un"
-  const e = etat(10, ["a.racine", "a.un"]);
-  assert.equal(e["a.les2"], "verrouille");
-  assert.equal(e["a.l1"], "disponible");
+  const debut = etat(1, []);
+  assert.equal(debut.centre, "pris");
+  assert.equal(debut["a.racine"], "pris");
+  assert.equal(debut["a.un"], "verrouille");
+  assert.deepEqual([...noeudsPris([], arbre)].sort(), ["a.racine", "centre"]);
+  // Niveau 2 : 1 point, les nœuds reliés à la racine deviennent disponibles selon leur coût
+  assert.deepEqual(etat(2, []), {
+    centre: "pris", "a.racine": "pris", "a.un": "disponible", "a.deux": "verrouille", "a.bout": "verrouille", "a.loin": "verrouille",
+  });
+  assert.equal(etat(3, [])["a.deux"], "disponible");
+  // Le coût compte ; une ligne en base pour un nœud gratuit ne coûte rien
+  assert.equal(pointsDepenses(["a.un", "a.deux", "centre"], arbre), 3);
   // Effets cumulés ; un nœud retiré du JSON est ignoré et remboursé
-  assert.ok(Math.abs(etatArbre(10, ["a.racine", "a.un", "a.deux", "disparu"], arbre).effets.xp_pct - 0.15) < 1e-9);
-  assert.equal(etatArbre(10, ["a.racine", "disparu"], arbre).points, 8);
+  assert.ok(Math.abs(etatArbre(10, ["a.un", "a.deux", "disparu"], arbre).effets.xp_pct - 0.15) < 1e-9);
+  assert.equal(etatArbre(10, ["a.un", "disparu"], arbre).points, 8);
+});
+
+test("l'arbre du starter : un nœud se débloque s'il est relié à au moins un nœud pris", () => {
+  const arbre = arbreTest();
+  const pris = (...ids) => noeudsPris(ids, arbre);
+  // a.bout touche a.un et a.deux : un seul des deux suffit (liens non orientés)
+  assert.deepEqual(peutPrendre("a.bout", pris(), 10, arbre), { ok: false, raison: "aucun nœud relié" });
+  assert.deepEqual(peutPrendre("a.bout", pris("a.un"), 10, arbre), { ok: true });
+  assert.deepEqual(peutPrendre("a.bout", pris("a.deux"), 10, arbre), { ok: true });
+  // Un lien déclaré d'un seul côté vaut dans les deux sens
+  assert.ok(voisins(arbre)["a.un"].has("a.bout"));
+  assert.ok(voisins(arbre)["a.racine"].has("centre"));
+  // Autres refus
+  assert.deepEqual(peutPrendre("a.bout", pris("a.un"), 0, arbre), { ok: false, raison: "points insuffisants" });
+  assert.deepEqual(peutPrendre("a.un", pris("a.un"), 10, arbre), { ok: false, raison: "déjà pris" });
+  assert.deepEqual(peutPrendre("a.racine", pris(), 10, arbre), { ok: false, raison: "déjà pris" });
+  assert.deepEqual(peutPrendre("inconnu", pris(), 10, arbre), { ok: false, raison: "nœud inconnu" });
+});
+
+test("l'arbre du starter : le JSON est vérifié au chargement", () => {
+  const noeud = (cout, liens, effet = {}) => ({ branche: "farm", nom: "X", cout, x: 0, y: 0, liens, effet });
+  assert.doesNotThrow(() => validerArbre(arbreTest()));
+  // Coût 0 autorisé seulement pour un nœud sans effet
+  assert.throws(() => validerArbre(arbreTest({ "a.x": noeud(0, ["a.un"], { xp_pct: 0.1 }) })), /gratuit/);
+  assert.doesNotThrow(() => validerArbre(arbreTest({ "a.x": noeud(0, ["a.un"]) })));
+  // Lien inconnu, nœud isolé, effet inconnu
+  assert.throws(() => validerArbre(arbreTest({ "a.x": noeud(1, ["nulle.part"]) })), /lien inconnu/);
+  assert.throws(() => validerArbre(arbreTest({ "a.x": noeud(1, []) })), /aucun chemin/);
+  assert.throws(() => validerArbre(arbreTest({ "a.x": noeud(1, ["a.un"], { vol: 1 }) })), /effet inconnu/);
+  // Le vrai arbre est valide et tous ses nœuds sont reliés au centre
+  assert.doesNotThrow(() => validerArbre(ARBRE));
+});
+
+test("l'arbre du starter : le coût suit la profondeur depuis le centre", () => {
+  // Profondeur = nombre minimal de nœuds payants depuis le centre, le nœud compris
+  const petit = arbreTest();
+  assert.deepEqual(profondeurs(petit), { centre: 0, "a.racine": 0, "a.un": 1, "a.deux": 1, "a.bout": 2, "a.loin": 3 });
+  assert.equal(coutAttendu("a.loin", petit), Math.round(COURBE_COUTS[2] * 2));
+
+  // La courbe commence à 1 et ne descend jamais
+  assert.equal(COURBE_COUTS[0], 1);
+  for (let i = 1; i < COURBE_COUTS.length; i++) assert.ok(COURBE_COUTS[i] >= COURBE_COUTS[i - 1]);
+
+  // Dans le vrai arbre, chaque coût vaut arrondi(courbe[profondeur] × multiplicateur)
+  const prof = profondeurs(ARBRE);
+  for (const [id, noeud] of Object.entries(ARBRE)) {
+    const attendu = coutAttendu(id, ARBRE, prof);
+    assert.equal(noeud.cout, attendu, `coût de ${id} : attendu ${attendu} (profondeur ${prof[id]})`);
+    // Un nœud payant ne coûte jamais moins qu'un voisin plus proche du centre (à multiplicateur égal ou moindre)
+    if (estGratuit(noeud)) continue;
+    for (const v of voisins(ARBRE)[id]) {
+      if (prof[v] < prof[id] && (ARBRE[v].multiplicateur ?? 1) <= (noeud.multiplicateur ?? 1)) {
+        assert.ok(noeud.cout >= ARBRE[v].cout, `${id} coûte moins que ${v}`);
+      }
+    }
+  }
+  // Premier nœud de chaque bras à 1 point ; le centre et les racines sont gratuits
+  for (const id of ["farm.xp_1", "farm.coins_1", "pvp.atk_1", "pvp.prec_1", "strat.hp_1", "strat.def_1"]) assert.equal(ARBRE[id].cout, 1);
+  for (const id of ["centre", "farm.racine", "pvp.racine", "strat.racine"]) assert.equal(ARBRE[id].cout, 0);
+});
+
+test("l'arbre du starter : agrégation des nouveaux effets et plafonds", () => {
+  const effets = agregerEffets(["farm.xp_1", "farm.xp_2", "farm.xp_3", "farm.coins_1", "farm.coins_2",
+    "farm.reset_1", "farm.reserve_1", "farm.copie_1", "farm.copie_2", "pvp.atk_1", "pvp.atk_2",
+    "pvp.crit_1", "pvp.crit_2", "pvp.critdmg_1", "pvp.critdmg_2", "strat.hp_1", "strat.def_1", "strat.cle_donjon"]);
+  const proche = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≠ ${b}`);
+  proche(effets.xp_pct, 0.25);
+  proche(effets.coins_pct, 0.15);
+  proche(effets.copie_bonus, 0.07);
+  proche(effets.atk_pct, 0.07);
+  proche(effets.hp_pct, 0.04);
+  proche(effets.def_pct, 0.04);
+  assert.equal(effets.tirages_max, 20);
+  assert.equal(effets.recharge_sec, 2);
+  assert.equal(effets.crit_flat, 6);
+  assert.equal(effets.critdmg_flat, 25);
+  assert.equal(effets.tickets_donjon, 1);
+  assert.deepEqual(parametresQuota(effets), { max: 120, intervalleMs: 28 * 1000 });
+  assert.equal(nbSlots(agregerEffets(["pvp.slot_1", "strat.slot_2"])), 8);
+
+  // Plafonds : +3 emplacements, +15 de critique
+  const arbre = arbreTest({
+    "a.s": { branche: "farm", nom: "S", cout: 1, x: 0, y: 0, liens: ["a.un"], effet: { slots_bonus: 5, crit_flat: 40 } },
+  });
+  const plafonne = agregerEffets(["a.s"], arbre);
+  assert.equal(plafonne.slots_bonus, 3);
+  assert.equal(plafonne.crit_flat, 15);
+});
+
+test("Clé de donjon : un ticket de plus par jour dans chaque donjon", () => {
+  const avecCle = agregerEffets(["strat.cle_donjon"]);
+  assert.equal(ticketsParJour(agregerEffets([])), 2);
+  assert.equal(ticketsParJour(avecCle), 3);
+  // Nouveau jour (ou première visite) : stock plein, bonus compris
+  assert.equal(ticketsDisponibles(null, "2026-11-15", undefined, avecCle), 3);
+  assert.equal(ticketsDisponibles({ jour: "2026-11-14", tickets: 0 }, "2026-11-15", undefined, avecCle), 3);
+  // Jour en cours : le stock enregistré fait foi
+  assert.equal(ticketsDisponibles({ jour: "2026-11-15", tickets: 1 }, "2026-11-15", undefined, avecCle), 1);
 });
 
 test("les gains du tirage suivent les effets de l'arbre", () => {

@@ -2,7 +2,8 @@ import { pool, transaction } from "../config/database.js";
 import { DELAI_INITIAL_MS, PAS_MS } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { combat } from "../game/combat-engine.js";
-import { RESSOURCES, donjonExiste, ennemisDonjon, gainDonjon, jourParis, ticketsDisponibles } from "../game/ressources.js";
+import { RESSOURCES, donjonExiste, ennemisDonjon, gainDonjon, jourParis, ticketsDisponibles, ticketsParJour } from "../game/ressources.js";
+import { effetsDuJoueur } from "./arbre-service.js";
 import { combatEnCours, preparerEquipe } from "./combat-service.js";
 import { gagnerRecompense, getStarter } from "./starter-service.js";
 import { ajouterTirages } from "./tirage-service.js";
@@ -15,10 +16,12 @@ async function lireProgression(userId, db = pool) {
   return Object.fromEntries(rows.map((r) => [r.donjon, r]));
 }
 
-// Ce qu'affiche la page Ressources : pour chaque donjon, palier, gain, tickets ;
+// Ce qu'affiche la page Ressources : pour chaque donjon, palier, gain, tickets (Clé de donjon comprise) ;
 // et le combat de donjon en cours de replay s'il y en a un.
 export async function getRessources(userId) {
-  const [progression, enCours] = await Promise.all([lireProgression(userId), combatEnCours(userId, "ressource")]);
+  const [progression, enCours, effets] = await Promise.all([
+    lireProgression(userId), combatEnCours(userId, "ressource"), effetsDuJoueur(userId),
+  ]);
   const aujourdhui = jourParis();
   const donjons = Object.entries(RESSOURCES.donjons).map(([id, d]) => {
     const palier = progression[id]?.palier ?? 1;
@@ -28,8 +31,8 @@ export async function getRessources(userId) {
       icone: d.icone,
       palier,
       gain: gainDonjon(id, palier),
-      tickets: ticketsDisponibles(progression[id], aujourdhui),
-      ticketsMax: RESSOURCES.ticketsParJour,
+      tickets: ticketsDisponibles(progression[id], aujourdhui, RESSOURCES, effets),
+      ticketsMax: ticketsParJour(effets),
     };
   });
   return { donjons, combatEnCours: enCours };
@@ -52,7 +55,7 @@ export async function lancerCombatRessource(userId, donjon) {
     );
     const ligne = rows[0];
     const aujourdhui = jourParis();
-    const tickets = ticketsDisponibles(ligne, aujourdhui);
+    const tickets = ticketsDisponibles(ligne, aujourdhui, RESSOURCES, await effetsDuJoueur(userId, db));
     if (tickets <= 0) throw new ErreurJeu("plus de ticket pour ce donjon aujourd'hui, reviens demain");
 
     if (await combatEnCours(userId, "ressource", db)) throw new ErreurJeu("un combat de donjon est déjà en cours");

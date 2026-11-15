@@ -1,7 +1,7 @@
 import { pool, transaction } from "../config/database.js";
 import { LOTERIE_CHANCE_BASE, NB_SLOTS_BASE } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
-import { agregerEffets, ARBRE, etatArbre, peutPrendre, pointsDepenses, pointsDisponibles } from "../game/starter-arbre.js";
+import { agregerEffets, ARBRE, etatArbre, noeudsPris, peutPrendre, pointsDepenses, pointsDisponibles } from "../game/starter-arbre.js";
 import { getStarter } from "./starter-service.js";
 
 export async function lireNoeudsPris(userId, db = pool) {
@@ -14,7 +14,7 @@ export async function effetsDuJoueur(userId, db = pool) {
   return agregerEffets(await lireNoeudsPris(userId, db));
 }
 
-// Emplacements d'équipe : 6 de base, plus le bonus de l'arbre (rang de renfort).
+// Emplacements d'équipe : 6 de base, plus le bonus de l'arbre (rangs de renfort, d'élite…).
 export function nbSlots(effets) {
   return NB_SLOTS_BASE + effets.slots_bonus;
 }
@@ -29,8 +29,8 @@ export async function getPointsArbre(userId, niveau) {
   return pointsDisponibles(niveau, pointsDepenses(await lireNoeudsPris(userId)));
 }
 
-// Débloque un nœud. La ligne du starter est verrouillée : deux déblocages simultanés
-// ne peuvent pas dépenser le même point.
+// Débloque un nœud (les nœuds gratuits sont pris d'office et jamais enregistrés).
+// La ligne du starter est verrouillée : deux déblocages simultanés ne peuvent pas dépenser le même point.
 export async function prendreNoeud(userId, noeud) {
   if (typeof noeud !== "string" || !Object.hasOwn(ARBRE, noeud)) throw new ErreurJeu("nœud inconnu");
 
@@ -38,7 +38,7 @@ export async function prendreNoeud(userId, noeud) {
     const starter = await getStarter(userId, db, { verrouiller: true });
     if (!starter) throw new ErreurJeu("aucun starter, choisis-en un d'abord");
 
-    const pris = new Set(await lireNoeudsPris(userId, db));
+    const pris = noeudsPris(await lireNoeudsPris(userId, db));
     const points = pointsDisponibles(starter.niveau, pointsDepenses(pris));
     const verdict = peutPrendre(noeud, pris, points);
     if (!verdict.ok) throw new ErreurJeu(`impossible de débloquer ce nœud : ${verdict.raison}`);
