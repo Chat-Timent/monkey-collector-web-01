@@ -217,7 +217,7 @@
   "glucide_monkey": {
     "id": 47, "nom": "Glucide Monkey", "description": "C'est quoi cette gueule de glucide là ?", "rarete": "legendary", "categorie": "Tristesse",
     "base": { "hp": 4127, "atk": 402, "def": 550, "spd": 113, "prec": 14, "esq": 12, "crit": 7, "critdmg": 162 },
-    "croissance": { "hp": 200, "atk": 21, "def": 42, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+    "croissance": { "hp": 230, "atk": 20, "def": 38, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "king_monkey": {
     "id": 48, "nom": "King Monkey", "description": "Le roi de la jungle.", "rarete": "mythic", "categorie": "Sang-froid",
