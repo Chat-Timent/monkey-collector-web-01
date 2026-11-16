@@ -4,6 +4,7 @@
     "icone": "🔮",
     "actif": true,
     "tousLes": 3,
-    "critMult": 2.5
+    "critMult": 2.5,
+    "percePct": 50
   }
 }

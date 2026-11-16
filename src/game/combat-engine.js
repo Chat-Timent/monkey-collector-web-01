@@ -50,7 +50,8 @@ function floraison(camp, tour, journal) {
 }
 
 // Compétence Présage : tous les `tousLes` tours, le porteur frappe le singe vivant le plus bas en PV
-// du groupe actif adverse (même face à un taunt), sans pouvoir rater, d'un coup critique à `critMult` × les dégâts.
+// du groupe actif adverse (même face à un taunt), sans pouvoir rater, d'un coup critique à `critMult` × les dégâts
+// qui ignore `percePct` % de la défense de la cible.
 function presageDeclenche(attaquant, tour) {
   const c = attaquant.competence;
   return c?.id === "presage" && tour % c.tousLes === 0;
@@ -115,7 +116,8 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
         }
 
         const critique = presage || hasard() * 100 < attaquant.crit;
-        let degats = degatsDe(attaquant.atk, cible.def);
+        const defense = presage ? cible.def * (1 - (attaquant.competence.percePct ?? 0) / 100) : cible.def;
+        let degats = degatsDe(attaquant.atk, defense);
         if (presage) degats = Math.round(degats * attaquant.competence.critMult);
         else if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
 
