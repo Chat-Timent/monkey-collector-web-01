@@ -91,6 +91,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /arbre/noeuds",
     "POST /aventure/combat",
     "POST /chat",
+    "POST /combats/:id/fin",
     "POST /combats/:id/messages",
     "POST /connexion",
     "POST /deconnexion",

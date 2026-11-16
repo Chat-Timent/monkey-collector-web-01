@@ -6,6 +6,9 @@
   <title>Combat en direct</title>
   <link rel="stylesheet" href="/css/commun.css">
   <style>
+    /* Vitesse du replay (sélecteur x0.5 à x4) : divise la durée des animations */
+    :root { --vitesse: 1; }
+
     body {
       font-family: system-ui, sans-serif;
       background: #161616;
@@ -51,7 +54,7 @@
       border-radius: 12px;
       padding: 10px;
       text-align: center;
-      transition: transform 0.2s, opacity 0.4s, filter 0.4s;
+      transition: transform calc(0.2s / var(--vitesse)), opacity calc(0.4s / var(--vitesse)), filter calc(0.4s / var(--vitesse));
     }
     .carte.moi { border-color: #2e6b3a; }
     .carte.adv { border-color: #6b2e2e; }
@@ -67,7 +70,7 @@
     .carte img { width: 70px; height: 70px; object-fit: contain; }
     .carte .nom { display: block; font-size: 13px; font-weight: bold; margin: 4px 0; }
     .barre { height: 8px; background: #333; border-radius: 4px; overflow: hidden; }
-    .barre div { height: 100%; background: #4caf50; transition: width 0.6s; }
+    .barre div { height: 100%; background: #4caf50; transition: width calc(0.6s / var(--vitesse)); }
     .carte .pv { font-size: 11px; color: #bbb; margin-top: 3px; }
 
     .carte.attaque {
@@ -75,7 +78,7 @@
       border-color: #ffb86b;
       box-shadow: 0 0 14px rgba(255, 184, 107, 0.5);
     }
-    .carte.touche { animation: secousse 0.4s; }
+    .carte.touche { animation: secousse calc(0.4s / var(--vitesse)); }
     .carte.mort { filter: grayscale(1); opacity: 0.4; }
 
     .bulle {
@@ -87,7 +90,7 @@
       font-size: 16px;
       white-space: nowrap;
       pointer-events: none;
-      animation: monte 1s forwards;
+      animation: monte calc(1s / var(--vitesse)) forwards;
     }
     .bulle.degats { color: #ff6b6b; }
     .bulle.rate { color: #bbb; }
@@ -99,14 +102,14 @@
     .carte.presage-lanceur {
       transform: scale(1.1);
       border-color: #E01E1E;
-      animation: aura 0.7s ease-in-out;
+      animation: aura calc(0.7s / var(--vitesse)) ease-in-out;
     }
-    .carte.touche-fort { animation: secousse-forte 0.6s; border-color: #E01E1E; }
+    .carte.touche-fort { animation: secousse-forte calc(0.6s / var(--vitesse)); border-color: #E01E1E; }
     .bulle.presage {
       color: #FF6B5B;
       font-size: 22px;
       text-shadow: 0 0 8px #E01E1E;
-      animation: monte-fort 1.2s forwards;
+      animation: monte-fort calc(1.2s / var(--vitesse)) forwards;
     }
 
     @keyframes secousse {
@@ -212,6 +215,35 @@
       gap: 6px;
       padding-right: 4px;
     }
+    /* Sélecteur de vitesse, collé au bord droit (combats PVE uniquement) */
+    #vitesse {
+      position: fixed;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 6px;
+      background: #242424;
+      border: 1px solid #333;
+      border-right: none;
+      border-radius: 10px 0 0 10px;
+    }
+    #vitesse[hidden] { display: none; }
+    #vitesse button {
+      min-width: 44px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #333;
+      background: #1e1e1e;
+      color: #bbb;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    #vitesse button.actif { background: #ffb86b; border-color: #ffb86b; color: #161616; }
   </style>
 </head>
 <body>
@@ -228,6 +260,8 @@
   </div>
 
   <div id="banniere">Chargement…</div>
+
+  <div id="vitesse" title="Vitesse du combat" hidden></div>
 
   <div class="camp">
     <h2 id="titre-moi"></h2>
@@ -262,6 +296,11 @@
 
     // Rythme du replay, fourni par le serveur avec le combat
     let pasMs = 0;
+
+    // Vitesse d'affichage du replay (PVE uniquement), retenue pour les combats suivants
+    const VITESSES = [0.5, 1, 2, 4];
+    const CLE_VITESSE = "vitesseCombat";
+    let vitesse = 1;
 
     let resultat = null;
     let eloDelta = null;
@@ -364,8 +403,9 @@
       appliquer(e);
     }
 
-    function terminer(redirigerEnDirect) {
+    async function terminer(redirigerEnDirect) {
       clearTimeout(timer);
+      timer = null;
       actif = null;
       fx = null;
       dessiner();
@@ -374,6 +414,11 @@
       $("resultat").textContent = v === null ? "Match nul" : v === monCamp ? "Victoire !" : "Défaite";
       if (eloDelta !== null && eloDelta !== undefined) {
         $("resultat").textContent += eloDelta > 0 ? ` +${eloDelta} elo` : eloDelta < 0 ? ` −${-eloDelta} elo` : " ±0 elo";
+      }
+
+      // Replay PVE fini en accéléré : le serveur avance la fin du combat pour qu'on puisse enchaîner
+      if (mode !== "pvp" && redirigerEnDirect && vitesse > 1) {
+        await api(`/combats/${idCombat}/fin`, { corps: {} });
       }
 
       if (mode === "aventure") {
@@ -428,7 +473,44 @@
       if (e.type !== "KO") { actif = null; fx = null; }
       appliquer(e);
       dessiner();
-      timer = setTimeout(pas, pasMs);
+      timer = setTimeout(pas, pasMs / vitesse);
+    }
+
+    // ---------- Vitesse ----------
+
+    function lireVitesse() {
+      try {
+        const v = Number(localStorage.getItem(CLE_VITESSE));
+        return VITESSES.includes(v) ? v : 1;
+      } catch {
+        return 1;
+      }
+    }
+
+    function appliquerVitesse(v) {
+      vitesse = v;
+      document.documentElement.style.setProperty("--vitesse", v);
+      for (const b of $("vitesse").children) b.classList.toggle("actif", Number(b.dataset.v) === v);
+    }
+
+    function choisirVitesse(v) {
+      appliquerVitesse(v);
+      try { localStorage.setItem(CLE_VITESSE, String(v)); } catch {}
+      // Combat en cours : le prochain coup part tout de suite au nouveau rythme
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = setTimeout(pas, pasMs / vitesse);
+      }
+    }
+
+    function afficherSelecteurVitesse() {
+      $("vitesse").innerHTML = VITESSES.map((v) => `<button type="button" data-v="${v}">x${v}</button>`).join("");
+      $("vitesse").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (b) choisirVitesse(Number(b.dataset.v));
+      });
+      $("vitesse").hidden = false;
+      appliquerVitesse(lireVitesse());
     }
 
     // ---------- Chat ----------
@@ -505,7 +587,8 @@
       journal = resultat.journal;
 
       const ecoule = Math.max(0, data.ecouleMs - data.delaiInitialMs);
-      const cible = Math.min(journal.length, Math.floor(ecoule / pasMs));
+      const fini = resultat.dureeMs !== undefined && data.ecouleMs >= resultat.dureeMs;
+      const cible = fini ? journal.length : Math.min(journal.length, Math.floor(ecoule / pasMs));
       for (index = 0; index < cible; index++) appliquerSansAnimation(journal[index]);
 
       dessiner();
@@ -514,6 +597,7 @@
         // Combat PVE (Aventure ou donjon) : pas de chat, retour vers la page du mode
         $("colonnes").classList.add("sans-chat");
         document.querySelector("header a.lien").href = mode === "ressource" ? "/ressources.html" : "/aventure.html";
+        afficherSelecteurVitesse();
       } else {
         // Chat : on charge tout l'historique du combat, puis on interroge régulièrement
         await rafraichirChat();
@@ -525,7 +609,7 @@
         terminer(false);
       } else {
         $("banniere").textContent = "En direct";
-        timer = setTimeout(pas, pasMs);
+        timer = setTimeout(pas, pasMs / vitesse);
       }
     }
 

@@ -1,16 +1,16 @@
 {
   "basic_monkey": {
-    "id": 1, "nom": "Basic Monkey", "description": "Just a monkey.", "rarete": "common", "categorie": "Joie",
+    "id": 1, "nom": "Basic Monkey", "description": "Juste un singe.", "rarete": "common", "categorie": "Joie",
     "base": { "hp": 1782, "atk": 347, "def": 274, "spd": 99, "prec": 5, "esq": 6, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 77, "atk": 20, "def": 20, "spd": 1, "prec": 0, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "joy_monkey": {
-    "id": 2, "nom": "Joy Monkey", "description": "He is always willing to laugh at your jokes.", "rarete": "common", "categorie": "Joie",
+    "id": 2, "nom": "Joy Monkey", "description": "Il sera toujours là pour rire à tes blagues.", "rarete": "common", "categorie": "Joie",
     "base": { "hp": 1750, "atk": 354, "def": 267, "spd": 100, "prec": 6, "esq": 5, "crit": 6, "critdmg": 153 },
     "croissance": { "hp": 57, "atk": 24, "def": 19, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "crying_monkey": {
-    "id": 3, "nom": "Crying Monkey", "description": "Oh no monkey is crying...", "rarete": "common", "categorie": "Tristesse",
+    "id": 3, "nom": "Crying Monkey", "description": "Pleure pas zemel...", "rarete": "common", "categorie": "Tristesse",
     "base": { "hp": 1926, "atk": 318, "def": 305, "spd": 98, "prec": 4, "esq": 8, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 45, "atk": 27, "def": 15, "spd": 0, "prec": 0, "esq": 1, "crit": 0, "critdmg": 0 }
   },
@@ -20,17 +20,17 @@
     "croissance": { "hp": 72, "atk": 26, "def": 8, "spd": 1, "prec": 0, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "love_monkey": {
-    "id": 5, "nom": "Love Monkey", "description": "Monkey has a girlfriend now.", "rarete": "common", "categorie": "Amour",
+    "id": 5, "nom": "Love Monkey", "description": "Monkey a une meuf maintenant.", "rarete": "common", "categorie": "Amour",
     "base": { "hp": 1615, "atk": 364, "def": 292, "spd": 100, "prec": 5, "esq": 6, "crit": 6, "critdmg": 153 },
     "croissance": { "hp": 99, "atk": 19, "def": 14, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "smirking_monkey": {
-    "id": 6, "nom": "Smirking Monkey", "description": "Hey girl, can I take you to a date?", "rarete": "common", "categorie": "Joie",
+    "id": 6, "nom": "Smirking Monkey", "description": "Il te propose un date, ta réaction ?", "rarete": "common", "categorie": "Joie",
     "base": { "hp": 1616, "atk": 367, "def": 284, "spd": 100, "prec": 6, "esq": 5, "crit": 6, "critdmg": 155 },
     "croissance": { "hp": 53, "atk": 30, "def": 8, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "laughing_monkey": {
-    "id": 17, "nom": "Laughing Monkey", "description": "A monkey who loves to laugh.", "rarete": "common", "categorie": "Joie",
+    "id": 17, "nom": "Laughing Monkey", "description": "Il adore rire.", "rarete": "common", "categorie": "Joie",
     "base": { "hp": 2210, "atk": 314, "def": 233, "spd": 97, "prec": 4, "esq": 7, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 129, "atk": 16, "def": 16, "spd": 0, "prec": 0, "esq": 1, "crit": 0, "critdmg": 0 }
   },
@@ -40,47 +40,47 @@
     "croissance": { "hp": 110, "atk": 18, "def": 14, "spd": 0, "prec": 0, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "sweating_monkey": {
-    "id": 18, "nom": "Sweating Monkey", "description": "Embarassing...", "rarete": "common", "categorie": "Tristesse",
+    "id": 18, "nom": "Sweating Monkey", "description": "Malaise...", "rarete": "common", "categorie": "Tristesse",
     "base": { "hp": 1877, "atk": 319, "def": 319, "spd": 97, "prec": 4, "esq": 8, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 85, "atk": 14, "def": 36, "spd": 0, "prec": 0, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "inlove_monkey": {
-    "id": 20, "nom": "In Love Monkey", "description": "A monkey who is ... in love 👉 👈 ❤", "rarete": "common", "categorie": "Amour",
+    "id": 20, "nom": "In Love Monkey", "description": "Je crois qu'il est... amoureux 👉 👈 ❤", "rarete": "common", "categorie": "Amour",
     "base": { "hp": 1971, "atk": 324, "def": 273, "spd": 98, "prec": 4, "esq": 6, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 94, "atk": 21, "def": 11, "spd": 1, "prec": 0, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "relieved_monkey": {
-    "id": 24, "nom": "Relieved Monkey", "description": "I aspire to be as relaxed as him to be honest...", "rarete": "common", "categorie": "Tristesse",
+    "id": 24, "nom": "Relieved Monkey", "description": "J'aimerais être aussi apaisé que lui...", "rarete": "common", "categorie": "Tristesse",
     "base": { "hp": 2097, "atk": 323, "def": 239, "spd": 97, "prec": 4, "esq": 7, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 42, "atk": 20, "def": 33, "spd": 0, "prec": 0, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "nomouth_monkey": {
-    "id": 26, "nom": "No Mouth Monkey", "description": "Blud got nothing to say anymore.", "rarete": "common", "categorie": "Sang-froid",
+    "id": 26, "nom": "No Mouth Monkey", "description": "Blud n'a plus rien à dire.", "rarete": "common", "categorie": "Sang-froid",
     "base": { "hp": 1545, "atk": 370, "def": 306, "spd": 100, "prec": 6, "esq": 6, "crit": 6, "critdmg": 155 },
     "croissance": { "hp": 129, "atk": 16, "def": 11, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "expressionless_monkey": {
-    "id": 28, "nom": "Expressionless Monkey", "description": "He is so done with this.", "rarete": "common", "categorie": "Sang-froid",
+    "id": 28, "nom": "Expressionless Monkey", "description": "Il en a plus qu'assez.", "rarete": "common", "categorie": "Sang-froid",
     "base": { "hp": 1677, "atk": 357, "def": 286, "spd": 99, "prec": 5, "esq": 6, "crit": 5, "critdmg": 153 },
     "croissance": { "hp": 116, "atk": 15, "def": 21, "spd": 1, "prec": 0, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "pensive_monkey": {
-    "id": 29, "nom": "Pensive Monkey", "description": "Poor monkey... What happened ?", "rarete": "common", "categorie": "Tristesse",
+    "id": 29, "nom": "Pensive Monkey", "description": "Pauvre Monkey... Qu'est-ce qu'il se passe ?", "rarete": "common", "categorie": "Tristesse",
     "base": { "hp": 2140, "atk": 321, "def": 233, "spd": 97, "prec": 4, "esq": 7, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 47, "atk": 27, "def": 12, "spd": 0, "prec": 0, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "smiling_monkey": {
-    "id": 16, "nom": "Smiling Monkey", "description": "A super happy monkey.", "rarete": "common", "categorie": "Joie",
+    "id": 16, "nom": "Smiling Monkey", "description": "Un Monkey super content.", "rarete": "common", "categorie": "Joie",
     "base": { "hp": 2094, "atk": 324, "def": 237, "spd": 97, "prec": 4, "esq": 7, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 67, "atk": 23, "def": 15, "spd": 0, "prec": 0, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "sad_monkey": {
-    "id": 8, "nom": "Sad Monkey", "description": "Who made monkey sad!?", "rarete": "uncommon", "categorie": "Tristesse",
+    "id": 8, "nom": "Sad Monkey", "description": "Qui a rendu Monkey triste!?", "rarete": "uncommon", "categorie": "Tristesse",
     "base": { "hp": 2990, "atk": 318, "def": 285, "spd": 103, "prec": 7, "esq": 9, "crit": 6, "critdmg": 155 },
     "croissance": { "hp": 80, "atk": 21, "def": 27, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "flushed_monkey": {
-    "id": 7, "nom": "Flushed Monkey", "description": "Don't say such nasty things!", "rarete": "uncommon", "categorie": "Amour",
+    "id": 7, "nom": "Flushed Monkey", "description": "Dis pas des trucs comme ça!", "rarete": "uncommon", "categorie": "Amour",
     "base": { "hp": 2321, "atk": 371, "def": 301, "spd": 104, "prec": 8, "esq": 8, "crit": 6, "critdmg": 156 },
     "croissance": { "hp": 90, "atk": 22, "def": 23, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
@@ -90,7 +90,7 @@
     "croissance": { "hp": 121, "atk": 19, "def": 21, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "hugging_monkey": {
-    "id": 21, "nom": "Hugging Monkey", "description": "Everyone needs a hug from time to time, even you stranger!", "rarete": "uncommon", "categorie": "Amour",
+    "id": 21, "nom": "Hugging Monkey", "description": "Tout le monde a besoin d'un câlin de temps en temps, même toi l'ami!", "rarete": "uncommon", "categorie": "Amour",
     "base": { "hp": 2584, "atk": 323, "def": 373, "spd": 103, "prec": 7, "esq": 10, "crit": 6, "critdmg": 155 },
     "croissance": { "hp": 97, "atk": 21, "def": 24, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
@@ -100,7 +100,7 @@
     "croissance": { "hp": 176, "atk": 15, "def": 15, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "blushing_monkey": {
-    "id": 23, "nom": "Blushing Monkey", "description": "why is bro so happy 💔", "rarete": "uncommon", "categorie": "Amour",
+    "id": 23, "nom": "Blushing Monkey", "description": "Pourquoi bro est aussi heureux 💔", "rarete": "uncommon", "categorie": "Amour",
     "base": { "hp": 1814, "atk": 419, "def": 352, "spd": 105, "prec": 8, "esq": 7, "crit": 7, "critdmg": 158 },
     "croissance": { "hp": 151, "atk": 15, "def": 23, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
@@ -110,12 +110,12 @@
     "croissance": { "hp": 82, "atk": 26, "def": 11, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "handovermouth_monkey": {
-    "id": 27, "nom": "Hand Over Mouth Monkey", "description": "Blud wont say anything.", "rarete": "uncommon", "categorie": "Sang-froid",
+    "id": 27, "nom": "Hand Over Mouth Monkey", "description": "Blud ne dira rien.", "rarete": "uncommon", "categorie": "Sang-froid",
     "base": { "hp": 2644, "atk": 344, "def": 288, "spd": 103, "prec": 7, "esq": 10, "crit": 6, "critdmg": 155 },
     "croissance": { "hp": 112, "atk": 17, "def": 32, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "yummy_monkey": {
-    "id": 30, "nom": "Yummy Monkey", "description": "Yum yum !.. Or something like that.", "rarete": "uncommon", "categorie": "Joie",
+    "id": 30, "nom": "Yummy Monkey", "description": "Yum yum !.. Ou un truc comme ça.", "rarete": "uncommon", "categorie": "Joie",
     "base": { "hp": 2146, "atk": 374, "def": 350, "spd": 104, "prec": 7, "esq": 9, "crit": 6, "critdmg": 156 },
     "croissance": { "hp": 124, "atk": 20, "def": 17, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
@@ -130,7 +130,7 @@
     "croissance": { "hp": 118, "atk": 21, "def": 33, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "cowboy_monkey": {
-    "id": 12, "nom": "Cowboy Monkey", "description": "Yee Haw ! (What's a cowboy monkey even supposed to say)", "rarete": "rare", "categorie": "Chaos",
+    "id": 12, "nom": "Cowboy Monkey", "description": "Yee Haw ! (Je sais pas ce que disent les cowboys)", "rarete": "rare", "categorie": "Chaos",
     "base": { "hp": 2957, "atk": 381, "def": 359, "spd": 108, "prec": 11, "esq": 9, "crit": 7, "critdmg": 159 },
     "croissance": { "hp": 124, "atk": 23, "def": 23, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
@@ -140,12 +140,12 @@
     "croissance": { "hp": 82, "atk": 34, "def": 14, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "raisedeyebrow_monkey": {
-    "id": 33, "nom": "Raised Eyebrow Monkey", "description": "What did you just say ?", "rarete": "rare", "categorie": "Sang-froid",
+    "id": 33, "nom": "Raised Eyebrow Monkey", "description": "T'as dit quoi là ?", "rarete": "rare", "categorie": "Sang-froid",
     "base": { "hp": 2630, "atk": 429, "def": 314, "spd": 108, "prec": 10, "esq": 9, "crit": 8, "critdmg": 159 },
     "croissance": { "hp": 73, "atk": 29, "def": 26, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "monocle_monkey": {
-    "id": 34, "nom": "Monocle Monkey", "description": "Class.", "rarete": "rare", "categorie": "Sang-froid",
+    "id": 34, "nom": "Monocle Monkey", "description": "La classe.", "rarete": "rare", "categorie": "Sang-froid",
     "base": { "hp": 3222, "atk": 385, "def": 281, "spd": 107, "prec": 10, "esq": 11, "crit": 7, "critdmg": 158 },
     "croissance": { "hp": 176, "atk": 18, "def": 26, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
@@ -155,22 +155,22 @@
     "croissance": { "hp": 95, "atk": 36, "def": 20, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "sick_monkey": {
-    "id": 14, "nom": "Sick Monkey", "description": "Back to sender ^^", "rarete": "epic", "categorie": "Tristesse",
+    "id": 14, "nom": "Sick Monkey", "description": "Retour à l'envoyeur ^^", "rarete": "epic", "categorie": "Tristesse",
     "base": { "hp": 2884, "atk": 508, "def": 294, "spd": 111, "prec": 12, "esq": 11, "crit": 8, "critdmg": 161 },
     "croissance": { "hp": 181, "atk": 23, "def": 23, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "thinking_monkey": {
-    "id": 32, "nom": "Thinking Monkey", "description": "An over 143 IQ!", "rarete": "epic", "categorie": "Sang-froid",
+    "id": 32, "nom": "Thinking Monkey", "description": "Un QI de 143!", "rarete": "epic", "categorie": "Sang-froid",
     "base": { "hp": 2485, "atk": 514, "def": 405, "spd": 112, "prec": 13, "esq": 12, "crit": 8, "critdmg": 161 },
     "croissance": { "hp": 84, "atk": 34, "def": 30, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "sexy_monkey": {
-    "id": 15, "nom": "Sexy Monkey", "description": "Now that's some HOT monkey", "rarete": "legendary", "categorie": "Amour",
+    "id": 15, "nom": "Sexy Monkey", "description": "Le singe le plus chaud de ta région!", "rarete": "legendary", "categorie": "Amour",
     "base": { "hp": 2877, "atk": 629, "def": 270, "spd": 117, "prec": 16, "esq": 12, "crit": 9, "critdmg": 167 },
     "croissance": { "hp": 87, "atk": 43, "def": 22, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "definitely_not_monkey": {
-    "id": 45, "nom": "Definitely not monkey", "description": "A monkey ? Where ??", "rarete": "legendary", "categorie": "Chaos",
+    "id": 45, "nom": "Definitely not monkey", "description": "Un singe ? Où ça ??", "rarete": "legendary", "categorie": "Chaos",
     "base": { "hp": 3313, "atk": 520, "def": 385, "spd": 115, "prec": 15, "esq": 15, "crit": 8, "critdmg": 164 },
     "croissance": { "hp": 214, "atk": 22, "def": 32, "spd": 1, "prec": 1, "esq": 2, "crit": 0, "critdmg": 0 }
   },
@@ -180,7 +180,7 @@
     "croissance": { "hp": 136, "atk": 11, "def": 23, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "unamused_monkey": {
-    "id": 36, "nom": "Unamused Monkey", "description": "Okay that's not funny anymore", "rarete": "common", "categorie": "Sang-froid",
+    "id": 36, "nom": "Unamused Monkey", "description": "Il est aigri celui là non ?", "rarete": "common", "categorie": "Sang-froid",
     "base": { "hp": 1662, "atk": 356, "def": 294, "spd": 99, "prec": 5, "esq": 6, "crit": 5, "critdmg": 153 },
     "croissance": { "hp": 113, "atk": 17, "def": 17, "spd": 1, "prec": 0, "esq": 0, "crit": 0, "critdmg": 0 }
   },
@@ -195,7 +195,7 @@
     "croissance": { "hp": 30, "atk": 26, "def": 4, "spd": 0, "prec": 0, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "yawning_monkey": {
-    "id": 41, "nom": "Yawning Monkey", "description": "Shush, he's tired...", "rarete": "common", "categorie": "Sang-froid",
+    "id": 41, "nom": "Yawning Monkey", "description": "Silence, ça dort...", "rarete": "common", "categorie": "Sang-froid",
     "base": { "hp": 1966, "atk": 344, "def": 223, "spd": 99, "prec": 4, "esq": 6, "crit": 5, "critdmg": 152 },
     "croissance": { "hp": 46, "atk": 23, "def": 23, "spd": 1, "prec": 0, "esq": 0, "crit": 0, "critdmg": 0 }
   },
@@ -210,27 +210,27 @@
     "croissance": { "hp": 126, "atk": 36, "def": 22, "spd": 2, "prec": 1, "esq": 2, "crit": 0, "critdmg": 0 }
   },
   "crystal_ball_monkey": {
-    "id": 46, "nom": "Crystal Ball Monkey", "description": "He already knew you would pull him.", "rarete": "mythic", "categorie": "Amour", "competence": "presage",
+    "id": 46, "nom": "Crystal Ball Monkey", "description": "Il savait déjà que tu allais le pull.", "rarete": "mythic", "categorie": "Amour", "competence": "presage",
     "base": { "hp": 3135, "atk": 692, "def": 292, "spd": 120, "prec": 18, "esq": 13, "crit": 11, "critdmg": 170 },
     "croissance": { "hp": 97, "atk": 48, "def": 23, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "glucide_monkey": {
-    "id": 47, "nom": "Glucide Monkey", "description": "Carbo-loaded and unmovable. Nothing gets through that belly.", "rarete": "legendary", "categorie": "Tristesse",
+    "id": 47, "nom": "Glucide Monkey", "description": "C'est quoi cette gueule de glucide là ?", "rarete": "legendary", "categorie": "Tristesse",
     "base": { "hp": 4127, "atk": 402, "def": 550, "spd": 113, "prec": 14, "esq": 12, "crit": 7, "critdmg": 162 },
     "croissance": { "hp": 200, "atk": 21, "def": 42, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "king_monkey": {
-    "id": 48, "nom": "King Monkey", "description": "Bow before the crown. He rules over every other monkey.", "rarete": "mythic", "categorie": "Sang-froid",
+    "id": 48, "nom": "King Monkey", "description": "Le roi de la jungle.", "rarete": "mythic", "categorie": "Sang-froid",
     "base": { "hp": 3473, "atk": 595, "def": 397, "spd": 119, "prec": 17, "esq": 14, "crit": 10, "critdmg": 168 },
     "croissance": { "hp": 115, "atk": 40, "def": 29, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "balloon_monkey": {
-    "id": 49, "nom": "Balloon Monkey", "description": "Light, fast and impossible to catch. Just don't pop him.", "rarete": "epic", "categorie": "Chaos",
+    "id": 49, "nom": "Balloon Monkey", "description": "Interdiction de s'en servir à des fins illicites.", "rarete": "epic", "categorie": "Chaos",
     "base": { "hp": 2936, "atk": 522, "def": 250, "spd": 114, "prec": 12, "esq": 14, "crit": 9, "critdmg": 162 },
     "croissance": { "hp": 129, "atk": 32, "def": 15, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "mask_monkey": {
-    "id": 50, "nom": "Mask Monkey", "description": "Nobody knows who hides under the mask. Not even him.", "rarete": "epic", "categorie": "Sang-froid",
+    "id": 50, "nom": "Mask Monkey", "description": "Personne ne sait qui se cache derrière ce masque. Pas même lui.", "rarete": "epic", "categorie": "Sang-froid",
     "base": { "hp": 2554, "atk": 552, "def": 296, "spd": 113, "prec": 14, "esq": 13, "crit": 10, "critdmg": 166 },
     "croissance": { "hp": 98, "atk": 34, "def": 23, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   }
