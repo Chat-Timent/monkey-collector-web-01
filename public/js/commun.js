@@ -240,9 +240,33 @@ function effetPerkSur(catalogue, perk, tier, stats) {
   return texte;
 }
 
+// ---------- Éveil ----------
+
+// Étoiles d'éveil (★ atteintes, ☆ restantes) : indicateur visuel du niveau d'éveil.
+function etoilesEveilHTML(niveau, max) {
+  return `<span class="etoiles-eveil" title="Éveil ${niveau}/${max}" aria-label="Éveil ${niveau} sur ${max}">`
+    + `${"★".repeat(niveau)}<span class="restantes">${"☆".repeat(Math.max(0, max - niveau))}</span></span>`;
+}
+
+// Ce qu'un niveau d'éveil change à une compétence (réglages `avant` → `apres`) : « dégâts ×2,8 · ignore 50 % de la DEF ».
+const LIBELLES_REGLAGES = {
+  critMult: (v) => `dégâts ×${v}`,
+  percePct: (v) => `ignore ${v} % de la DEF`,
+  atkPct: (v) => `+${v} % d'ATK`,
+  defPct: (v) => `+${v} % de DEF`,
+  cumulMax: (v) => `cumulable ${v} fois`,
+  tousLes: (v) => `tous les ${v} tours`,
+};
+function texteAmeliorationCompetence(avant, apres) {
+  return Object.keys(LIBELLES_REGLAGES)
+    .filter((cle) => apres?.[cle] !== undefined && apres[cle] !== avant?.[cle])
+    .map((cle) => LIBELLES_REGLAGES[cle](String(apres[cle]).replace(".", ",")))
+    .join(" · ");
+}
+
 // Description d'une compétence de singe, calculée à partir de ses réglages (src/data/competences.json).
 function descriptionCompetence(c) {
-  if (c?.id === "presage") return `Tous les ${c.tousLes} tours, frappe l'ennemi qui a le moins de PV : coup critique garanti, dégâts ×${c.critMult}, ignore ${c.percePct} % de sa DEF.`;
+  if (c?.id === "presage") return `Tous les ${c.tousLes} tours, frappe l'ennemi qui a le moins de PV : coup critique garanti, dégâts ×${String(c.critMult).replace(".", ",")}, ignore ${c.percePct} % de sa DEF.`;
   if (c?.id === "decret_royal") return `Tous les ${c.tousLes} tours, donne +${c.atkPct} % d'ATK et +${c.defPct} % de DEF aux singes de sa rotation (lui compris), cumulable jusqu'à ${c.cumulMax} fois.`;
   return "";
 }
