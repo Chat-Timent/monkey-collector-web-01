@@ -48,9 +48,12 @@ export async function getRessources(userId) {
 }
 
 // Ligne de progression d'un donjon, créée si besoin et verrouillée (dans la transaction `db`).
+// Une ligne neuve est datée d'un jour passé : ses tickets sont alors pleins, Clé de donjon comprise
+// (les valeurs par défaut de la table, 2 tickets datés du jour, faisaient perdre le ticket de la Clé).
 async function verrouillerProgression(userId, donjon, db) {
   await db.query(
-    "INSERT INTO donjons_progression (user_id, donjon) VALUES ($1, $2) ON CONFLICT (user_id, donjon) DO NOTHING",
+    `INSERT INTO donjons_progression (user_id, donjon, jour) VALUES ($1, $2, DATE '2000-01-01')
+     ON CONFLICT (user_id, donjon) DO NOTHING`,
     [userId, donjon]
   );
   const { rows } = await db.query(
