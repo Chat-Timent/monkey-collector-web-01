@@ -70,7 +70,7 @@ function plusBasEnPv(camp) {
 }
 
 // Compétence Décret royal : tous les `tousLes` tours, chaque porteur de la rotation active octroie aux singes de la rotation active
-// (lui compris) +`atkPct` % d'ATK et +`defPct` % de DEF (de leur valeur de départ),
+// (lui compris) +`atkPct` % d'ATK, +`hpPct` % de PV max (PV actuels augmentés d'autant) et +`defPct` % de DEF (de leur valeur de départ),
 // cumulable jusqu'à `cumulMax` fois par singe. Les bonus restent acquis même si le porteur tombe.
 function decretRoyal(camp, tour, journal) {
   for (const porteur of camp) {
@@ -82,13 +82,16 @@ function decretRoyal(camp, tour, journal) {
       s.decret = (s.decret ?? 0) + 1;
       s.atk = Math.round(s.atkDepart * (1 + (c.atkPct * s.decret) / 100));
       s.def = Math.round(s.defDepart * (1 + (c.defPct * s.decret) / 100));
+      const hp = Math.round(s.hpDepart * (1 + ((c.hpPct ?? 0) * s.decret) / 100));
+      s.pv += hp - s.hp;
+      s.hp = hp;
     }
     journal.push({
       type: "decret", tour,
       de: porteur.nom, deCamp: porteur.camp, deSlot: porteur.slot,
       competence: { nom: c.nom, icone: c.icone },
-      atkPct: c.atkPct, defPct: c.defPct,
-      cibles: beneficiaires.map((s) => ({ slot: s.slot, cumul: s.decret })),
+      atkPct: c.atkPct, hpPct: c.hpPct ?? 0, defPct: c.defPct,
+      cibles: beneficiaires.map((s) => ({ slot: s.slot, cumul: s.decret, hp: s.hp, pv: s.pv })),
     });
   }
 }
@@ -109,7 +112,7 @@ export function degatsDe(atk, def) {
 
 export function combat(equipeA, equipeB, hasard = Math.random) {
   const preparer = (equipe, camp) =>
-    equipe.map((s, slot) => (s ? { ...s, camp, slot, pv: s.hp, atkDepart: s.atk, defDepart: s.def } : null));
+    equipe.map((s, slot) => (s ? { ...s, camp, slot, pv: s.hp, atkDepart: s.atk, defDepart: s.def, hpDepart: s.hp } : null));
 
   const A = preparer(equipeA, "A");
   const B = preparer(equipeB, "B");
