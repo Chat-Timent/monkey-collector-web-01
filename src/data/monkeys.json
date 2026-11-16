@@ -205,7 +205,7 @@
     "croissance": { "hp": 75, "atk": 33, "def": 23, "spd": 1, "prec": 1, "esq": 0, "crit": 0, "critdmg": 0 }
   },
   "earth_monkey": {
-    "id": 41, "nom": "Earth Monkey", "description": "Le singe là avec la terre bref", "rarete": "legendary", "categorie": "Joie",
+    "id": 42, "nom": "Earth Monkey", "description": "Le singe là avec la terre bref", "rarete": "legendary", "categorie": "Joie",
     "base": { "hp": 2859, "atk": 564, "def": 413, "spd": 116, "prec": 16, "esq": 14, "crit": 9, "critdmg": 165 },
     "croissance": { "hp": 126, "atk": 36, "def": 22, "spd": 2, "prec": 1, "esq": 2, "crit": 0, "critdmg": 0 }
   },
@@ -213,5 +213,25 @@
     "id": 46, "nom": "Crystal Ball Monkey", "description": "He already knew you would pull him.", "rarete": "mythic", "categorie": "Amour", "competence": "presage",
     "base": { "hp": 3135, "atk": 692, "def": 292, "spd": 120, "prec": 18, "esq": 13, "crit": 11, "critdmg": 170 },
     "croissance": { "hp": 97, "atk": 48, "def": 23, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "glucide_monkey": {
+    "id": 47, "nom": "Glucide Monkey", "description": "Carbo-loaded and unmovable. Nothing gets through that belly.", "rarete": "legendary", "categorie": "Tristesse",
+    "base": { "hp": 4127, "atk": 402, "def": 550, "spd": 113, "prec": 14, "esq": 12, "crit": 7, "critdmg": 162 },
+    "croissance": { "hp": 200, "atk": 21, "def": 42, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "king_monkey": {
+    "id": 48, "nom": "King Monkey", "description": "Bow before the crown. He rules over every other monkey.", "rarete": "mythic", "categorie": "Sang-froid",
+    "base": { "hp": 3473, "atk": 595, "def": 397, "spd": 119, "prec": 17, "esq": 14, "crit": 10, "critdmg": 168 },
+    "croissance": { "hp": 115, "atk": 40, "def": 29, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "balloon_monkey": {
+    "id": 49, "nom": "Balloon Monkey", "description": "Light, fast and impossible to catch. Just don't pop him.", "rarete": "epic", "categorie": "Chaos",
+    "base": { "hp": 2936, "atk": 522, "def": 250, "spd": 114, "prec": 12, "esq": 14, "crit": 9, "critdmg": 162 },
+    "croissance": { "hp": 129, "atk": 32, "def": 15, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "mask_monkey": {
+    "id": 50, "nom": "Mask Monkey", "description": "Nobody knows who hides under the mask. Not even him.", "rarete": "epic", "categorie": "Sang-froid",
+    "base": { "hp": 2554, "atk": 552, "def": 296, "spd": 113, "prec": 14, "esq": 13, "crit": 10, "critdmg": 166 },
+    "croissance": { "hp": 98, "atk": 34, "def": 23, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   }
 }
