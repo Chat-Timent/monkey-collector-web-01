@@ -210,7 +210,7 @@
     "croissance": { "hp": 126, "atk": 36, "def": 22, "spd": 2, "prec": 1, "esq": 2, "crit": 0, "critdmg": 0 }
   },
   "crystal_ball_monkey": {
-    "id": 46, "nom": "Crystal Ball Monkey", "description": "He already knew you would pull him.", "rarete": "mythic", "categorie": "Sang-froid", "competence": "presage",
+    "id": 46, "nom": "Crystal Ball Monkey", "description": "He already knew you would pull him.", "rarete": "mythic", "categorie": "Amour", "competence": "presage",
     "base": { "hp": 3135, "atk": 692, "def": 292, "spd": 120, "prec": 18, "esq": 13, "crit": 11, "critdmg": 170 },
     "croissance": { "hp": 97, "atk": 48, "def": 23, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
   }

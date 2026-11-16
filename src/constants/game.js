@@ -3,7 +3,7 @@ export const RARETES = [
   { id: 2, nom: "uncommon", poids: 1 / 5 },
   { id: 3, nom: "rare", poids: 1 / 15 },
   { id: 4, nom: "epic", poids: 1 / 50 },
-  { id: 5, nom: "legendary", poids: 1 / 140 },
+  { id: 5, nom: "legendary", poids: 1 / 300 },
   { id: 6, nom: "mythic", poids: 1 / 1000 },
 ];
 

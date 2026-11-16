@@ -397,10 +397,10 @@ test("Flair : rare, épique, légendaire et mythique 10 % plus lourds au tirage"
   assert.equal(f.common, n.common);
   assert.equal(f.uncommon, n.uncommon);
   for (const r of ["rare", "epic", "legendary", "mythic"]) assert.ok(Math.abs(f[r] - n[r] * 1.1) < 1e-12);
-  // Part des raretés rare et mieux : 7,32 % → 8,00 %
+  // Part des raretés rare et mieux : 7,05 % → 7,70 %
   const partRare = (poids) => poids.filter((r) => estRare(r.nom)).reduce((t, r) => t + r.poids, 0) / poids.reduce((t, r) => t + r.poids, 0);
-  assert.ok(Math.abs(partRare(neutre) - 0.0732) < 0.0005);
-  assert.ok(Math.abs(partRare(flair) - 0.0800) < 0.0005);
+  assert.ok(Math.abs(partRare(neutre) - 0.0705) < 0.0005);
+  assert.ok(Math.abs(partRare(flair) - 0.0770) < 0.0005);
   // Le tirage suit les poids : tout en bas, commun ; tout en haut, mythique
   assert.equal(tirerRarete(null, { hasard: () => 0 }), "common");
   assert.equal(tirerRarete(null, { hasard: () => 0.9999 }), "mythic");
@@ -434,7 +434,7 @@ test("Mythique : 1/1000 au tirage, même palier de 15 % au-dessus du légendaire
 
   const s = getEspece("crystal_ball_monkey");
   assert.equal(s.rarete, "mythic");
-  assert.equal(s.categorie, "Sang-froid");
+  assert.equal(s.categorie, "Amour");
   assert.equal(s.competence, "presage");
   const legendaires = Object.values(SINGES).filter((e) => e.rarete === "legendary");
   // Offensif : plus d'attaque que tout légendaire, et le profil le plus tourné vers l'attaque (ATK / DEF)
