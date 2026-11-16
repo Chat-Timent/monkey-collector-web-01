@@ -16,13 +16,13 @@ function tirerPondere(items, hasard = Math.random) {
 }
 
 // Raretés concernées par Flair et Étincelle
-const RARES = ["rare", "epic", "legendary"];
+const RARES = ["rare", "epic", "legendary", "mythic"];
 export function estRare(rarete) {
   return RARES.includes(rarete);
 }
 
 // Poids des raretés pour un tirage, effets de l'arbre compris :
-// - Flair (`rarete_pct`) multiplie le poids des raretés rare, épique et légendaire ;
+// - Flair (`rarete_pct`) multiplie le poids des raretés rare, épique, légendaire et mythique ;
 // - `forcerRare` (Étincelle) ne garde que ces raretés, dans leurs proportions.
 export function poidsRaretes(effets = null, { forcerRare = false } = {}) {
   const mult = 1 + (effets?.rarete_pct ?? 0);

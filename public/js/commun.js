@@ -7,6 +7,7 @@ const RARETES_AFFICHAGE = {
   rare:      { label: "Rare",       couleur: "#1cc22a" },
   epic:      { label: "Epic",       couleur: "#a831eb" },
   legendary: { label: "Légendaire", couleur: "#fe9308" },
+  mythic:    { label: "Mythique",   couleur: "#E01E1E" },
 };
 
 // ---------- Version du site ----------

@@ -6,6 +6,7 @@ import { RESONANCES, appliquerResonances, resonancesActives, resonancesAvecBonus
 import { SINGES } from "../src/game/monkeys.js";
 import { estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirerRarete } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
+import { COMPETENCES, competenceDe } from "../src/game/competences.js";
 import {
   ARBRE, COURBE_COUTS, agregerEffets, coutAttendu, estGratuit, etatArbre, noeudsPris, peutPrendre,
   pointsDepenses, profondeurs, validerArbre, voisins,
@@ -388,21 +389,21 @@ test("Clé de donjon : un ticket de plus par jour dans chaque donjon", () => {
   assert.equal(ticketsApresCadeau(null, "2026-11-15", 1, sansCle), 3);
 });
 
-test("Flair : rare, épique et légendaire 10 % plus lourds au tirage", () => {
+test("Flair : rare, épique, légendaire et mythique 10 % plus lourds au tirage", () => {
   const neutre = poidsRaretes(agregerEffets([]));
   const flair = poidsRaretes(agregerEffets(["farm.flair"]));
   const parNom = (poids) => Object.fromEntries(poids.map((r) => [r.nom, r.poids]));
   const [n, f] = [parNom(neutre), parNom(flair)];
   assert.equal(f.common, n.common);
   assert.equal(f.uncommon, n.uncommon);
-  for (const r of ["rare", "epic", "legendary"]) assert.ok(Math.abs(f[r] - n[r] * 1.1) < 1e-12);
-  // Part des raretés rare et mieux : 7,25 % → 7,92 %
+  for (const r of ["rare", "epic", "legendary", "mythic"]) assert.ok(Math.abs(f[r] - n[r] * 1.1) < 1e-12);
+  // Part des raretés rare et mieux : 7,32 % → 8,00 %
   const partRare = (poids) => poids.filter((r) => estRare(r.nom)).reduce((t, r) => t + r.poids, 0) / poids.reduce((t, r) => t + r.poids, 0);
-  assert.ok(Math.abs(partRare(neutre) - 0.0725) < 0.0005);
-  assert.ok(Math.abs(partRare(flair) - 0.0792) < 0.0005);
-  // Le tirage suit les poids : tout en bas, commun ; tout en haut, légendaire
+  assert.ok(Math.abs(partRare(neutre) - 0.0732) < 0.0005);
+  assert.ok(Math.abs(partRare(flair) - 0.0800) < 0.0005);
+  // Le tirage suit les poids : tout en bas, commun ; tout en haut, mythique
   assert.equal(tirerRarete(null, { hasard: () => 0 }), "common");
-  assert.equal(tirerRarete(null, { hasard: () => 0.9999 }), "legendary");
+  assert.equal(tirerRarete(null, { hasard: () => 0.9999 }), "mythic");
 });
 
 test("Étincelle : après 50 tirages sans rare, le suivant est rare ou mieux", () => {
@@ -412,14 +413,57 @@ test("Étincelle : après 50 tirages sans rare, le suivant est rare ou mieux", (
   assert.equal(etincelleDeclenchee(avec, 49), false);
   assert.equal(etincelleDeclenchee(avec, 50), true);
   assert.equal(etincelleDeclenchee(sans, 200), false);
-  // Rareté forcée : seulement rare, épique ou légendaire, dans leurs proportions
-  assert.deepEqual(poidsRaretes(avec, { forcerRare: true }).map((r) => r.nom), ["rare", "epic", "legendary"]);
+  // Rareté forcée : seulement rare, épique, légendaire ou mythique, dans leurs proportions
+  assert.deepEqual(poidsRaretes(avec, { forcerRare: true }).map((r) => r.nom), ["rare", "epic", "legendary", "mythic"]);
   for (const h of [0, 0.3, 0.6, 0.9, 0.9999]) assert.ok(estRare(tirerRarete(avec, { forcerRare: true, hasard: () => h })));
   // Compteur : +1 par tirage sans rare, remis à 0 sur un rare ou mieux
   assert.equal(compteurSansRare(0, "common"), 1);
   assert.equal(compteurSansRare(49, "uncommon"), 50);
   assert.equal(compteurSansRare(50, "rare"), 0);
   assert.equal(compteurSansRare(12, "legendary"), 0);
+  assert.equal(compteurSansRare(12, "mythic"), 0);
+});
+
+test("Mythique : 1/1000 au tirage, même palier de 15 % au-dessus du légendaire, Crystal Ball Monkey offensif", () => {
+  const poids = Object.fromEntries(poidsRaretes(null).map((r) => [r.nom, r.poids]));
+  assert.equal(poids.mythic, 1 / 1000);
+  const ecart = (a, b) => puissanceCible(a) - puissanceCible(b);
+  assert.ok(Math.abs(ecart("mythic", "legendary") - ecart("legendary", "epic")) < 1e-9);
+  assert.deepEqual(gainsDuTirage("mythic", agregerEffets(["farm.loterie_coins"]), () => 0), { xp: 3000, coins: 1500, copieBonus: false });
+  assert.deepEqual(getNiveau("mythic", 5), getNiveau("legendary", 5));
+
+  const s = getEspece("crystal_ball_monkey");
+  assert.equal(s.rarete, "mythic");
+  assert.equal(s.categorie, "Sang-froid");
+  assert.equal(s.competence, "presage");
+  const legendaires = Object.values(SINGES).filter((e) => e.rarete === "legendary");
+  // Offensif : plus d'attaque que tout légendaire, et le profil le plus tourné vers l'attaque (ATK / DEF)
+  assert.ok(legendaires.every((e) => s.base.atk > e.base.atk && s.base.atk / s.base.def > e.base.atk / e.base.def));
+});
+
+test("Présage : désactivé pour l'instant, sinon tous les 3 tours un critique ×2 sur l'ennemi le plus bas en PV", () => {
+  // Interrupteur : tant que la compétence est désactivée, le singe combat sans elle
+  assert.equal(competenceDe(getEspece("crystal_ball_monkey")), null);
+  const actif = { presage: { ...COMPETENCES.presage, actif: true } };
+  const presage = competenceDe(getEspece("crystal_ball_monkey"), actif);
+  assert.deepEqual(presage, { id: "presage", nom: "Présage", icone: "🔮", tousLes: 3, critMult: 2 });
+
+  const singe = (nom, hp, extra = {}) => ({ nom, hp, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 150, perk: null, ...extra });
+  // Le devin attaque seul ; en face, un taunt plein de PV et un singe plus faible
+  const devin = singe("Devin", 100000, { competence: presage });
+  const adverses = () => [singe("Taunt", 100000, { atk: 1, perk: { id: "taunt" } }), singe("Faible", 50000, { atk: 1 })];
+  const r = combat([devin], adverses(), () => 0.99); // 0.99 : aucun critique naturel, mais un raté au toucher
+  const coups = r.journal.filter((e) => e.de === "Devin" && e.tour <= 6);
+  assert.deepEqual(coups.map((e) => [e.tour, e.type, e.sur, e.critique ?? null]), [
+    [1, "rate", "Taunt", null], [2, "rate", "Taunt", null], [3, "degats", "Faible", true],
+    [4, "rate", "Taunt", null], [5, "rate", "Taunt", null], [6, "degats", "Faible", true],
+  ]);
+  assert.equal(coups[2].degats, degatsDe(100, 100) * 2);
+  assert.deepEqual(coups[2].competence, { nom: "Présage", icone: "🔮" });
+
+  // Sans compétence (désactivée), le même combat est identique à avant : jamais de Présage
+  const sans = combat([singe("Devin", 100000, { competence: null })], adverses(), () => 0.99);
+  assert.ok(sans.journal.every((e) => !e.competence && (e.de !== "Devin" || e.sur === "Taunt")));
 });
 
 test("Duelliste : un combat classé de plus par jour contre un même adversaire", () => {
@@ -677,7 +721,7 @@ test("défense : les dégâts diminuent sans jamais s'annuler", () => {
 });
 
 test("les singes d'une même rareté ont la même puissance, et le palier entre raretés est respecté", () => {
-  const raretes = ["common", "uncommon", "rare", "epic", "legendary"];
+  const raretes = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
   for (const [rang, rarete] of raretes.entries()) {
     const groupe = Object.entries(SINGES).filter(([, s]) => s.rarete === rarete);
     assert.ok(groupe.length > 0);
