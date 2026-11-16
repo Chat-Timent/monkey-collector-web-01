@@ -148,6 +148,41 @@
     .competence[hidden] { display: none; }
     .competence strong { color: var(--couleur); }
     .competence p { margin: 4px 0 0; color: #ddd; }
+
+    /* Éveil : étoiles sur la carte (contour doré au maximum) et section de la fiche */
+    .carte .etoiles-eveil { font-size: 17px; line-height: 1; }
+    .carte.eveil-max { border-color: #ffd54f; box-shadow: 0 0 14px rgba(255, 213, 79, 0.35); }
+    .fiche .etoiles-eveil { font-size: 20px; }
+    .eveil {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1.5px solid #6b5a22;
+      background: rgba(255, 213, 79, 0.06);
+      font-size: 14px;
+    }
+    .eveil[hidden] { display: none; }
+    .eveil-entete { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .eveil-entete strong { color: #ffd54f; }
+    .eveil-niveaux { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+    .eveil-niveaux li { display: flex; gap: 10px; padding: 6px 8px; border-radius: 8px; background: #1c1c1c; color: #777; font-size: 13px; }
+    .eveil-niveaux li .num { width: 62px; flex-shrink: 0; font-weight: bold; }
+    .eveil-niveaux li.atteint { color: var(--texte); }
+    .eveil-niveaux li.actuel { outline: 1px solid #ffd54f; }
+    .eveil-pied { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .eveil-pied .stock { color: #ffd54f; font-weight: bold; }
+    .eveil-pied button {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font: inherit;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .eveil-pied button:disabled { background: #333; color: #888; cursor: default; }
+    .eveil-message { min-height: 1.2em; margin: 8px 0 0; color: var(--or); font-size: 13px; }
   </style>
 </head>
 <body>
@@ -176,6 +211,7 @@
         </div>
       </div>
       <div id="detail-competence" class="competence" hidden></div>
+      <div id="detail-eveil" class="eveil" hidden></div>
       <table>
         <thead>
           <tr><th>Stat</th><th>Actuelle</th><th>Base</th><th>Croissance / niv.</th></tr>
@@ -204,6 +240,7 @@
 
     const PAR_PAGE = 12;
     let singes = [];
+    let essence = 0; // stock d'essence (éveil depuis la fiche)
     let familles = null; // { resonances, compte } pour le panneau des familles (réponse /equipe)
     let page = 0;
     let renduVersion = 0;
@@ -212,9 +249,10 @@
     function carteHTML(s, indexGlobal) {
       const r = infoRarete(s.espece.rarete);
       return `
-        <button class="carte" data-index="${indexGlobal}">
+        <button class="carte${s.eveil && s.eveil.niveau >= s.eveil.max ? " eveil-max" : ""}" data-index="${indexGlobal}">
           <img src="${s.image}" alt="">
           <h3>${s.espece.nom} <small>×${s.amount}</small></h3>
+          ${s.eveil ? etoilesEveilHTML(s.eveil.niveau, s.eveil.max) : ""}
           <span class="rarete" style="border-color:${r.couleur}; color:${r.couleur}">
             <img src="${r.icone}" alt="">
             ${r.label}
@@ -252,7 +290,7 @@
       document.getElementById("detail-nom").style.color = r.couleur;
       document.getElementById("detail-description").textContent = s.espece.description ?? "";
       document.getElementById("detail-niveau").textContent =
-        `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}` + (s.eveil ? ` · Éveil ${s.eveil.niveau}/${s.eveil.max}` : "");
+        `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}`;
       const zoneFamille = document.getElementById("detail-famille");
       zoneFamille.innerHTML = "";
       if (infoFamille(s.espece.categorie)) {
@@ -292,8 +330,76 @@
           </tr>`;
       }).join("");
       document.getElementById("detail-stats").innerHTML = lignes;
+      afficherEveil(s);
 
       document.getElementById("detail").classList.add("ouverte");
+    }
+
+    // Section Éveil de la fiche (légendaires et mythiques) : étoiles, bonus, détail des 6 niveaux, bouton Éveiller.
+    function afficherEveil(s, message = "") {
+      const zone = document.getElementById("detail-eveil");
+      zone.hidden = !s.eveil;
+      if (!s.eveil) return;
+      const { niveau, max, cout, paliers } = s.eveil;
+      const actuel = paliers[niveau - 1];
+      zone.innerHTML = `
+        <div class="eveil-entete">
+          <strong>Éveil</strong>
+          ${etoilesEveilHTML(niveau, max)}
+          <span>${actuel.bonusPct > 0 ? `+${actuel.bonusPct} % PV, ATK, DEF` : "Pas encore éveillé"}</span>
+        </div>
+        <ol class="eveil-niveaux"></ol>
+        <div class="eveil-pied">
+          <span class="stock">✨ ${essence.toLocaleString("fr-FR")} essence</span>
+          <button type="button"></button>
+        </div>
+        <p class="eveil-message"></p>`;
+      // Un niveau par ligne : bonus de stats, et ce qu'il change à la compétence
+      const liste = zone.querySelector(".eveil-niveaux");
+      let competence = paliers[0].competence;
+      for (const p of paliers.slice(1)) {
+        const morceaux = [`+${p.bonusPct} % PV, ATK, DEF`];
+        if (p.competence) {
+          morceaux.push(`${p.competence.icone} ${p.competence.nom} : ${texteAmeliorationCompetence(competence, p.competence)}`);
+          competence = p.competence;
+        }
+        const li = document.createElement("li");
+        li.className = (p.niveau <= niveau ? "atteint" : "") + (p.niveau === niveau ? " actuel" : "");
+        li.innerHTML = `<span class="num"></span><span></span>`;
+        li.querySelector(".num").textContent = `Éveil ${p.niveau}`;
+        li.lastChild.textContent = morceaux.join(" · ");
+        liste.appendChild(li);
+      }
+      const bouton = zone.querySelector("button");
+      if (cout === null) {
+        bouton.textContent = "Éveil maximal";
+        bouton.disabled = true;
+      } else {
+        bouton.textContent = `Éveiller · ${cout} ✨`;
+        bouton.disabled = essence < cout;
+        bouton.addEventListener("click", () => eveiller(s, bouton));
+      }
+      zone.querySelector(".eveil-message").textContent = message;
+    }
+
+    async function eveiller(s, bouton) {
+      bouton.disabled = true;
+      try {
+        const { ok, data } = await api("/eveil/eveiller", { corps: { espece: s.id } });
+        if (!ok) {
+          afficherEveil(s, data.erreur);
+          return;
+        }
+        // Le serveur renvoie le Monkeydex à jour : carte, fiche, stats et compétence se redessinent
+        singes = data.singes;
+        essence = data.essence;
+        afficher();
+        const maj = singes.find((x) => x.id === s.id);
+        ouvrirFiche(maj);
+        afficherEveil(maj, `${maj.espece.nom} passe à l'éveil ${maj.eveil.niveau} !`);
+      } catch {
+        afficherEveil(s, "Erreur réseau, réessaie.");
+      }
     }
 
     function fermerFiche() {
@@ -335,6 +441,7 @@
       }
 
       singes = data.singes;
+      essence = data.essence ?? 0;
       if (resEquipe.ok) {
         const compte = {};
         for (const { espece } of resEquipe.data.equipe) {

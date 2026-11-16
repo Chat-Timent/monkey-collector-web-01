@@ -15,164 +15,167 @@
       margin: 0;
       min-height: 100vh;
     }
-    .contenu { max-width: 760px; margin: 24px auto; padding: 0 16px 40px; }
+    .contenu { max-width: 1040px; margin: 24px auto; padding: 0 16px 40px; }
 
-    .ligne-equipe { margin-bottom: 22px; }
-    .ligne-equipe h2 {
-      font-size: 13px;
-      color: var(--texte-doux);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin: 0 0 8px;
-    }
-    .slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    /* Disposition : liste de l'équipe à gauche, fiche du singe sélectionné à droite (plein écran sur mobile) */
+    .disposition { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; align-items: start; }
 
-    .slot { position: relative; }
-    .slot-bouton {
-      width: 100%;
-      min-height: 150px;
-      background: #242424;
-      border: 1px dashed #444;
-      border-radius: 12px;
-      padding: 10px;
-      color: var(--texte);
-      font: inherit;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .slot-bouton.plein { border: 1px solid #333; }
-    .slot-bouton:hover { border-color: var(--accent); }
-    .slot-bouton img { width: 70px; height: 70px; object-fit: contain; }
-    .slot-bouton .nom { font-weight: bold; font-size: 13px; }
-    .slot-bouton .ajouter { color: #777; font-size: 28px; line-height: 1; }
-    .slot-bouton .sous { font-size: 12px; color: var(--or); }
-
-    /* Perk porté, sous le singe */
-    .perk-bouton {
-      width: 100%;
-      margin-top: 6px;
-      padding: 7px 8px;
-      border-radius: 10px;
-      border: 1px solid #333;
-      background: #1e1b2e;
-      color: var(--texte);
-      font: inherit;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .perk-bouton:hover { border-color: var(--accent); }
-    .perk-bouton .effet { display: block; font-size: 11px; font-weight: normal; color: var(--texte-doux); overflow: hidden; text-overflow: ellipsis; }
-    .perk-bouton.sans { border-style: dashed; color: #888; font-weight: normal; }
-    .option .icone-perk { width: 48px; font-size: 30px; text-align: center; flex-shrink: 0; }
-
-    /* Équipements portés : une case par emplacement */
-    .cases-objets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
-    .case-objet {
-      height: 36px;
-      border-radius: 10px;
-      border: 1px solid #333;
-      background: #1e1b2e;
-      color: var(--texte);
-      font: inherit;
-      font-size: 20px;
-      line-height: 1;
-      cursor: pointer;
-    }
-    .case-objet:hover { border-color: var(--accent); }
-    .case-objet.sans { border-style: dashed; color: #888; font-size: 16px; }
-
-    .pastille {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 2px 8px 2px 3px;
-      border-radius: 999px;
-      border: 1.5px solid;
-      font-size: 11px;
-      font-weight: bold;
-      background: #161616;
-    }
-    .pastille img { width: 14px; height: 14px; object-fit: contain; }
-
-    .menu {
-      display: none;
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 0;
-      width: min(280px, 85vw);
-      max-height: 340px;
-      overflow-y: auto;
-      background: #242424;
-      border: 1px solid #444;
-      border-radius: 12px;
-      padding: 6px;
-      z-index: 20;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-    .slot:nth-child(3) .menu { left: auto; right: 0; }
-    .menu.ouvert { display: block; }
-    .option {
-      display: flex;
+    /* ---------- Liste de l'équipe ---------- */
+    .rangee { margin-bottom: 16px; }
+    .rangee h2 { font-size: 13px; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px; }
+    .ligne {
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr) auto;
       align-items: center;
       gap: 10px;
       width: 100%;
-      padding: 8px;
-      background: none;
-      border: none;
-      border-radius: 8px;
+      margin-bottom: 6px;
+      padding: 8px 10px;
+      background: #242424;
+      border: 1px solid #333;
+      border-radius: 12px;
       color: var(--texte);
       font: inherit;
       text-align: left;
       cursor: pointer;
     }
+    .ligne:hover { border-color: var(--accent); }
+    .ligne.selection { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .ligne img { width: 48px; height: 48px; object-fit: contain; }
+    .ligne .infos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .ligne .nom { font-weight: bold; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ligne .sous { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--or); }
+    .ligne .stats { display: flex; gap: 10px; font-size: 12px; color: var(--texte-doux); }
+    .ligne .stats b { color: var(--texte); }
+    .ligne .objets { display: flex; gap: 3px; justify-content: flex-end; }
+    .ligne .objets span {
+      width: 24px; height: 24px; border-radius: 6px; border: 1px solid #3a3a3a; background: #1e1b2e;
+      display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666;
+    }
+    .ligne.vide { grid-template-columns: 1fr; border-style: dashed; color: #888; text-align: center; padding: 16px; }
+    .ligne .droite { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+
+    /* ---------- Fiche du singe ---------- */
+    #fiche {
+      position: sticky;
+      top: calc(var(--topbar-h, 0px) + 16px);
+      background: #242424;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 16px;
+    }
+    #fiche[hidden] { display: none; }
+    .retour { display: none; }
+    .fiche-entete { display: flex; gap: 12px; align-items: center; }
+    .fiche-entete img { width: 84px; height: 84px; object-fit: contain; flex-shrink: 0; }
+    .fiche-entete h3 { margin: 0 0 4px; font-size: 19px; }
+    .fiche-entete .badges { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 4px; }
+    .fiche-entete .niveau { font-size: 13px; color: var(--or); display: flex; gap: 8px; align-items: center; }
+    .actions { display: flex; gap: 8px; margin: 12px 0; }
+    .actions button {
+      flex: 1; padding: 9px; border-radius: 10px; border: 1px solid #444; background: #2b2f3a;
+      color: var(--texte); font: inherit; font-size: 14px; font-weight: bold; cursor: pointer;
+    }
+    .actions button:hover { border-color: var(--accent); }
+    .actions button.danger { color: #ff8a8a; }
+    .fiche table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .fiche th, .fiche td { padding: 5px 6px; border-bottom: 1px solid #333; text-align: right; }
+    .fiche th:first-child, .fiche td:first-child { text-align: left; }
+    .fiche th { color: #999; font-weight: normal; font-size: 11px; text-transform: uppercase; }
+    .fiche td.bonus { color: var(--vert); }
+    .fiche td.total { font-weight: bold; }
+    .fiche h4 { font-size: 12px; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 6px; }
+    .competence { font-size: 13px; color: #ddd; margin: 10px 0 0; }
+    .emplacement {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      width: 100%; margin-bottom: 5px; padding: 8px 10px;
+      background: #1e1b2e; border: 1px solid #333; border-radius: 10px;
+      color: var(--texte); font: inherit; text-align: left; cursor: pointer;
+    }
+    .emplacement:hover { border-color: var(--accent); }
+    .emplacement .type { font-size: 12px; color: var(--texte-doux); flex-shrink: 0; width: 86px; }
+    .emplacement .objet { flex: 1; min-width: 0; text-align: right; }
+    .emplacement .objet b { display: block; font-size: 14px; }
+    .emplacement .objet small { display: block; font-size: 12px; color: var(--texte-doux); }
+    .emplacement.sans { border-style: dashed; color: #888; }
+
+    /* ---------- Fenêtre de choix ---------- */
+    .fond {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65);
+      display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 60;
+    }
+    .fond[hidden] { display: none; }
+    .choix {
+      width: min(440px, 100%); max-height: calc(100vh - 32px); display: flex; flex-direction: column;
+      background: #242424; border: 1px solid #444; border-radius: 16px; overflow: hidden;
+    }
+    .choix header { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid #333; }
+    .choix h3 { margin: 0; font-size: 16px; }
+    .choix .fermer { background: none; border: none; color: var(--texte-doux); font-size: 22px; cursor: pointer; }
+    #choix-liste { overflow-y: auto; padding: 6px; }
+    .option {
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px;
+      background: none; border: none; border-radius: 8px; color: var(--texte); font: inherit; text-align: left; cursor: pointer;
+    }
     .option:hover:not(:disabled) { background: #2f2f2f; }
     .option:disabled { opacity: 0.4; cursor: default; }
-    .option > img { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
-    .option .infos { display: flex; flex-direction: column; gap: 3px; }
+    .option > img { width: 46px; height: 46px; object-fit: contain; flex-shrink: 0; }
+    .option .icone { width: 46px; font-size: 28px; text-align: center; flex-shrink: 0; }
+    .option .infos { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
     .option .nom { font-weight: bold; font-size: 14px; }
     .option .sous { font-size: 12px; color: var(--texte-doux); }
+    .option .badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
     .option.retirer { color: #ff8a8a; font-weight: bold; font-size: 14px; }
-    .menu .vide { padding: 8px; color: var(--texte-doux); margin: 0; }
+    .choix .vide { padding: 10px; color: var(--texte-doux); margin: 0; }
+
+    .pastille {
+      display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 3px;
+      border-radius: 999px; border: 1.5px solid; font-size: 11px; font-weight: bold; background: #161616;
+    }
+    .pastille img { width: 14px; height: 14px; object-fit: contain; }
 
     /* Résonances : une pastille par catégorie présente dans l'équipe */
     #resonances { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; min-height: 34px; }
     .resonance {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border-radius: 999px;
-      background: #242424; border: 1px solid #333; color: var(--texte-doux);
-      font: inherit; font-size: 14px; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+      background: #242424; border: 1px solid #333; color: var(--texte-doux); font: inherit; font-size: 14px; cursor: pointer;
     }
     .resonance:hover { border-color: var(--famille, var(--accent)); }
     .resonance.infos { color: var(--texte); }
     .resonance.active { border-color: var(--famille, var(--accent)); color: var(--famille, var(--texte)); font-weight: bold; }
-    .option .badges { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 
-    #message { min-height: 1.2em; color: var(--or); font-size: 14px; margin: 0; }
+    #message { min-height: 1.2em; color: var(--or); font-size: 14px; margin: 0 0 10px; }
 
-    @media (max-width: 640px) {
-      .slots { gap: 8px; }
-      .slot-bouton { min-height: 120px; padding: 6px; }
-      .slot-bouton img { width: 56px; height: 56px; }
-      .slot-bouton .pastille { display: none; }
-      .slot:nth-child(2) .menu { left: 50%; transform: translateX(-50%); }
-      .perk-bouton { font-size: 12px; padding: 6px 4px; }
+    /* Téléphone : la liste prend toute la largeur, la fiche s'ouvre par-dessus en plein écran */
+    @media (max-width: 760px) {
+      .disposition { display: block; }
+      .ligne { grid-template-columns: 44px minmax(0, 1fr); }
+      .ligne img { width: 44px; height: 44px; }
+      .ligne .droite { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
+      #fiche { position: fixed; inset: 0; z-index: 40; border-radius: 0; border: none; overflow-y: auto; padding: 14px 16px 30px; }
+      .retour {
+        display: inline-block; margin-bottom: 10px; padding: 6px 12px; border-radius: 999px; border: 1px solid #444;
+        background: #2b2f3a; color: var(--texte); font: inherit; font-size: 14px; cursor: pointer;
+      }
     }
   </style>
 </head>
 <body>
   <main class="contenu">
     <div id="resonances"></div>
-    <div id="rangees"></div>
     <p id="message"></p>
+    <div class="disposition">
+      <div id="rangees"></div>
+      <aside id="fiche" class="fiche" hidden></aside>
+    </div>
   </main>
+
+  <div id="fond-choix" class="fond" hidden>
+    <div class="choix" role="dialog" aria-modal="true" aria-labelledby="choix-titre">
+      <header><h3 id="choix-titre"></h3><button class="fermer" type="button" aria-label="Fermer">✕</button></header>
+      <div id="choix-liste"></div>
+    </div>
+  </div>
 
   <script src="/js/commun.js"></script>
   <script src="/js/arbre.js"></script>
@@ -181,276 +184,57 @@
   <script>
     // Les emplacements entrent en combat par rangées de 3 : ligne 1, puis ligne 2, puis renfort.
     const RANGEES = ["Ligne 1", "Ligne 2", "Renfort"];
+    const STATS = [
+      ["hp", "PV", ""], ["atk", "ATK", ""], ["def", "DEF", ""], ["spd", "Vitesse", ""],
+      ["prec", "Précision", ""], ["esq", "Esquive", ""], ["crit", "Critique", " %"], ["critdmg", "Dégâts crit", " %"],
+    ];
+    const $ = (id) => document.getElementById(id);
+    const mobile = window.matchMedia("(max-width: 760px)");
 
-    let possedes = [];
-    let perks = { catalogue: {}, obtenus: [] }; // réponse /perks
-    // Objets portés (arme, équipements) : réponses /armes et /equipements, textes du menu
+    let possedes = [];                            // réponse /monkeydex
+    let perks = { catalogue: {}, obtenus: [] };   // réponse /perks
+    // Objets portés (arme, équipements) : réponses /armes et /equipements
     const OBJETS = {
-      arme: { api: "/armes", donnees: { catalogue: {}, obtenus: [], slots: 1 }, retirer: "✕ Retirer l'arme", vide: "Aucune arme : tire-en dans l'onglet Objets !" },
-      equipement: { api: "/equipements", donnees: { catalogue: {}, obtenus: [], slots: 3 }, retirer: "✕ Retirer l'équipement", vide: "Aucun équipement : tire-en dans l'onglet Objets !" },
+      arme: { api: "/armes", donnees: { catalogue: {}, obtenus: [], slots: 1 }, nom: "Arme", retirer: "✕ Retirer l'arme", vide: "Aucune arme : tire-en dans l'onglet Objets !" },
+      equipement: { api: "/equipements", donnees: { catalogue: {}, obtenus: [], slots: 3 }, nom: "Équipement", retirer: "✕ Retirer l'équipement", vide: "Aucun équipement : tire-en dans l'onglet Objets !" },
     };
-    let resonances = { paliers: [], categories: {} }; // réponse /equipe
+    let resonances = { paliers: [], categories: {} };
     let equipe = Array(6).fill(null);
+    let combat = [];          // stats de chaque emplacement telles qu'en combat (réponse /equipe)
+    let selection = null;     // index de l'emplacement affiché dans la fiche
     let minuteurMessage = null;
-    const message = document.getElementById("message");
 
     function afficherMessage(texte, temporaire = false) {
       clearTimeout(minuteurMessage);
-      message.textContent = texte;
-      if (temporaire) minuteurMessage = setTimeout(() => { message.textContent = ""; }, 2000);
+      $("message").textContent = texte;
+      if (temporaire) minuteurMessage = setTimeout(() => { $("message").textContent = ""; }, 2000);
     }
 
-    function pastilleHTML(rarete) {
-      const r = infoRarete(rarete);
-      return `<span class="pastille" style="border-color:${r.couleur};color:${r.couleur}">
-                <img src="${r.icone}" alt="">${r.label}
-              </span>`;
-    }
-
-    function trouverSinge(id) {
-      return possedes.find((s) => s.id === id);
-    }
-
-    function fermerMenus() {
-      document.querySelectorAll(".menu.ouvert").forEach((m) => m.classList.remove("ouvert"));
-    }
-
-    function construireOptions(index) {
-      const dejaUtilises = equipe.filter((id, i) => id && i !== index);
-      let html = "";
-      if (equipe[index] !== null) {
-        html += `<button class="option retirer" data-id="">✕ Retirer</button>`;
-      }
-      if (possedes.length === 0) {
-        return html + `<p class="vide">Aucun singe : va tirer !</p>`;
-      }
-      // Singes disponibles d'abord, ceux déjà placés tout en bas
-      const tries = [...possedes].sort((a, b) => dejaUtilises.includes(a.id) - dejaUtilises.includes(b.id));
-      for (const s of tries) {
-        const dispo = !dejaUtilises.includes(s.id);
-        html += `
-          <button class="option" data-id="${s.id}" ${dispo ? "" : "disabled"}>
-            <img src="${s.image}" alt="">
-            <div class="infos">
-              <span class="nom">${s.espece.nom}</span>
-              <span class="badges">${pastilleHTML(s.espece.rarete)} ${badgeFamilleHTML(s.espece.categorie)}</span>
-              <span class="sous">Lvl ${s.niveau.niveau}${dispo ? "" : " · déjà placé"}</span>
-            </div>
-          </button>`;
-      }
-      return html;
-    }
-
-    function ouvrirMenu(slot, index) {
-      const menu = slot.querySelector(".menu");
-      const dejaOuvert = menu.classList.contains("ouvert") && menu.dataset.type === "singe";
-      fermerMenus();
-      if (dejaOuvert) return;
-      menu.dataset.type = "singe";
-      menu.innerHTML = construireOptions(index);
-      menu.classList.add("ouvert");
-      menu.querySelectorAll(".option").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          choisir(index, btn.dataset.id || null);
-        });
-      });
-    }
-
-    // ---------- Perks ----------
-
-    function perkPorte(espece) {
-      return perks.obtenus.find((p) => p.espece === espece && perks.catalogue[p.perk]) ?? null;
-    }
-
-    // `cible` : le singe du slot, pour chiffrer l'effet sur lui (ex. Peau de fer : +25 % DEF (+70))
-    function texteOption(p, cible) {
-      const c = perks.catalogue[p.perk];
-      const porteur = p.espece ? trouverSinge(p.espece) : null;
-      const sous = effetPerkSur(perks.catalogue, p.perk, p.tier, (cible?.statsBase ?? cible?.stats)) + (porteur ? ` · sur ${porteur.espece.nom}` : "");
-      return `<span class="icone-perk">${c.icone}</span>
-              <div class="infos">
-                <span class="nom">${nomPerk(perks.catalogue, p.perk, p.tier)}</span>
-                <span class="sous">${sous}</span>
-              </div>`;
-    }
-
-    function ouvrirMenuPerk(slot, espece) {
-      const menu = slot.querySelector(".menu");
-      const dejaOuvert = menu.classList.contains("ouvert") && menu.dataset.type === "perk";
-      fermerMenus();
-      if (dejaOuvert) return;
-      menu.dataset.type = "perk";
-      const actuel = perkPorte(espece);
-      // Perks libres d'abord, ceux portés par un autre singe tout en bas
-      const autres = perks.obtenus
-        .filter((p) => perks.catalogue[p.perk] && p !== actuel)
-        .sort((a, b) => Boolean(a.espece) - Boolean(b.espece));
-      menu.innerHTML = "";
-      if (actuel) {
-        const retirer = document.createElement("button");
-        retirer.className = "option retirer";
-        retirer.textContent = "✕ Retirer le perk";
-        retirer.addEventListener("click", (e) => { e.stopPropagation(); equiperPerk(actuel, null); });
-        menu.appendChild(retirer);
-      }
-      if (perks.obtenus.length === 0) {
-        menu.insertAdjacentHTML("beforeend", `<p class="vide">Aucun perk : tire-en dans l'onglet Objets !</p>`);
-      }
-      for (const p of autres) {
-        const option = document.createElement("button");
-        option.className = "option";
-        option.innerHTML = texteOption(p, trouverSinge(espece));
-        option.addEventListener("click", (e) => { e.stopPropagation(); equiperPerk(p, espece); });
-        menu.appendChild(option);
-      }
-      menu.classList.add("ouvert");
-    }
-
-    async function equiperPerk(p, espece) {
-      fermerMenus();
-      try {
-        const { ok, data } = await api("/perks/equiper", { corps: { perk: p.perk, tier: p.tier, espece } });
-        if (!ok) throw new Error(data.erreur);
-        perks = data;
-        afficherSlots();
-        afficherMessage("✓ Sauvegardé", true);
-      } catch (err) {
-        afficherMessage("Erreur : " + err.message);
-      }
-    }
-
-    // ---------- Objets (arme, équipements) ----------
-
-    // Objet de ce type porté par ce singe dans cet emplacement, ou null
+    const trouverSinge = (id) => possedes.find((s) => s.id === id);
+    const statsBase = (s) => s?.statsBase ?? s?.stats;
+    const perkPorte = (espece) => perks.obtenus.find((p) => p.espece === espece && perks.catalogue[p.perk]) ?? null;
     function objetPorte(type, espece, emplacement = 1) {
       const d = OBJETS[type].donnees;
       return d.obtenus.find((o) => o.espece === espece && o.slot === emplacement && d.catalogue[o.objet]) ?? null;
     }
-
-    function ouvrirMenuObjet(slot, espece, type, emplacement = 1) {
-      const menu = slot.querySelector(".menu");
-      const cle = `${type}:${emplacement}`;
-      const dejaOuvert = menu.classList.contains("ouvert") && menu.dataset.type === cle;
-      fermerMenus();
-      if (dejaOuvert) return;
-      menu.dataset.type = cle;
-      const { donnees: d, retirer: texteRetirer, vide } = OBJETS[type];
-      const actuel = objetPorte(type, espece, emplacement);
-      const cible = trouverSinge(espece);
-      // Une sorte par singe : les sortes qu'il porte déjà ailleurs sont grisées (sauf l'objet lui-même, qui change d'emplacement)
-      const sortesPrises = new Set(d.uneSorteParSinge
-        ? d.obtenus.filter((o) => o.espece === espece && o.slot !== emplacement).map((o) => o.objet) : []);
-      const bloque = (o) => sortesPrises.has(o.objet) && o.espece !== espece;
-      // Objets libres d'abord, puis ceux portés ailleurs, les sortes bloquées tout en bas
-      const rang = (o) => (bloque(o) ? 2 : o.espece ? 1 : 0);
-      const autres = d.obtenus.filter((o) => d.catalogue[o.objet] && o !== actuel).sort((a, b) => rang(a) - rang(b));
-      menu.innerHTML = "";
-      if (actuel) {
-        const retirer = document.createElement("button");
-        retirer.className = "option retirer";
-        retirer.textContent = texteRetirer;
-        retirer.addEventListener("click", (e) => { e.stopPropagation(); equiperObjet(type, actuel, null, emplacement); });
-        menu.appendChild(retirer);
-      }
-      if (d.obtenus.length === 0) {
-        menu.insertAdjacentHTML("beforeend", `<p class="vide">${vide}</p>`);
-      }
-      for (const o of autres) {
-        const c = d.catalogue[o.objet];
-        const porteur = o.espece ? trouverSinge(o.espece) : null;
-        const option = document.createElement("button");
-        option.className = "option";
-        option.disabled = bloque(o);
-        option.innerHTML = `<span class="icone-perk"></span><div class="infos"><span class="nom"></span><span class="sous"></span></div>`;
-        option.querySelector(".icone-perk").textContent = c.icone;
-        option.querySelector(".nom").textContent = `${nomObjet(d.catalogue, o.objet, o.tier)} · Niv. ${o.niveau}`;
-        let sous = texteEffetsObjet(o.valeurs, (cible?.statsBase ?? cible?.stats));
-        if (bloque(o)) sous += ` · ce singe porte déjà : ${c.nom}`;
-        else if (porteur) sous += ` · sur ${porteur.espece.nom}`;
-        option.querySelector(".sous").textContent = sous;
-        option.addEventListener("click", (e) => { e.stopPropagation(); equiperObjet(type, o, espece, emplacement); });
-        menu.appendChild(option);
-      }
-      menu.classList.add("ouvert");
+    function nomPlace(index) {
+      return `${RANGEES[Math.floor(index / 3)] ?? `Ligne ${Math.floor(index / 3) + 1}`}, place ${(index % 3) + 1}`;
     }
-
-    async function equiperObjet(type, o, espece, emplacement) {
-      fermerMenus();
-      try {
-        const { ok, data } = await api(`${OBJETS[type].api}/equiper`, { corps: { objet: o.objet, tier: o.tier, espece, slot: emplacement } });
-        if (!ok) throw new Error(data.erreur);
-        OBJETS[type].donnees = data;
-        afficherSlots();
-        afficherMessage("✓ Sauvegardé", true);
-      } catch (err) {
-        afficherMessage("Erreur : " + err.message);
-      }
+    function pastilleHTML(rarete) {
+      const r = infoRarete(rarete);
+      return `<span class="pastille" style="border-color:${r.couleur};color:${r.couleur}"><img src="${r.icone}" alt="">${r.label}</span>`;
     }
+    const etoiles = (s) => (s?.eveil ? etoilesEveilHTML(s.eveil.niveau, s.eveil.max) : "");
 
-    async function choisir(index, id) {
-      fermerMenus();
-      const ancienne = equipe[index];
-      equipe[index] = id;
-      afficherSlots();
-      try {
-        const { ok, data } = await api("/equipe", { corps: { especes: equipe } });
-        if (!ok) throw new Error(data.erreur);
-        afficherMessage("✓ Sauvegardé", true);
-      } catch (err) {
-        equipe[index] = ancienne;
-        afficherSlots();
-        afficherMessage("Erreur : " + err.message);
-      }
-    }
+    // ---------- Résonances ----------
 
-    function slotHTML(index) {
-      const id = equipe[index];
-      const singe = id ? trouverSinge(id) : null;
-      const contenu = singe
-        ? `<img src="${singe.image}" alt="">
-           <span class="nom">${singe.espece.nom}</span>
-           ${pastilleHTML(singe.espece.rarete)}
-           ${badgeFamilleHTML(singe.espece.categorie)}
-           <span class="sous">Lvl ${singe.niveau.niveau}</span>`
-        : `<span class="ajouter">+</span>`;
-      let perkHTML = "";
-      if (singe) {
-        const p = perkPorte(id);
-        perkHTML = p
-          ? `<button class="perk-bouton" type="button">${perks.catalogue[p.perk].icone} ${nomPerk(perks.catalogue, p.perk, p.tier)}
-               <span class="effet">${effetPerkSur(perks.catalogue, p.perk, p.tier, (singe.statsBase ?? singe.stats))}</span></button>`
-          : `<button class="perk-bouton sans" type="button">+ Perk</button>`;
-        const stats = singe.statsBase ?? singe.stats;
-        const armes = OBJETS.arme.donnees;
-        const a = objetPorte("arme", id);
-        perkHTML += a
-          ? `<button class="perk-bouton arme-bouton" type="button">${armes.catalogue[a.objet].icone} ${nomObjet(armes.catalogue, a.objet, a.tier)}
-               <span class="effet">${texteEffetsObjet(a.valeurs, stats)}</span></button>`
-          : `<button class="perk-bouton arme-bouton sans" type="button">+ Arme</button>`;
-        // Équipements : une case par emplacement (icône de l'objet porté, ou +)
-        const equipements = OBJETS.equipement.donnees;
-        const cases = Array.from({ length: equipements.slots ?? 3 }, (_, i) => {
-          const o = objetPorte("equipement", id, i + 1);
-          if (!o) return `<button class="case-objet sans" type="button" data-emplacement="${i + 1}" aria-label="Équipement ${i + 1} : vide">+</button>`;
-          const titre = `${nomObjet(equipements.catalogue, o.objet, o.tier)} · ${texteEffetsObjet(o.valeurs, stats)}`;
-          return `<button class="case-objet" type="button" data-emplacement="${i + 1}" title="${titre}" aria-label="${titre}">${equipements.catalogue[o.objet].icone}</button>`;
-        }).join("");
-        perkHTML += `<div class="cases-objets">${cases}</div>`;
-      }
-      return `<button class="slot-bouton ${singe ? "plein" : ""}" type="button" aria-label="Emplacement ${index + 1}">${contenu}</button>
-              ${perkHTML}
-              <div class="menu"></div>`;
-    }
-
-    // Pastilles de résonance : icône et nombre de singes de la catégorie / prochain palier.
     function afficherResonances() {
       const compte = {};
       for (const id of equipe) {
         const cat = id && trouverSinge(id)?.espece.categorie;
         if (cat && resonances.categories[cat]) compte[cat] = (compte[cat] ?? 0) + 1;
       }
-      const zone = document.getElementById("resonances");
+      const zone = $("resonances");
       zone.innerHTML = "";
       for (const [cat, nb] of Object.entries(compte)) {
         const { paliers } = resonances;
@@ -476,66 +260,349 @@
       zone.appendChild(infos);
     }
 
-    function afficherSlots() {
-      afficherResonances();
-      const zone = document.getElementById("rangees");
+    // ---------- Liste de l'équipe ----------
+
+    // Petites icônes des objets portés : perk, arme, puis les équipements (· si vide)
+    function iconesObjets(id) {
+      const p = perkPorte(id);
+      const icones = [p ? perks.catalogue[p.perk].icone : "·"];
+      const a = objetPorte("arme", id);
+      icones.push(a ? OBJETS.arme.donnees.catalogue[a.objet].icone : "·");
+      const eq = OBJETS.equipement.donnees;
+      for (let n = 1; n <= (eq.slots ?? 3); n++) {
+        const o = objetPorte("equipement", id, n);
+        icones.push(o ? eq.catalogue[o.objet].icone : "·");
+      }
+      return icones.map((i) => `<span>${i}</span>`).join("");
+    }
+
+    function ligneHTML(index) {
+      const id = equipe[index];
+      const s = id ? trouverSinge(id) : null;
+      if (!s) return `<button class="ligne vide" type="button" data-index="${index}">+ Ajouter un singe</button>`;
+      const c = combat[index];
+      const stats = c ? `<span>PV <b>${c.hp}</b></span><span>ATK <b>${c.atk}</b></span><span>DEF <b>${c.def}</b></span>` : "";
+      return `<button class="ligne${selection === index ? " selection" : ""}" type="button" data-index="${index}">
+        <img src="${s.image}" alt="">
+        <span class="infos">
+          <span class="nom" style="color:${infoRarete(s.espece.rarete).couleur}">${s.espece.nom}</span>
+          <span class="sous">Lvl ${s.niveau.niveau} ${etoiles(s)}</span>
+        </span>
+        <span class="droite"><span class="stats">${stats}</span><span class="objets">${iconesObjets(id)}</span></span>
+      </button>`;
+    }
+
+    function afficherListe() {
+      const zone = $("rangees");
       zone.innerHTML = "";
       for (let debut = 0; debut < equipe.length; debut += 3) {
         const rangee = document.createElement("section");
-        rangee.className = "ligne-equipe";
-        const titre = document.createElement("h2");
-        titre.textContent = RANGEES[debut / 3] ?? `Ligne ${debut / 3 + 1}`;
-        const grille = document.createElement("div");
-        grille.className = "slots";
-
-        for (let index = debut; index < Math.min(debut + 3, equipe.length); index++) {
-          const slot = document.createElement("div");
-          slot.className = "slot";
-          slot.innerHTML = slotHTML(index);
-          slot.querySelector(".slot-bouton").addEventListener("click", (e) => {
-            e.stopPropagation();
-            ouvrirMenu(slot, index);
-          });
-          slot.querySelector(".perk-bouton:not(.arme-bouton)")?.addEventListener("click", (e) => {
-            e.stopPropagation();
-            ouvrirMenuPerk(slot, equipe[index]);
-          });
-          slot.querySelector(".arme-bouton")?.addEventListener("click", (e) => {
-            e.stopPropagation();
-            ouvrirMenuObjet(slot, equipe[index], "arme");
-          });
-          slot.querySelectorAll(".case-objet").forEach((bouton) => bouton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            ouvrirMenuObjet(slot, equipe[index], "equipement", Number(bouton.dataset.emplacement));
-          }));
-          grille.appendChild(slot);
-        }
-        rangee.append(titre, grille);
+        rangee.className = "rangee";
+        rangee.innerHTML = `<h2></h2>`;
+        rangee.querySelector("h2").textContent = RANGEES[debut / 3] ?? `Ligne ${debut / 3 + 1}`;
+        for (let i = debut; i < Math.min(debut + 3, equipe.length); i++) rangee.insertAdjacentHTML("beforeend", ligneHTML(i));
         zone.appendChild(rangee);
+      }
+      zone.querySelectorAll(".ligne").forEach((b) => b.addEventListener("click", () => {
+        const index = Number(b.dataset.index);
+        if (equipe[index]) selectionner(index);
+        else ouvrirChoixSinge(index);
+      }));
+    }
+
+    // ---------- Fiche du singe ----------
+
+    function selectionner(index) {
+      selection = index;
+      afficherListe();
+      afficherFiche();
+    }
+
+    function fermerFiche() {
+      selection = null;
+      afficherListe();
+      afficherFiche();
+    }
+
+    // Une ligne d'emplacement de la fiche : type, objet porté (nom et effet chiffré sur ce singe) ou « + Ajouter »
+    function emplacementHTML(type, libelle, nom, effet, cle) {
+      return nom
+        ? `<button class="emplacement" type="button" data-cle="${cle}"><span class="type">${libelle}</span><span class="objet"><b>${nom}</b><small>${effet}</small></span></button>`
+        : `<button class="emplacement sans" type="button" data-cle="${cle}"><span class="type">${libelle}</span><span class="objet">+ Ajouter</span></button>`;
+    }
+
+    function afficherFiche() {
+      const fiche = $("fiche");
+      const id = selection !== null ? equipe[selection] : null;
+      const s = id ? trouverSinge(id) : null;
+      if (!s) {
+        fiche.hidden = true;
+        return;
+      }
+      const r = infoRarete(s.espece.rarete);
+      const base = statsBase(s);
+      const c = combat[selection] ?? s.stats;
+      const lignes = STATS.map(([k, libelle, suffixe]) => {
+        const bonus = (c[k] ?? 0) - (base[k] ?? 0);
+        return `<tr><td>${libelle}</td><td>${base[k] ?? 0}${suffixe}</td>
+          <td class="bonus">${bonus > 0 ? `+${bonus}${suffixe}` : bonus < 0 ? `${bonus}${suffixe}` : ""}</td>
+          <td class="total">${c[k] ?? 0}${suffixe}</td></tr>`;
+      }).join("");
+
+      let emplacements = "";
+      const p = perkPorte(id);
+      emplacements += emplacementHTML("perk", "Perk", p && `${perks.catalogue[p.perk].icone} ${nomPerk(perks.catalogue, p.perk, p.tier)}`,
+        p && effetPerkSur(perks.catalogue, p.perk, p.tier, base), "perk");
+      const armes = OBJETS.arme.donnees;
+      const a = objetPorte("arme", id);
+      emplacements += emplacementHTML("arme", "Arme", a && `${armes.catalogue[a.objet].icone} ${nomObjet(armes.catalogue, a.objet, a.tier)} · Niv. ${a.niveau}`,
+        a && texteEffetsObjet(a.valeurs, base), "arme:1");
+      const eq = OBJETS.equipement.donnees;
+      for (let n = 1; n <= (eq.slots ?? 3); n++) {
+        const o = objetPorte("equipement", id, n);
+        emplacements += emplacementHTML("equipement", `Équipement ${n}`, o && `${eq.catalogue[o.objet].icone} ${nomObjet(eq.catalogue, o.objet, o.tier)} · Niv. ${o.niveau}`,
+          o && texteEffetsObjet(o.valeurs, base), `equipement:${n}`);
+      }
+
+      fiche.hidden = false;
+      fiche.innerHTML = `
+        <button class="retour" type="button">← Équipe</button>
+        <div class="fiche-entete">
+          <img src="${s.image}" alt="">
+          <div>
+            <h3 style="color:${r.couleur}">${s.espece.nom}</h3>
+            <div class="badges">${pastilleHTML(s.espece.rarete)} ${badgeFamilleHTML(s.espece.categorie)}</div>
+            <div class="niveau">Niveau ${s.niveau.niveau} ${etoiles(s)}</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" data-action="changer">Changer de singe</button>
+          <button type="button" class="danger" data-action="retirer">Retirer</button>
+        </div>
+        <table>
+          <thead><tr><th>Stat</th><th>Base</th><th>Bonus</th><th>Combat</th></tr></thead>
+          <tbody>${lignes}</tbody>
+        </table>
+        ${s.competence ? `<p class="competence"></p>` : ""}
+        <h4>Équipement</h4>
+        ${emplacements}`;
+      if (s.competence) fiche.querySelector(".competence").textContent = `${s.competence.icone} ${s.competence.nom} : ${descriptionCompetence(s.competence)}`;
+      fiche.querySelector(".retour").addEventListener("click", fermerFiche);
+      fiche.querySelector('[data-action="changer"]').addEventListener("click", () => ouvrirChoixSinge(selection));
+      fiche.querySelector('[data-action="retirer"]').addEventListener("click", () => choisirSinge(selection, null));
+      fiche.querySelectorAll(".emplacement").forEach((b) => b.addEventListener("click", () => {
+        const [type, n] = b.dataset.cle.split(":");
+        if (type === "perk") ouvrirChoixPerk(id);
+        else ouvrirChoixObjet(type, id, Number(n));
+      }));
+    }
+
+    // ---------- Fenêtre de choix ----------
+
+    function ouvrirChoix(titre, options) {
+      $("choix-titre").textContent = titre;
+      const liste = $("choix-liste");
+      liste.innerHTML = "";
+      for (const o of options) liste.appendChild(o);
+      $("fond-choix").hidden = false;
+    }
+    function fermerChoix() {
+      $("fond-choix").hidden = true;
+    }
+    // Option de la fenêtre : `visuel` (image ou icône), nom, badges éventuels, sous-texte
+    function option({ image, icone, nom, badges = "", sous = "", desactive = false, retirer = false, action }) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "option" + (retirer ? " retirer" : "");
+      b.disabled = desactive;
+      if (retirer) {
+        b.textContent = nom;
+      } else {
+        b.innerHTML = `${image ? `<img src="${image}" alt="">` : `<span class="icone"></span>`}
+          <span class="infos"><span class="nom"></span>${badges ? `<span class="badges">${badges}</span>` : ""}<span class="sous"></span></span>`;
+        if (!image) b.querySelector(".icone").textContent = icone;
+        b.querySelector(".nom").innerHTML = nom;
+        b.querySelector(".sous").textContent = sous;
+      }
+      b.addEventListener("click", () => { fermerChoix(); action(); });
+      return b;
+    }
+    function messageVide(texte) {
+      const p = document.createElement("p");
+      p.className = "vide";
+      p.textContent = texte;
+      return p;
+    }
+
+    // Singes : disponibles d'abord ; un singe déjà placé est échangé avec celui de cet emplacement
+    function ouvrirChoixSinge(index) {
+      const options = [];
+      if (equipe[index]) options.push(option({ retirer: true, nom: "✕ Retirer de l'équipe", action: () => choisirSinge(index, null) }));
+      const place = (id) => equipe.indexOf(id);
+      const tries = possedes.filter((s) => s.id !== equipe[index]).sort((a, b) => (place(a.id) >= 0) - (place(b.id) >= 0));
+      for (const s of tries) {
+        const j = place(s.id);
+        const st = s.stats;
+        options.push(option({
+          image: s.image,
+          nom: `${s.espece.nom} ${etoiles(s)}`,
+          badges: `${pastilleHTML(s.espece.rarete)} ${badgeFamilleHTML(s.espece.categorie)}`,
+          sous: `Lvl ${s.niveau.niveau} · PV ${st.hp} · ATK ${st.atk} · DEF ${st.def}` + (j >= 0 ? ` · échanger avec ${nomPlace(j)}` : ""),
+          action: () => choisirSinge(index, s.id),
+        }));
+      }
+      if (possedes.length === 0) options.push(messageVide("Aucun singe : va tirer !"));
+      ouvrirChoix(equipe[index] ? `Remplacer ${trouverSinge(equipe[index])?.espece.nom ?? ""}` : `Ajouter un singe (${nomPlace(index)})`, options);
+    }
+
+    function ouvrirChoixPerk(espece) {
+      const cible = trouverSinge(espece);
+      const actuel = perkPorte(espece);
+      const options = [];
+      if (actuel) options.push(option({ retirer: true, nom: "✕ Retirer le perk", action: () => equiperPerk(actuel, null) }));
+      const autres = perks.obtenus.filter((p) => perks.catalogue[p.perk] && p !== actuel).sort((a, b) => Boolean(a.espece) - Boolean(b.espece));
+      for (const p of autres) {
+        const porteur = p.espece ? trouverSinge(p.espece) : null;
+        options.push(option({
+          icone: perks.catalogue[p.perk].icone,
+          nom: nomPerk(perks.catalogue, p.perk, p.tier),
+          sous: effetPerkSur(perks.catalogue, p.perk, p.tier, statsBase(cible)) + (porteur ? ` · sur ${porteur.espece.nom}` : ""),
+          action: () => equiperPerk(p, espece),
+        }));
+      }
+      if (perks.obtenus.length === 0) options.push(messageVide("Aucun perk : tire-en dans l'onglet Objets !"));
+      ouvrirChoix(`Perk de ${cible?.espece.nom ?? ""}`, options);
+    }
+
+    function ouvrirChoixObjet(type, espece, emplacement) {
+      const { donnees: d, retirer, vide, nom } = OBJETS[type];
+      const cible = trouverSinge(espece);
+      const actuel = objetPorte(type, espece, emplacement);
+      // Une sorte par singe : les sortes qu'il porte déjà ailleurs sont grisées (sauf l'objet lui-même, qui change d'emplacement)
+      const sortesPrises = new Set(d.uneSorteParSinge
+        ? d.obtenus.filter((o) => o.espece === espece && o.slot !== emplacement).map((o) => o.objet) : []);
+      const bloque = (o) => sortesPrises.has(o.objet) && o.espece !== espece;
+      const rang = (o) => (bloque(o) ? 2 : o.espece ? 1 : 0);
+      const options = [];
+      if (actuel) options.push(option({ retirer: true, nom: retirer, action: () => equiperObjet(type, actuel, null, emplacement) }));
+      for (const o of d.obtenus.filter((x) => d.catalogue[x.objet] && x !== actuel).sort((a, b) => rang(a) - rang(b))) {
+        const c = d.catalogue[o.objet];
+        const porteur = o.espece ? trouverSinge(o.espece) : null;
+        let sous = texteEffetsObjet(o.valeurs, statsBase(cible));
+        if (bloque(o)) sous += ` · ce singe porte déjà : ${c.nom}`;
+        else if (porteur) sous += ` · sur ${porteur.espece.nom}`;
+        options.push(option({
+          icone: c.icone,
+          nom: `${nomObjet(d.catalogue, o.objet, o.tier)} · Niv. ${o.niveau}`,
+          sous,
+          desactive: bloque(o),
+          action: () => equiperObjet(type, o, espece, emplacement),
+        }));
+      }
+      if (d.obtenus.length === 0) options.push(messageVide(vide));
+      const titre = type === "arme" ? `Arme de ${cible?.espece.nom ?? ""}` : `${nom} ${emplacement} de ${cible?.espece.nom ?? ""}`;
+      ouvrirChoix(titre, options);
+    }
+
+    $("fond-choix").addEventListener("click", (e) => { if (e.target === $("fond-choix")) fermerChoix(); });
+    document.querySelector(".choix .fermer").addEventListener("click", fermerChoix);
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" || document.getElementById("infos-familles")?.open) return;
+      if (!$("fond-choix").hidden) fermerChoix();
+      else if (mobile.matches && selection !== null) fermerFiche();
+    });
+
+    // ---------- Actions ----------
+
+    // Place `id` à l'emplacement `index` (null = vider). Un singe déjà placé ailleurs échange sa place avec l'occupant.
+    async function choisirSinge(index, id) {
+      const nouvelle = [...equipe];
+      const ailleurs = id ? nouvelle.indexOf(id) : -1;
+      if (ailleurs >= 0) nouvelle[ailleurs] = nouvelle[index];
+      nouvelle[index] = id;
+      try {
+        const { ok, data } = await api("/equipe", { corps: { especes: nouvelle } });
+        if (!ok) throw new Error(data.erreur);
+        if (id === null && selection === index) selection = null;
+        else if (id) selection = index;
+        await rafraichirEquipe();
+        afficherMessage("✓ Sauvegardé", true);
+      } catch (err) {
+        afficherMessage("Erreur : " + err.message);
       }
     }
 
+    async function equiperPerk(p, espece) {
+      try {
+        const { ok, data } = await api("/perks/equiper", { corps: { perk: p.perk, tier: p.tier, espece } });
+        if (!ok) throw new Error(data.erreur);
+        perks = data;
+        await rafraichirEquipe();
+        afficherMessage("✓ Sauvegardé", true);
+      } catch (err) {
+        afficherMessage("Erreur : " + err.message);
+      }
+    }
+
+    async function equiperObjet(type, o, espece, emplacement) {
+      try {
+        const { ok, data } = await api(`${OBJETS[type].api}/equiper`, { corps: { objet: o.objet, tier: o.tier, espece, slot: emplacement } });
+        if (!ok) throw new Error(data.erreur);
+        OBJETS[type].donnees = data;
+        await rafraichirEquipe();
+        afficherMessage("✓ Sauvegardé", true);
+      } catch (err) {
+        afficherMessage("Erreur : " + err.message);
+      }
+    }
+
+    // ---------- Chargement ----------
+
+    // Équipe et stats de combat (après chaque changement : les totaux dépendent de tout l'équipement et des résonances)
+    async function rafraichirEquipe() {
+      const res = await api("/equipe");
+      if (!res.ok) throw new Error(res.data.erreur);
+      resonances = res.data.resonances ?? resonances;
+      combat = res.data.combat ?? [];
+      equipe = Array(res.data.nbSlots ?? 6).fill(null);
+      for (const { slot, espece } of res.data.equipe) {
+        if (slot <= equipe.length) equipe[slot - 1] = espece;
+      }
+      if (selection !== null && !equipe[selection]) selection = null;
+      afficherTout();
+    }
+
+    function afficherTout() {
+      afficherResonances();
+      afficherListe();
+      afficherFiche();
+    }
+
     async function charger() {
-      const [resDex, resEquipe, resPerks, resArmes, resEquipements] = await Promise.all(
-        [api("/monkeydex"), api("/equipe"), api("/perks"), api("/armes"), api("/equipements")]);
+      const [resDex, resPerks, resArmes, resEquipements] = await Promise.all(
+        [api("/monkeydex"), api("/perks"), api("/armes"), api("/equipements")]);
       if (resPerks.ok) perks = resPerks.data;
       if (resArmes.ok) OBJETS.arme.donnees = resArmes.data;
       if (resEquipements.ok) OBJETS.equipement.donnees = resEquipements.data;
-      if (!resDex.ok || !resEquipe.ok) {
+      if (!resDex.ok) {
         afficherMessage("Erreur de chargement, réessaie.");
         return;
       }
       possedes = resDex.data.singes;
-      resonances = resEquipe.data.resonances ?? resonances;
-      equipe = Array(resEquipe.data.nbSlots ?? 6).fill(null);
-      for (const { slot, espece } of resEquipe.data.equipe) {
-        if (slot <= equipe.length) equipe[slot - 1] = espece;
+      try {
+        await rafraichirEquipe();
+      } catch {
+        afficherMessage("Erreur de chargement, réessaie.");
+        return;
       }
-      afficherSlots();
+      // Sur grand écran, la fiche du premier singe est ouverte d'office
+      if (selection === null && !mobile.matches) {
+        const premier = equipe.findIndex(Boolean);
+        if (premier >= 0) selectionner(premier);
+      }
     }
 
-    document.addEventListener("click", fermerMenus);
-    // Débloquer « Rang de renfort » ajoute un emplacement : on recharge l'équipe
+    // Débloquer « Rang de renfort » ajoute un emplacement, et l'arbre change les stats : on recharge l'équipe
     document.addEventListener("arbre-change", charger);
 
     exigerConnexion().then((moi) => { if (moi) charger(); });

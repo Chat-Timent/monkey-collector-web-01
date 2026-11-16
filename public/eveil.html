@@ -32,7 +32,6 @@
     button.secondaire { background: #3a3526; color: #ffd54f; border: 1px solid #6b5a22; }
     button.secondaire:disabled { background: #2a2a2a; color: #777; border-color: #333; }
 
-    /* ---------- Donjon ---------- */
     .donjon {
       background: #242424;
       border: 1px solid #333;
@@ -56,36 +55,9 @@
     .donjon .actions { display: flex; flex-direction: column; gap: 8px; width: 100%; margin-top: 6px; }
 
     .stock { text-align: center; font-size: 22px; font-weight: bold; color: #ffd54f; margin: 22px 0 6px; }
-    #message { min-height: 1.2em; color: var(--or); text-align: center; margin: 0 0 18px; }
-
-    /* ---------- Singes éveillables ---------- */
-    h2 { font-size: 13px; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px; }
-    .singes { display: flex; flex-direction: column; gap: 10px; }
-    .singe {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: #242424;
-      border: 1px solid #333;
-      border-left: 4px solid var(--couleur);
-      border-radius: 14px;
-      padding: 12px 14px;
-    }
-    .singe img { width: 60px; height: 60px; object-fit: contain; flex-shrink: 0; }
-    .singe .infos { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-    .singe .nom { font-weight: bold; color: var(--couleur); }
-    .singe .niveau { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-    .crans { display: inline-flex; gap: 3px; }
-    .crans span { width: 12px; height: 12px; border-radius: 50%; background: #3a3a3a; }
-    .crans span.plein { background: #ffd54f; box-shadow: 0 0 6px rgba(255, 213, 79, 0.6); }
-    .singe .prochain { font-size: 13px; color: var(--texte-doux); }
-    .singe button { flex-shrink: 0; min-width: 150px; }
-    .vide { color: #777; font-size: 14px; text-align: center; }
-
-    @media (max-width: 520px) {
-      .singe { flex-wrap: wrap; }
-      .singe button { width: 100%; }
-    }
+    .lien-eveil { display: block; width: fit-content; margin: 0 auto; color: var(--or); font-weight: bold; text-decoration: none; }
+    .lien-eveil:hover { text-decoration: underline; }
+    #message { min-height: 1.2em; color: var(--or); text-align: center; margin: 14px 0 0; }
   </style>
 </head>
 <body>
@@ -103,10 +75,8 @@
     </section>
 
     <p class="stock" id="stock"></p>
+    <a class="lien-eveil" href="/monkeydex.html">🌟 Éveiller mes singes dans le Monkeydex →</a>
     <p id="message"></p>
-
-    <h2>Éveil des singes</h2>
-    <div class="singes" id="singes"></div>
   </main>
 
   <script src="/js/commun.js"></script>
@@ -116,11 +86,11 @@
   <script>
     const $ = (id) => document.getElementById(id);
     let etat = null;
+    let enCours = false;
     // Nom et icône de l'essence, envoyés par le serveur avec le donjon
     const essence = () => etat.donjon.recompense;
-    let enCours = false;
 
-    function afficherDonjon() {
+    function afficher() {
       const d = etat.donjon;
       $("donjon").hidden = false;
       $("d-icone").textContent = d.icone;
@@ -141,65 +111,18 @@
       balayer.hidden = d.balayage === null;
       balayer.disabled = d.tickets <= 0;
       balayer.textContent = `Balayer le palier ${d.palier - 1} · +${d.balayage} ${essence().icone}`;
-    }
 
-    function ligneSinge(s) {
-      const r = infoRarete(s.rarete);
-      const div = document.createElement("section");
-      div.className = "singe";
-      div.style.setProperty("--couleur", r.couleur);
-      div.innerHTML = `
-        <img alt="">
-        <div class="infos">
-          <span class="nom"></span>
-          <span class="niveau"><span class="crans"></span><span class="bonus"></span></span>
-          <span class="prochain"></span>
-        </div>
-        <button type="button"></button>`;
-      div.querySelector("img").src = s.image;
-      div.querySelector(".nom").textContent = s.nom;
-      div.querySelector(".crans").innerHTML = Array.from({ length: s.eveilMax },
-        (_, i) => `<span class="${i < s.eveil ? "plein" : ""}"></span>`).join("");
-      div.querySelector(".crans").title = `Éveil ${s.eveil}/${s.eveilMax}`;
-      div.querySelector(".bonus").textContent = s.bonusPct > 0 ? `+${s.bonusPct} % PV, ATK, DEF` : "Éveil 1";
-
-      const prochain = div.querySelector(".prochain");
-      const bouton = div.querySelector("button");
-      if (s.cout === null) {
-        prochain.textContent = "Éveil maximal";
-        bouton.textContent = "Max";
-        bouton.disabled = true;
-      } else {
-        const morceaux = [`Éveil ${s.eveil + 1} : +${s.prochainBonusPct} %`];
-        if (s.competenceAmelioree && s.competence) morceaux.push(`${s.competence.icone} ${s.competence.nom} amélioré`);
-        prochain.textContent = morceaux.join(" · ");
-        bouton.textContent = `Éveiller · ${s.cout} ${essence().icone}`;
-        bouton.disabled = etat.essence < s.cout;
-        bouton.addEventListener("click", () => eveiller(s, bouton));
-      }
-      return div;
-    }
-
-    function afficher() {
-      afficherDonjon();
       $("stock").textContent = `${essence().icone} ${etat.essence.toLocaleString("fr-FR")} ${essence().nom}`;
-      const zone = $("singes");
-      zone.innerHTML = "";
-      if (etat.singes.length === 0) {
-        zone.innerHTML = `<p class="vide">Aucun singe légendaire ou mythique pour l'instant.</p>`;
-        return;
-      }
-      for (const s of etat.singes) zone.appendChild(ligneSinge(s));
     }
 
     // Appel d'action : un seul à la fois ; `apres(data)` reçoit la réponse réussie.
-    async function action(bouton, chemin, corps, apres) {
+    async function action(bouton, chemin, apres) {
       if (enCours) return;
       enCours = true;
       bouton.disabled = true;
       $("message").textContent = "";
       try {
-        const { ok, data } = await api(chemin, { corps });
+        const { ok, data } = await api(chemin, { corps: {} });
         if (ok) apres(data);
         else $("message").textContent = data.erreur;
       } catch {
@@ -214,22 +137,15 @@
         location.href = `/combat-live.html?id=${etat.combatEnCours}`;
         return;
       }
-      action($("combattre"), "/eveil/combat", {}, (data) => location.href = `/combat-live.html?id=${data.combatId}`);
+      action($("combattre"), "/eveil/combat", (data) => location.href = `/combat-live.html?id=${data.combatId}`);
     });
 
     $("balayer").addEventListener("click", () => {
-      action($("balayer"), "/eveil/balayer", {}, (data) => {
+      action($("balayer"), "/eveil/balayer", (data) => {
         etat = data;
         $("message").textContent = `+${data.gains.quantite} ${data.gains.nom}`;
       });
     });
-
-    function eveiller(s, bouton) {
-      action(bouton, "/eveil/eveiller", { espece: s.id }, (data) => {
-        etat = data;
-        $("message").textContent = `${s.nom} passe à l'éveil ${s.eveil + 1} !`;
-      });
-    }
 
     async function charger() {
       const { ok, data } = await api("/eveil");

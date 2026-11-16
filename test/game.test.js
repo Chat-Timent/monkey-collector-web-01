@@ -7,7 +7,7 @@ import { SINGES } from "../src/game/monkeys.js";
 import { estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirerRarete } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import { COMPETENCES, competenceDe, validerCompetences } from "../src/game/competences.js";
-import { EVEIL, ameliorationCompetence, bonusEveil, bonusEveilPct, coutEveil, peutEveiller, validerEveil } from "../src/game/eveil.js";
+import { EVEIL, ameliorationCompetence, bonusEveil, bonusEveilPct, coutEveil, paliersEveil, peutEveiller, validerEveil } from "../src/game/eveil.js";
 import { singeDeCombat } from "../src/services/combat-service.js";
 import { etatDonjon } from "../src/services/ressources-service.js";
 import {
@@ -1105,4 +1105,19 @@ test("équipements en combat : les 3 objets et l'arme s'additionnent en % des st
   const singe = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets: agregerEffets([]), objets: portes });
   assert.deepEqual([singe.hp, singe.atk, singe.def],
     [base.hp + Math.round(base.hp * 0.2), base.atk + Math.round(base.atk * 0.12), base.def + Math.round(base.def * 0.2)]);
+});
+
+test("éveil : détail des 6 niveaux pour la fiche du Monkeydex (bonus, coût, compétence)", () => {
+  const crystal = paliersEveil(getEspece("crystal_ball_monkey"));
+  assert.deepEqual(crystal.map((p) => [p.niveau, p.bonusPct, p.cout]),
+    [[1, 0, null], [2, 3, 150], [3, 6, 300], [4, 9, 600], [5, 12, 1200], [6, 15, 2400]]);
+  // Compétence de base au niveau 1, puis aux niveaux qui l'améliorent seulement
+  assert.deepEqual(crystal.map((p) => p.competence && [p.competence.critMult, p.competence.percePct]),
+    [[2.5, 35], null, [2.8, 35], null, null, [2.8, 50]]);
+  // Légendaire sans compétence : coûts de base, aucune compétence
+  const sexy = paliersEveil(getEspece("sexy_monkey"));
+  assert.deepEqual(sexy.map((p) => p.cout), [null, 100, 200, 400, 800, 1600]);
+  assert.ok(sexy.every((p) => p.competence === null));
+  // Rareté non éveillable : aucun niveau
+  assert.deepEqual(paliersEveil(getEspece("balloon_monkey")), []);
 });

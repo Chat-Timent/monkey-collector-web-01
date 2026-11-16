@@ -121,3 +121,8 @@
 @media (max-width: 480px) {
   .onglets-objets a { padding: 8px 11px; font-size: 14px; }
 }
+
+/* ---------- Étoiles d'éveil (Monkeydex, Équipe) ---------- */
+
+.etoiles-eveil { color: #ffd54f; letter-spacing: 1px; white-space: nowrap; text-shadow: 0 0 6px rgba(255, 213, 79, 0.45); }
+.etoiles-eveil .restantes { color: #4a4a4a; text-shadow: none; }

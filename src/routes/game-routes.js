@@ -8,6 +8,7 @@ import { getElo } from "../services/elo-service.js";
 import { effectuerTirage, getQuota } from "../services/tirage-service.js";
 import { ErreurJeu } from "../erreurs.js";
 import { resonancesAvecBonus } from "../game/resonances.js";
+import { preparerEquipe } from "../services/combat-service.js";
 
 export const gameRoutes = Router();
 
@@ -42,9 +43,14 @@ gameRoutes.post("/starter", authentifie, async (req, res) => {
 });
 
 gameRoutes.get("/equipe", authentifie, async (req, res) => {
-  const [equipe, nbSlots, effets] = await Promise.all([getEquipe(req.userId), nbSlotsDuJoueur(req.userId), effetsDuJoueur(req.userId)]);
+  const [equipe, nbSlots, effets, prete] = await Promise.all([
+    getEquipe(req.userId), nbSlotsDuJoueur(req.userId), effetsDuJoueur(req.userId), preparerEquipe(req.userId),
+  ]);
+  // Stats de chaque emplacement telles qu'en combat (arbre, perk, éveil, objets et résonances compris), null si vide
+  const STATS = ["hp", "atk", "def", "spd", "prec", "esq", "crit", "critdmg"];
+  const combat = prete.map((s) => (s ? Object.fromEntries(STATS.map((k) => [k, s[k]])) : null));
   // Bonus de résonance affichés tels qu'ils comptent en combat (Harmonie, Chœur compris)
-  res.json({ equipe, nbSlots, resonances: resonancesAvecBonus(effets.resonance_pct) });
+  res.json({ equipe, nbSlots, resonances: resonancesAvecBonus(effets.resonance_pct), combat });
 });
 
 gameRoutes.post("/equipe", authentifie, async (req, res) => {

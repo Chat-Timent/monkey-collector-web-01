@@ -4,7 +4,7 @@
 // (de ses stats de base, comme les perks).
 import fs from "node:fs";
 import { RARETES } from "../constants/game.js";
-import { COMPETENCES, niveauxAmelioration } from "./competences.js";
+import { COMPETENCES, competenceDe, niveauxAmelioration } from "./competences.js";
 import { estRessourceJoueur } from "./ressources.js";
 
 export const EVEIL = JSON.parse(fs.readFileSync(new URL("../data/eveil.json", import.meta.url), "utf8"));
@@ -52,6 +52,23 @@ export function bonusEveilPct(niveau, regles = EVEIL) {
 // Stat ajoutée par l'éveil (pourcentage de la stat de base, arrondi).
 export function bonusEveil(stat, pct) {
   return Math.round((stat * pct) / 100);
+}
+
+// Détail des niveaux d'éveil d'une espèce, pour la fiche du Monkeydex : pour chaque niveau, le bonus de stats total,
+// le coût pour l'atteindre depuis le précédent (null au niveau 1) et la compétence avec ses réglages à ce niveau :
+// au niveau 1 (compétence de base) et aux niveaux qui l'améliorent, null ailleurs (ou si le singe n'en a pas).
+export function paliersEveil(espece, regles = EVEIL, competences = COMPETENCES) {
+  if (!peutEveiller(espece?.rarete, regles)) return [];
+  return Array.from({ length: regles.niveauMax }, (_, i) => {
+    const niveau = i + 1;
+    return {
+      niveau,
+      bonusPct: bonusEveilPct(niveau, regles),
+      cout: niveau === 1 ? null : coutEveil(espece.rarete, niveau - 1, regles),
+      competence: niveau === 1 || ameliorationCompetence(espece, niveau, competences)
+        ? competenceDe(espece, niveau, competences) : null,
+    };
+  });
 }
 
 // Le niveau d'éveil `niveau` améliore-t-il la compétence de cette espèce ?

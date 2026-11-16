@@ -2,7 +2,8 @@ import { pool } from "../config/database.js";
 import { RARETES } from "../constants/game.js";
 import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
 import { competenceDe } from "../game/competences.js";
-import { EVEIL, bonusEveil, bonusEveilPct, peutEveiller } from "../game/eveil.js";
+import { EVEIL, bonusEveil, bonusEveilPct, coutEveil, paliersEveil, peutEveiller } from "../game/eveil.js";
+import { lireRessources } from "./ressources-joueur-service.js";
 
 export async function lireCollection(userId, db = pool) {
   const { rows } = await db.query(
@@ -50,7 +51,10 @@ function construireMonkeydex(collection) {
         image: getImageUrl(id),
         rang: ordre[espece.rarete] ?? 0,
         competence: competenceDe(espece, eveil),
-        eveil: peutEveiller(espece.rarete) ? { niveau: eveil, max: EVEIL.niveauMax } : null,
+        // Éveil (légendaires et mythiques) : niveau, coût du suivant (null au maximum) et détail des niveaux
+        eveil: peutEveiller(espece.rarete)
+          ? { niveau: eveil, max: EVEIL.niveauMax, cout: coutEveil(espece.rarete, eveil), paliers: paliersEveil(espece) }
+          : null,
       };
     })
     .sort((a, b) => b.rang - a.rang);
@@ -73,9 +77,11 @@ function compterRaretes(collection) {
 
 // Le Monkeydex affiche ces trois informations simultanément : une seule lecture suffit.
 export async function getResumeMonkeydex(userId) {
-  const collection = await lireCollection(userId);
+  const [collection, ressources] = await Promise.all([lireCollection(userId), lireRessources(userId)]);
   const singes = construireMonkeydex(collection);
   return {
+    // Stock d'essence : l'éveil se fait depuis la fiche du Monkeydex
+    essence: ressources[EVEIL.ressource] ?? 0,
     total: singes.reduce((somme, singe) => somme + singe.amount, 0),
     compteur: compterRaretes(collection),
     singes,
