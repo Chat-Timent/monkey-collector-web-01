@@ -1,5 +1,5 @@
 import { pool, transaction } from "../config/database.js";
-import { DELAI_INITIAL_MS, PAS_MS } from "../constants/game.js";
+import { DELAI_INITIAL_MS, PAS_MS, VITESSE_REPLAY_MAX } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { combat } from "../game/combat-engine.js";
 import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
@@ -103,6 +103,22 @@ export async function combatEnCours(userId, mode, db = pool) {
     [userId, mode]
   );
   return rows[0]?.id ?? null;
+}
+
+// Replay PVE regardé en accéléré : le joueur l'a fini avant l'horloge du serveur.
+// On avance la fin du combat à maintenant, pour qu'il puisse enchaîner (étage suivant, donjon),
+// sans jamais descendre sous la durée du replay à la vitesse maximale. Ne fait que raccourcir.
+export async function terminerReplay(userId, combatId) {
+  await pool.query(
+    `UPDATE combats
+     SET resultat = jsonb_set(resultat, '{dureeMs}', to_jsonb(GREATEST(
+       floor(extract(epoch FROM now() - created_at) * 1000)::int,
+       jsonb_array_length(resultat->'journal') * $3::int / $4::int
+     )))
+     WHERE id = $1 AND user_a = $2 AND mode <> 'pvp'
+       AND created_at + (COALESCE((resultat->>'dureeMs')::int, 0) * interval '1 millisecond') > now()`,
+    [combatId, userId, PAS_MS, VITESSE_REPLAY_MAX]
+  );
 }
 
 // Nom affiché du camp B : le joueur adverse en PVP, l'étage ou le donjon en PVE.

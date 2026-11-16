@@ -7,6 +7,7 @@ import {
   getCombat,
   lireMessages,
   repondreDefi,
+  terminerReplay,
 } from "../services/combat-service.js";
 import { envoyerChatGlobal, lireChatGlobal } from "../services/chat-service.js";
 import { classementElo } from "../services/elo-service.js";
@@ -68,6 +69,12 @@ socialRoutes.get("/combats/:id", authentifie, async (req, res) => {
   const combat = await getCombat(req.userId, req.params.id);
   if (!combat) throw new ErreurJeu("combat introuvable", 404);
   res.json(combat);
+});
+
+// Fin d'un replay PVE regardé en accéléré (voir terminerReplay)
+socialRoutes.post("/combats/:id/fin", authentifie, async (req, res) => {
+  await terminerReplay(req.userId, req.params.id);
+  res.json({ ok: true });
 });
 
 socialRoutes.get("/chat", authentifie, async (req, res) => {

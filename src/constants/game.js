@@ -34,6 +34,8 @@ export const DUREE_DEFI_SEC = 60;
 export const SEUIL_EN_LIGNE_SEC = 45;
 export const DELAI_INITIAL_MS = 1000;
 export const PAS_MS = 700;
+// Vitesse de replay la plus rapide proposée en PVE (sélecteur x0.5 à x4 du combat)
+export const VITESSE_REPLAY_MAX = 4;
 
 // Tirages : +1 toutes les RECHARGE_TIRAGE_MS tant que le stock est sous TIRAGES_MAX.
 // Les récompenses (donjon, Aventure…) peuvent dépasser ce plafond ; la recharge s'arrête alors.
