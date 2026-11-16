@@ -49,6 +49,19 @@ function floraison(camp, tour, journal) {
   }
 }
 
+// Compétence Présage : tous les `tousLes` tours, le porteur frappe le singe vivant le plus bas en PV
+// du groupe actif adverse (même face à un taunt), sans pouvoir rater, d'un coup critique à `critMult` × les dégâts.
+function presageDeclenche(attaquant, tour) {
+  const c = attaquant.competence;
+  return c?.id === "presage" && tour % c.tousLes === 0;
+}
+
+function plusBasEnPv(camp) {
+  const actifs = rotationActive(camp);
+  if (actifs.length === 0) return null;
+  return actifs.reduce((bas, s) => (s.pv < bas.pv ? s : bas));
+}
+
 // Quasi toujours 100 % de toucher. La précision et l'esquive ne retirent
 // qu'au maximum 15 points, donc elles n'interviennent que occasionnellement.
 function chanceTouche(attaquant, cible) {
@@ -87,10 +100,11 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
         if (!attaquant || !estVivant(attaquant)) continue;
         if (!rotationActive(camp).includes(attaquant)) continue;
 
-        const cible = choisirCible(adverses, hasard);
+        const presage = presageDeclenche(attaquant, tour);
+        const cible = presage ? plusBasEnPv(adverses) : choisirCible(adverses, hasard);
         if (!cible) continue;
 
-        const touche = hasard() * 100 < chanceTouche(attaquant, cible);
+        const touche = presage || hasard() * 100 < chanceTouche(attaquant, cible);
         if (!touche) {
           journal.push({
             type: "rate", tour,
@@ -100,9 +114,10 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
           continue;
         }
 
-        const critique = hasard() * 100 < attaquant.crit;
+        const critique = presage || hasard() * 100 < attaquant.crit;
         let degats = degatsDe(attaquant.atk, cible.def);
-        if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
+        if (presage) degats = Math.round(degats * attaquant.competence.critMult);
+        else if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
 
         cible.pv = Math.max(0, cible.pv - degats);
         journal.push({
@@ -110,6 +125,7 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
           de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
           sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
           degats, critique, pvRestants: cible.pv,
+          ...(presage && { competence: { nom: attaquant.competence.nom, icone: attaquant.competence.icone } }),
         });
 
         if (!estVivant(cible)) {

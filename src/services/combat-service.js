@@ -11,6 +11,7 @@ import { eloDuCombat, reglerEloTermines } from "./elo-service.js";
 import { perksDesSinges } from "./perks-service.js";
 import { bonusDefense, bonusPv, renforcerPerk } from "../game/perks.js";
 import { appliquerResonances, resonancesAvecBonus } from "../game/resonances.js";
+import { competenceDe } from "../game/competences.js";
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 // `db` : la connexion de la transaction en cours, pour ne pas en ouvrir d'autres
@@ -47,6 +48,7 @@ export async function preparerEquipe(userId, db = pool) {
       spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
       crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
       perk,
+      competence: competenceDe(e),
     };
   }
   // Résonances de catégorie : tous les singes de l'équipe comptent, rotation active ou non ;

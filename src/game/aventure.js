@@ -3,11 +3,12 @@
 import fs from "node:fs";
 import { RARETES } from "../constants/game.js";
 import { SINGES, getImageUrl, statsFinales } from "./monkeys.js";
+import { competenceDe } from "./competences.js";
 
 export const DONJONS = JSON.parse(fs.readFileSync(new URL("../data/donjons.json", import.meta.url), "utf8"));
 const AVENTURE = DONJONS.aventure;
 
-const ORDRE_RARETES = RARETES.map((r) => r.nom); // common → legendary
+const ORDRE_RARETES = RARETES.map((r) => r.nom); // common → mythic
 
 // Générateur pseudo-aléatoire déterministe (mulberry32) : un même étage donne toujours les mêmes ennemis.
 function generateur(graine) {
@@ -63,6 +64,7 @@ export function ennemisEtage(etage, catalogue = SINGES, donjon = AVENTURE, grain
       def: Math.round(s.def * force),
       spd: s.spd, prec: s.prec, esq: s.esq, crit: s.crit, critdmg: s.critdmg,
       perk: null,
+      competence: competenceDe(espece),
     };
   }
   return slots;

@@ -7,6 +7,7 @@ const RARETES_AFFICHAGE = {
   rare:      { label: "Rare",       couleur: "#1cc22a" },
   epic:      { label: "Epic",       couleur: "#a831eb" },
   legendary: { label: "Légendaire", couleur: "#fe9308" },
+  mythic:    { label: "Mythique",   couleur: "#E01E1E" },
 };
 
 // ---------- Version du site ----------
@@ -214,6 +215,12 @@ function effetPerkSur(catalogue, perk, tier, stats) {
   if (perk === "ironskin" && stats) return `${texte} (+${bonusDefensePerk(catalogue, perk, tier, stats.def)})`;
   if (perk === "taunt" && stats) return `${texte} (+${bonusPvPerk(catalogue, perk, tier, stats.hp)})`;
   return texte;
+}
+
+// Description d'une compétence de singe, calculée à partir de ses réglages (src/data/competences.json).
+function descriptionCompetence(c) {
+  if (c?.id === "presage") return `Tous les ${c.tousLes} tours, frappe l'ennemi qui a le moins de PV : coup critique garanti, dégâts ×${c.critMult}.`;
+  return "";
 }
 
 // Description détaillée.

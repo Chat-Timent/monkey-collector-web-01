@@ -137,6 +137,17 @@
     .fiche th:first-child, .fiche td:first-child { text-align: left; }
     .fiche th { color: #999; font-weight: normal; font-size: 12px; text-transform: uppercase; }
     .fiche td.croissance { color: #7fdc9a; }
+    .competence {
+      margin-top: 16px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid var(--couleur);
+      background: color-mix(in srgb, var(--couleur) 12%, transparent);
+      font-size: 14px;
+    }
+    .competence[hidden] { display: none; }
+    .competence strong { color: var(--couleur); }
+    .competence p { margin: 4px 0 0; color: #ddd; }
   </style>
 </head>
 <body>
@@ -164,6 +175,7 @@
           <div id="detail-famille" class="detail-famille"></div>
         </div>
       </div>
+      <div id="detail-competence" class="competence" hidden></div>
       <table>
         <thead>
           <tr><th>Stat</th><th>Actuelle</th><th>Base</th><th>Croissance / niv.</th></tr>
@@ -253,6 +265,18 @@
         bouton.disabled = !familles;
         bouton.addEventListener("click", () => ouvrirInfosFamilles(familles.resonances, familles.compte, s.espece.categorie));
         zoneFamille.appendChild(bouton);
+      }
+
+      const zoneCompetence = document.getElementById("detail-competence");
+      zoneCompetence.hidden = !s.competence;
+      if (s.competence) {
+        zoneCompetence.style.setProperty("--couleur", r.couleur);
+        zoneCompetence.innerHTML = "";
+        const titre = document.createElement("strong");
+        titre.textContent = `${s.competence.icone} ${s.competence.nom}`;
+        const texte = document.createElement("p");
+        texte.textContent = descriptionCompetence(s.competence);
+        zoneCompetence.append(titre, texte);
       }
 
       const lignes = STATS_FICHE.map(({ cle, libelle, suffixe }) => {

@@ -50,7 +50,7 @@ export function etincelleDeclenchee(effets, sansRare, seuil = ETINCELLE_SEUIL) {
 }
 
 // Compteur de tirages d'affilée sans rare ou mieux : il avance à chaque tirage, nœud pris ou non,
-// et repart à 0 sur un rare, un épique ou un légendaire.
+// et repart à 0 sur un rare ou mieux (épique, légendaire, mythique).
 export function compteurSansRare(sansRare, rarete) {
   return estRare(rarete) ? 0 : sansRare + 1;
 }

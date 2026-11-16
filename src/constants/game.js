@@ -4,6 +4,7 @@ export const RARETES = [
   { id: 3, nom: "rare", poids: 1 / 15 },
   { id: 4, nom: "epic", poids: 1 / 50 },
   { id: 5, nom: "legendary", poids: 1 / 140 },
+  { id: 6, nom: "mythic", poids: 1 / 1000 },
 ];
 
 export const PALIERS = {
@@ -12,6 +13,7 @@ export const PALIERS = {
   rare: 3,
   epic: 2,
   legendary: 1,
+  mythic: 1,
 };
 
 export const RECOMPENSES = {
@@ -20,6 +22,7 @@ export const RECOMPENSES = {
   rare: { xp: 100, coins: 60 },
   epic: { xp: 500, coins: 150 },
   legendary: { xp: 1250, coins: 500 },
+  mythic: { xp: 3000, coins: 1500 },
 };
 
 export const STARTERS = {

@@ -95,6 +95,20 @@
     .bulle.soin { color: #7fdc9a; }
     .carte .perk { position: absolute; top: 6px; left: 8px; font-size: 16px; }
 
+    /* Compétence Présage : le lanceur s'illumine, la cible encaisse un coup lourd */
+    .carte.presage-lanceur {
+      transform: scale(1.1);
+      border-color: #E01E1E;
+      animation: aura 0.7s ease-in-out;
+    }
+    .carte.touche-fort { animation: secousse-forte 0.6s; border-color: #E01E1E; }
+    .bulle.presage {
+      color: #FF6B5B;
+      font-size: 22px;
+      text-shadow: 0 0 8px #E01E1E;
+      animation: monte-fort 1.2s forwards;
+    }
+
     @keyframes secousse {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
@@ -103,6 +117,22 @@
     @keyframes monte {
       from { opacity: 1; top: -10px; }
       to { opacity: 0; top: -45px; }
+    }
+    @keyframes aura {
+      0%, 100% { box-shadow: 0 0 14px rgba(224, 30, 30, 0.5); }
+      50% { box-shadow: 0 0 34px 8px rgba(224, 30, 30, 0.9); }
+    }
+    @keyframes secousse-forte {
+      0%, 100% { transform: translateX(0) scale(1); }
+      15% { transform: translateX(-12px) scale(1.04); }
+      35% { transform: translateX(12px); }
+      55% { transform: translateX(-8px); }
+      75% { transform: translateX(8px); }
+    }
+    @keyframes monte-fort {
+      0% { opacity: 0; top: 10px; transform: translateX(-50%) scale(0.6); }
+      20% { opacity: 1; top: -14px; transform: translateX(-50%) scale(1.3); }
+      100% { opacity: 0; top: -55px; transform: translateX(-50%) scale(1); }
     }
 
     .haut {
@@ -261,8 +291,9 @@
 
       const classes = ["carte", camp === monCamp ? "moi" : "adv"];
       if (m.dead) classes.push("mort");
-      if (estActif) classes.push("attaque");
+      if (estActif) classes.push(actif.presage ? "presage-lanceur" : "attaque");
       if (estCible && fx.type === "degats") classes.push("touche");
+      if (estCible && fx.type === "presage") classes.push("touche-fort");
 
       const bulle = estCible ? `<div class="bulle ${fx.type}">${fx.texte}</div>` : "";
       const pct = Math.max(0, Math.round((m.pv / m.max) * 100));
@@ -289,6 +320,7 @@
       let txt = "";
       let classe = "";
       if (e.type === "tour") { txt = `Tour ${e.numero}`; classe = "tour"; }
+      else if (e.type === "degats" && e.competence) txt = `${e.competence.icone} ${e.competence.nom} : ${e.de} → ${e.sur} : ${e.degats} dégâts (critique) · PV restants ${e.pvRestants}`;
       else if (e.type === "degats") txt = `${e.de} → ${e.sur} : ${e.degats} dégâts${e.critique ? " (critique)" : ""} · PV restants ${e.pvRestants}`;
       else if (e.type === "rate") txt = `${e.de} rate ${e.sur}`;
       else if (e.type === "KO") txt = `${e.nom} est K.O.`;
@@ -305,6 +337,10 @@
     function appliquer(e) {
       if (e.type === "tour") {
         $("banniere").textContent = `Tour ${e.numero}`;
+      } else if (e.type === "degats" && e.competence) {
+        actif = { camp: e.deCamp, slot: e.deSlot, presage: true };
+        etat[e.surCamp][e.surSlot].pv = e.pvRestants;
+        fx = { camp: e.surCamp, slot: e.surSlot, type: "presage", texte: `${e.competence.icone} -${e.degats} CRIT` };
       } else if (e.type === "degats") {
         actif = { camp: e.deCamp, slot: e.deSlot };
         etat[e.surCamp][e.surSlot].pv = e.pvRestants;

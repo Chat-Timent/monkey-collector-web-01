@@ -1,0 +1,9 @@
+{
+  "presage": {
+    "nom": "Présage",
+    "icone": "🔮",
+    "actif": true,
+    "tousLes": 3,
+    "critMult": 2
+  }
+}
