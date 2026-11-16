@@ -1,6 +1,7 @@
 import { pool } from "../config/database.js";
 import { RARETES } from "../constants/game.js";
 import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
+import { competenceDe } from "../game/competences.js";
 
 export async function lireCollection(userId, db = pool) {
   const { rows } = await db.query(
@@ -40,6 +41,7 @@ function construireMonkeydex(collection) {
         stats: statsFinales(espece, niveau.niveau),
         image: getImageUrl(id),
         rang: ordre[espece.rarete] ?? 0,
+        competence: competenceDe(espece),
       };
     })
     .sort((a, b) => b.rang - a.rang);

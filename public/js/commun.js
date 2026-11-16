@@ -217,6 +217,12 @@ function effetPerkSur(catalogue, perk, tier, stats) {
   return texte;
 }
 
+// Description d'une compétence de singe, calculée à partir de ses réglages (src/data/competences.json).
+function descriptionCompetence(c) {
+  if (c?.id === "presage") return `Tous les ${c.tousLes} tours, frappe l'ennemi qui a le moins de PV : coup critique garanti, dégâts ×${c.critMult}.`;
+  return "";
+}
+
 // Description détaillée.
 function descriptionPerk(catalogue, perk, tier) {
   const v = valeursPerk(catalogue, perk, tier);

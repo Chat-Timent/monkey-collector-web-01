@@ -2,7 +2,7 @@
   "presage": {
     "nom": "Présage",
     "icone": "🔮",
-    "actif": false,
+    "actif": true,
     "tousLes": 3,
     "critMult": 2
   }

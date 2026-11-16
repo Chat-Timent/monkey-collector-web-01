@@ -441,12 +441,12 @@ test("Mythique : 1/1000 au tirage, même palier de 15 % au-dessus du légendaire
   assert.ok(legendaires.every((e) => s.base.atk > e.base.atk && s.base.atk / s.base.def > e.base.atk / e.base.def));
 });
 
-test("Présage : désactivé pour l'instant, sinon tous les 3 tours un critique ×2 sur l'ennemi le plus bas en PV", () => {
-  // Interrupteur : tant que la compétence est désactivée, le singe combat sans elle
-  assert.equal(competenceDe(getEspece("crystal_ball_monkey")), null);
-  const actif = { presage: { ...COMPETENCES.presage, actif: true } };
-  const presage = competenceDe(getEspece("crystal_ball_monkey"), actif);
+test("Présage : tous les 3 tours, un critique ×2 sur l'ennemi le plus bas en PV", () => {
+  // Compétence active ; l'interrupteur "actif" à false la retire du combat
+  const presage = competenceDe(getEspece("crystal_ball_monkey"));
   assert.deepEqual(presage, { id: "presage", nom: "Présage", icone: "🔮", tousLes: 3, critMult: 2 });
+  assert.equal(competenceDe(getEspece("crystal_ball_monkey"), { presage: { ...COMPETENCES.presage, actif: false } }), null);
+  assert.equal(competenceDe(getEspece("sexy_monkey")), null);
 
   const singe = (nom, hp, extra = {}) => ({ nom, hp, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 150, perk: null, ...extra });
   // Le devin attaque seul ; en face, un taunt plein de PV et un singe plus faible
@@ -461,7 +461,7 @@ test("Présage : désactivé pour l'instant, sinon tous les 3 tours un critique 
   assert.equal(coups[2].degats, degatsDe(100, 100) * 2);
   assert.deepEqual(coups[2].competence, { nom: "Présage", icone: "🔮" });
 
-  // Sans compétence (désactivée), le même combat est identique à avant : jamais de Présage
+  // Sans compétence (désactivée), jamais de Présage
   const sans = combat([singe("Devin", 100000, { competence: null })], adverses(), () => 0.99);
   assert.ok(sans.journal.every((e) => !e.competence && (e.de !== "Devin" || e.sur === "Taunt")));
 });
