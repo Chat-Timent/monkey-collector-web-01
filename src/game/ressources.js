@@ -1,12 +1,39 @@
-// Donjons de ressources : fonctions pures, sans base de données.
-// Règles dans src/data/donjons.json (clé "ressources").
+// Donjons de ressources et donjon d'éveil : fonctions pures, sans base de données.
+// Règles dans src/data/donjons.json : clé "ressources" (page Ressources) et clé "eveil" (page Éveil),
+// de même forme ; chaque fonction prend en paramètre les règles du groupe de donjons voulu.
 import { DONJONS, ennemisEtage } from "./aventure.js";
 import { SINGES } from "./monkeys.js";
 
 export const RESSOURCES = DONJONS.ressources;
+export const DONJON_EVEIL = DONJONS.eveil;
 
-export function donjonExiste(donjon) {
-  return typeof donjon === "string" && Object.hasOwn(RESSOURCES.donjons, donjon);
+const entierPositif = (v) => Number.isInteger(v) && v >= 0;
+
+// Vérifie un groupe de donjons au chargement. `ressourceObligatoire` : chaque donjon doit nommer la ressource gagnée.
+export function validerDonjons(regles, nomGroupe, { ressourceObligatoire = false } = {}) {
+  if (!regles) throw new Error(`groupe de donjons "${nomGroupe}" absent de donjons.json`);
+  if (!Number.isInteger(regles.ticketsParJour) || regles.ticketsParJour < 1) throw new Error(`ticketsParJour invalide (${nomGroupe})`);
+  if (!Number.isFinite(regles.difficulte?.multiplicateur) || !Number.isFinite(regles.difficulte?.decalage)) {
+    throw new Error(`difficulté invalide (${nomGroupe})`);
+  }
+  const donjons = Object.entries(regles.donjons ?? {});
+  if (donjons.length === 0) throw new Error(`aucun donjon dans "${nomGroupe}"`);
+  for (const [id, d] of donjons) {
+    if (typeof d.nom !== "string" || typeof d.icone !== "string") throw new Error(`nom ou icône manquant dans le donjon ${id}`);
+    if (!entierPositif(d.gain?.base) || !entierPositif(d.gain?.parPalier)) throw new Error(`gain invalide dans le donjon ${id}`);
+    if (!Number.isInteger(d.graine)) throw new Error(`graine invalide dans le donjon ${id}`);
+    if (ressourceObligatoire && (typeof d.ressource !== "string" || !d.ressource)) throw new Error(`ressource manquante dans le donjon ${id}`);
+  }
+}
+
+validerDonjons(RESSOURCES, "ressources");
+validerDonjons(DONJON_EVEIL, "eveil", { ressourceObligatoire: true });
+for (const id of Object.keys(DONJON_EVEIL.donjons)) {
+  if (Object.hasOwn(RESSOURCES.donjons, id)) throw new Error(`le donjon "${id}" existe dans "ressources" et dans "eveil"`);
+}
+
+export function donjonExiste(donjon, regles = RESSOURCES) {
+  return typeof donjon === "string" && Object.hasOwn(regles.donjons, donjon);
 }
 
 // Un palier de donjon a la difficulté d'un étage d'Aventure plus élevé :

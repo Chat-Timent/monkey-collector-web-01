@@ -12,6 +12,33 @@ import { perksDesSinges } from "./perks-service.js";
 import { bonusDefense, bonusPv, renforcerPerk } from "../game/perks.js";
 import { appliquerResonances, resonancesAvecBonus } from "../game/resonances.js";
 import { competenceDe } from "../game/competences.js";
+import { bonusEveil, bonusEveilPct } from "../game/eveil.js";
+
+// Singe d'un joueur prêt pour le moteur de combat (fonction pure) : stats de son niveau, bonus de l'arbre (`effets`),
+// perk porté (`perk`, effet brut) et niveau d'éveil (`eveil`). Les bonus du perk et de l'éveil sont des pourcentages
+// des stats de base (sans l'arbre) ; ils s'ajoutent sans se multiplier entre eux.
+export function singeDeCombat(espece, e, niveau, { effets, perk = null, eveil = 1 }) {
+  const s = statsFinales(e, niveau);
+  // Maître des perks : valeurs du perk augmentées
+  const perkPorte = renforcerPerk(perk, effets.perk_pct);
+  // Éveil : +x % de PV, d'ATK et de DEF
+  const pctEveil = bonusEveilPct(eveil);
+  return {
+    id: espece,
+    nom: e.nom,
+    image: getImageUrl(espece),
+    rarete: e.rarete,
+    categorie: e.categorie,
+    // Taunt : PV du porteur augmentés de pvPct % ; Peau de fer : défense augmentée de defensePct %
+    hp: Math.round(s.hp * (1 + effets.hp_pct)) + bonusPv(perkPorte, s.hp) + bonusEveil(s.hp, pctEveil),
+    atk: Math.round(s.atk * (1 + effets.atk_pct)) + bonusEveil(s.atk, pctEveil),
+    def: Math.round(s.def * (1 + effets.def_pct)) + bonusDefense(perkPorte, s.def) + bonusEveil(s.def, pctEveil),
+    spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
+    crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
+    perk: perkPorte,
+    competence: competenceDe(e, eveil),
+  };
+}
 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 // `db` : la connexion de la transaction en cours, pour ne pas en ouvrir d'autres
@@ -27,29 +54,9 @@ export async function preparerEquipe(userId, db = pool) {
     if (slot > slots.length) continue;
     const e = SINGES[espece];
     if (!e) continue; // espèce retirée de monkeys.json : slot laissé vide plutôt que planter
-    const amount = collection.singes[espece]?.amount ?? 1;
-    const niveau = getNiveau(e.rarete, amount).niveau;
-    const s = statsFinales(e, niveau);
-    // Maître des perks : valeurs du perk augmentées
-    const perk = renforcerPerk(perks[espece] ?? null, effets.perk_pct);
-    // Peau de fer : défense du porteur augmentée de defensePct % (de sa défense de base, sans l'arbre)
-    const bonusDef = bonusDefense(perk, s.def);
-    // Taunt : PV du porteur augmentés de pvPct % (de ses PV de base, sans l'arbre)
-    const bonusHp = bonusPv(perk, s.hp);
-    slots[slot - 1] = {
-      id: espece,
-      nom: e.nom,
-      image: getImageUrl(espece),
-      rarete: e.rarete,
-      categorie: e.categorie,
-      hp: Math.round(s.hp * (1 + effets.hp_pct)) + bonusHp,
-      atk: Math.round(s.atk * (1 + effets.atk_pct)),
-      def: Math.round(s.def * (1 + effets.def_pct)) + bonusDef,
-      spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
-      crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
-      perk,
-      competence: competenceDe(e),
-    };
+    const possede = collection.singes[espece];
+    const niveau = getNiveau(e.rarete, possede?.amount ?? 1).niveau;
+    slots[slot - 1] = singeDeCombat(espece, e, niveau, { effets, perk: perks[espece] ?? null, eveil: possede?.eveil ?? 1 });
   }
   // Résonances de catégorie : tous les singes de l'équipe comptent, rotation active ou non ;
   // bonus augmentés par Harmonie et Chœur
@@ -124,7 +131,7 @@ export async function terminerReplay(userId, combatId) {
 // Nom affiché du camp B : le joueur adverse en PVP, l'étage ou le donjon en PVE.
 function nomAdversaire(r) {
   if (r.mode === "aventure") return `Étage ${r.contexte?.etage}`;
-  if (r.mode === "ressource") return r.contexte?.titre ?? "Donjon";
+  if (r.mode === "ressource" || r.mode === "eveil") return r.contexte?.titre ?? "Donjon";
   return r.pseudo_b;
 }
 

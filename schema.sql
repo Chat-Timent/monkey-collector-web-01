@@ -20,6 +20,7 @@ CREATE TABLE collections (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   espece  text NOT NULL,
   amount  integer NOT NULL DEFAULT 0,
+  eveil   integer NOT NULL DEFAULT 1 CHECK (eveil >= 1),  -- niveau d'éveil (légendaires et mythiques, voir src/data/eveil.json)
   PRIMARY KEY (user_id, espece)
 );
 
@@ -39,7 +40,6 @@ CREATE TABLE starter_noeuds (
   PRIMARY KEY (user_id, noeud)
 );
 
--- Donjons de ressources : palier courant et tickets du jour (heure de Paris) par donjon.
 -- Perks obtenus (src/data/perks.json) et singe qui les porte : un perk par singe au maximum.
 CREATE TABLE perks_obtenus (
   user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -51,13 +51,22 @@ CREATE TABLE perks_obtenus (
   UNIQUE (user_id, espece)
 );
 
+-- Donjons de ressources et donjon d'éveil : palier courant et tickets du jour (heure de Paris) par donjon.
 CREATE TABLE donjons_progression (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  donjon  text NOT NULL,                       -- 'tirages', 'coins', 'xp'
+  donjon  text NOT NULL,                       -- 'tirages', 'coins', 'xp', 'eveil'
   palier  integer NOT NULL DEFAULT 1,
   tickets integer NOT NULL DEFAULT 2,
   jour    date NOT NULL DEFAULT CURRENT_DATE,  -- jour des tickets ; un jour passé = tickets pleins
   PRIMARY KEY (user_id, donjon)
+);
+
+-- Ressources gagnées dans les donjons et dépensées ailleurs : 'essence' (donjon d'éveil, éveil des singes).
+CREATE TABLE ressources_joueur (
+  user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  ressource text NOT NULL,
+  quantite  integer NOT NULL DEFAULT 0 CHECK (quantite >= 0),
+  PRIMARY KEY (user_id, ressource)
 );
 
 -- Stock de tirages : `tirages_restants` tirages au moment `dernier_reset` (début de la recharge en cours),
@@ -108,7 +117,7 @@ CREATE TABLE combats (
   user_b     uuid REFERENCES users(id) ON DELETE CASCADE,  -- null en PVE (pas d'adversaire joueur)
   resultat   jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  mode       text NOT NULL DEFAULT 'pvp',  -- 'pvp', 'aventure' ou 'ressource'
+  mode       text NOT NULL DEFAULT 'pvp',  -- 'pvp', 'aventure', 'ressource' ou 'eveil'
   contexte   jsonb                         -- PVE : étage, récompenses obtenues
 );
 

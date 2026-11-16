@@ -5,7 +5,11 @@
     "actif": true,
     "tousLes": 3,
     "critMult": 2.5,
-    "percePct": 35
+    "percePct": 35,
+    "eveil": {
+      "3": { "critMult": 2.8 },
+      "6": { "percePct": 50 }
+    }
   },
   "decret_royal": {
     "nom": "Décret royal",
@@ -14,6 +18,10 @@
     "tousLes": 3,
     "atkPct": 5,
     "defPct": 5,
-    "cumulMax": 5
+    "cumulMax": 5,
+    "eveil": {
+      "3": { "atkPct": 6, "defPct": 6 },
+      "6": { "cumulMax": 6 }
+    }
   }
 }

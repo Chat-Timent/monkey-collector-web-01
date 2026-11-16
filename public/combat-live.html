@@ -313,6 +313,8 @@
     let resultat = null;
     let eloDelta = null;
     let mode = "pvp";
+    // Page de retour d'un combat PVE, selon son mode
+    const PAGE_DU_MODE = { aventure: "/aventure.html", ressource: "/ressources.html", eveil: "/eveil.html" };
     let contexte = null;
     let monCamp = null;
     let etat = { A: [], B: [] };
@@ -437,7 +439,7 @@
         terminerAventure(v === monCamp);
         return;
       }
-      if (mode === "ressource") {
+      if (mode === "ressource" || mode === "eveil") {
         terminerDonjon(v === monCamp);
         return;
       }
@@ -448,16 +450,18 @@
       }
     }
 
-    // Donjon de ressources : quantité gagnée, puis retour aux donjons
+    // Donjon de ressources ou d'éveil : quantité gagnée, puis retour à la page du donjon
     function terminerDonjon(victoire) {
       const g = contexte?.gains;
       if (victoire && g) {
-        const unite = { tirages: g.quantite > 1 ? "tirages" : "tirage", coins: "coins", xp: "XP" }[g.donjon];
+        const unite = g.ressource
+          ? RESSOURCES_AFFICHAGE[g.ressource]?.nom ?? g.ressource
+          : { tirages: g.quantite > 1 ? "tirages" : "tirage", coins: "coins", xp: "XP" }[g.donjon];
         $("resultat").textContent += ` +${g.quantite} ${unite}`;
         if (g.niveauxGagnes > 0) $("resultat").textContent += " · Niveau supérieur !";
       }
-      $("action").textContent = "Retour aux donjons";
-      $("action").href = "/ressources.html";
+      $("action").textContent = mode === "eveil" ? "Retour au donjon" : "Retour aux donjons";
+      $("action").href = PAGE_DU_MODE[mode];
       $("action").classList.add("visible");
     }
 
@@ -608,7 +612,7 @@
       if (mode !== "pvp") {
         // Combat PVE (Aventure ou donjon) : pas de chat, retour vers la page du mode
         $("colonnes").classList.add("sans-chat");
-        document.querySelector("header a.lien").href = mode === "ressource" ? "/ressources.html" : "/aventure.html";
+        document.querySelector("header a.lien").href = PAGE_DU_MODE[mode] ?? "/aventure.html";
         afficherSelecteurVitesse();
       } else {
         // Chat : on charge tout l'historique du combat, puis on interroge régulièrement

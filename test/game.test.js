@@ -6,7 +6,10 @@ import { RESONANCES, appliquerResonances, resonancesActives, resonancesAvecBonus
 import { SINGES } from "../src/game/monkeys.js";
 import { estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirerRarete } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
-import { COMPETENCES, competenceDe } from "../src/game/competences.js";
+import { COMPETENCES, competenceDe, validerCompetences } from "../src/game/competences.js";
+import { EVEIL, ameliorationCompetence, bonusEveil, bonusEveilPct, coutEveil, peutEveiller, validerEveil } from "../src/game/eveil.js";
+import { singeDeCombat } from "../src/services/combat-service.js";
+import { etatDonjon } from "../src/services/ressources-service.js";
 import {
   ARBRE, COURBE_COUTS, agregerEffets, coutAttendu, estGratuit, etatArbre, noeudsPris, peutPrendre,
   pointsDepenses, profondeurs, validerArbre, voisins,
@@ -15,7 +18,7 @@ import { nbSlots } from "../src/services/arbre-service.js";
 import { compteurSansRare, etincelleDeclenchee } from "../src/services/tirage-service.js";
 import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../src/game/quota.js";
 import { ennemisEtage, recompensesAvecBonus, recompensesEtage, singeBonus } from "../src/game/aventure.js";
-import { ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsApresCadeau, ticketsDisponibles, ticketsParJour } from "../src/game/ressources.js";
+import { DONJON_EVEIL, RESSOURCES, ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsApresCadeau, ticketsDisponibles, ticketsParJour, validerDonjons } from "../src/game/ressources.js";
 import { calculerElo, limiteCombatsElo } from "../src/game/elo.js";
 import { bonusDefense, bonusPv, effetPerk, nbTiers, perkExiste, renforcerPerk, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
@@ -82,6 +85,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /combats/:id/messages",
     "GET /defis",
     "GET /equipe",
+    "GET /eveil",
     "GET /joueurs",
     "GET /moi",
     "GET /monkeydex",
@@ -98,6 +102,9 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /defis",
     "POST /defis/:id/repondre",
     "POST /equipe",
+    "POST /eveil/balayer",
+    "POST /eveil/combat",
+    "POST /eveil/eveiller",
     "POST /inscription",
     "POST /perks/equiper",
     "POST /perks/loterie",
@@ -171,6 +178,12 @@ test("les requêtes invalides reçoivent une erreur JSON sans toucher la base", 
 
     const sansCorps = await fetch(`${base}/connexion`, { method: "POST" });
     assert.equal(sansCorps.status, 401);
+
+    // Page et actions de l'éveil : connexion obligatoire
+    for (const [methode, chemin] of [["GET", "/eveil"], ["POST", "/eveil/combat"], ["POST", "/eveil/balayer"], ["POST", "/eveil/eveiller"]]) {
+      const r = await fetch(`${base}${chemin}`, { method: methode });
+      assert.equal(r.status, 401, chemin);
+    }
   } finally {
     serveur.close();
   }
@@ -446,7 +459,7 @@ test("Présage : tous les 3 tours, un critique ×2,5 perce-armure sur l'ennemi l
   // Compétence active ; l'interrupteur "actif" à false la retire du combat
   const presage = competenceDe(getEspece("crystal_ball_monkey"));
   assert.deepEqual(presage, { id: "presage", nom: "Présage", icone: "🔮", tousLes: 3, critMult: 2.5, percePct: 35 });
-  assert.equal(competenceDe(getEspece("crystal_ball_monkey"), { presage: { ...COMPETENCES.presage, actif: false } }), null);
+  assert.equal(competenceDe(getEspece("crystal_ball_monkey"), 1, { presage: { ...COMPETENCES.presage, actif: false } }), null);
   assert.equal(competenceDe(getEspece("sexy_monkey")), null);
 
   const singe = (nom, hp, extra = {}) => ({ nom, hp, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 150, perk: null, ...extra });
@@ -470,7 +483,7 @@ test("Présage : tous les 3 tours, un critique ×2,5 perce-armure sur l'ennemi l
 test("Décret royal : tous les 3 tours, +5 % ATK et DEF à l'équipe vivante, cumulable 5 fois", () => {
   const decret = competenceDe(getEspece("king_monkey"));
   assert.deepEqual(decret, { id: "decret_royal", nom: "Décret royal", icone: "👑", tousLes: 3, atkPct: 5, defPct: 5, cumulMax: 5 });
-  assert.equal(competenceDe(getEspece("king_monkey"), { decret_royal: { ...COMPETENCES.decret_royal, actif: false } }), null);
+  assert.equal(competenceDe(getEspece("king_monkey"), 1, { decret_royal: { ...COMPETENCES.decret_royal, actif: false } }), null);
 
   const singe = (nom, extra = {}) => ({ nom, hp: 1e9, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 150, perk: null, ...extra });
   const r = combat([singe("Roi", { competence: decret }), singe("Soldat")], [singe("Cible")], () => 0.5);
@@ -876,4 +889,84 @@ test("version : pages HTML non mises en cache, en-tête X-Version sur toutes les
   } finally {
     serveur.close();
   }
+});
+
+test("éveil : légendaires et mythiques seulement, coûts 100 à 1 600 (×1,5 en mythique), +3 % par niveau", () => {
+  assert.ok(peutEveiller("legendary") && peutEveiller("mythic"));
+  assert.ok(!peutEveiller("epic") && !peutEveiller("common") && !peutEveiller(undefined));
+  const couts = (r) => [1, 2, 3, 4, 5, 6].map((n) => coutEveil(r, n));
+  assert.deepEqual(couts("legendary"), [100, 200, 400, 800, 1600, null]);
+  assert.deepEqual(couts("mythic"), [150, 300, 600, 1200, 2400, null]);
+  assert.equal(coutEveil("epic", 1), null);
+  assert.equal(coutEveil("legendary", 0), null);
+  // Bonus : 0 au niveau 1, +15 % au niveau 6, jamais au-delà
+  assert.deepEqual([1, 2, 6, 7].map((n) => bonusEveilPct(n)), [0, 3, 15, 15]);
+  assert.equal(bonusEveil(1000, 15), 150);
+  assert.equal(bonusEveil(333, 3), 10); // arrondi
+});
+
+test("éveil : Présage et Décret royal s'améliorent aux niveaux 3 et 6", () => {
+  const crystal = getEspece("crystal_ball_monkey");
+  const king = getEspece("king_monkey");
+  const presage = (n) => { const c = competenceDe(crystal, n); return [c.critMult, c.percePct]; };
+  assert.deepEqual([1, 2, 3, 5, 6].map(presage), [[2.5, 35], [2.5, 35], [2.8, 35], [2.8, 35], [2.8, 50]]);
+  const decret = (n) => { const c = competenceDe(king, n); return [c.atkPct, c.defPct, c.cumulMax]; };
+  assert.deepEqual([1, 3, 6].map(decret), [[5, 5, 5], [6, 6, 5], [6, 6, 6]]);
+  // Les réglages d'éveil ne sont jamais envoyés au moteur
+  assert.equal(competenceDe(king, 6).eveil, undefined);
+  assert.ok(ameliorationCompetence(crystal, 3) && ameliorationCompetence(king, 6));
+  assert.ok(!ameliorationCompetence(crystal, 4) && !ameliorationCompetence(getEspece("sexy_monkey"), 3));
+});
+
+test("éveil : le JSON est vérifié au chargement", () => {
+  assert.doesNotThrow(() => validerEveil(EVEIL));
+  assert.throws(() => validerEveil({ ...EVEIL, couts: [100, 200] }), /coûts/);
+  assert.throws(() => validerEveil({ ...EVEIL, raretes: { divin: 2 } }), /rareté/);
+  assert.throws(() => validerEveil({ ...EVEIL, niveauMax: 5, couts: [1, 2, 3, 4] }), /au-delà du maximum/);
+  assert.doesNotThrow(() => validerCompetences(COMPETENCES));
+  const avecEveil = (eveil) => ({ x: { nom: "X", icone: "x", actif: true, critMult: 2, eveil } });
+  assert.throws(() => validerCompetences(avecEveil({ 3: { vitesse: 2 } })), /réglage d'éveil inconnu/);
+  assert.throws(() => validerCompetences(avecEveil({ 1: { critMult: 3 } })), /niveau d'éveil invalide/);
+  assert.doesNotThrow(() => validerDonjons(DONJON_EVEIL, "eveil", { ressourceObligatoire: true }));
+  assert.throws(() => validerDonjons(RESSOURCES, "ressources", { ressourceObligatoire: true }), /ressource manquante/);
+  assert.throws(() => validerDonjons({ ...DONJON_EVEIL, ticketsParJour: 0 }, "eveil"), /ticketsParJour/);
+});
+
+test("donjon d'éveil : gains, tickets, balayage et ennemis propres, absent de la page Ressources", () => {
+  assert.ok(!Object.hasOwn(RESSOURCES.donjons, "eveil"));
+  assert.equal(DONJON_EVEIL.donjons.eveil.ressource, "essence");
+  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("eveil", p, DONJON_EVEIL)), [30, 33, 57]);
+  assert.equal(etageEquivalent(10, DONJON_EVEIL), 23);
+  // Ennemis différents de ceux des donjons de ressources au même palier
+  const ids = (l) => l.filter(Boolean).map((s) => s.id).join();
+  const autres = ["tirages", "coins", "xp"].map((x) => ids(ennemisDonjon(x, 25)));
+  assert.ok(!autres.includes(ids(ennemisDonjon("eveil", 25, DONJON_EVEIL))));
+  // 2 tickets par jour, 3 avec Clé de donjon, et le ticket offert au déblocage
+  const sansCle = agregerEffets([]);
+  const avecCle = agregerEffets(["strat.cle_donjon"]);
+  assert.equal(ticketsParJour(sansCle, DONJON_EVEIL), 2);
+  assert.equal(ticketsParJour(avecCle, DONJON_EVEIL), 3);
+  assert.equal(ticketsApresCadeau({ jour: "2026-11-16", tickets: 0 }, "2026-11-16", 1, sansCle, DONJON_EVEIL), 1);
+  assert.equal(ticketsApresCadeau(null, "2026-11-16", 1, sansCle, DONJON_EVEIL), 3);
+  // État affiché : pas de balayage avant le premier palier battu, puis le gain du dernier palier battu
+  const neuf = etatDonjon("eveil", null, DONJON_EVEIL, sansCle, "2026-11-16");
+  assert.deepEqual([neuf.palier, neuf.gain, neuf.balayage, neuf.tickets, neuf.ticketsMax], [1, 30, null, 2, 2]);
+  const avance = etatDonjon("eveil", { palier: 10, tickets: 1, jour: "2026-11-16" }, DONJON_EVEIL, avecCle, "2026-11-16");
+  assert.deepEqual([avance.gain, avance.balayage, avance.tickets, avance.ticketsMax], [57, 54, 1, 3]);
+});
+
+test("éveil en combat : +x % de PV, ATK et DEF de base, cumulé avec l'arbre et les perks sans s'y multiplier", () => {
+  const crystal = getEspece("crystal_ball_monkey");
+  const effets = agregerEffets([]);
+  const s = statsFinales(crystal, 5);
+  const niv1 = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets });
+  assert.deepEqual([niv1.hp, niv1.atk, niv1.def], [s.hp, s.atk, s.def]);
+  assert.equal(niv1.competence.critMult, 2.5);
+  const niv6 = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets, eveil: 6 });
+  assert.deepEqual([niv6.hp, niv6.atk, niv6.def], [s.hp + bonusEveil(s.hp, 15), s.atk + bonusEveil(s.atk, 15), s.def + bonusEveil(s.def, 15)]);
+  assert.deepEqual([niv6.competence.critMult, niv6.competence.percePct], [2.8, 50]);
+  assert.equal(niv6.spd, s.spd); // stats secondaires inchangées
+  // Avec Peau de fer IV (+25 %) : les deux bonus portent sur la DEF de base et s'additionnent
+  const fer = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets, perk: effetPerk("ironskin", 4), eveil: 6 });
+  assert.equal(fer.def, s.def + bonusDefense(effetPerk("ironskin", 4), s.def) + bonusEveil(s.def, 15));
 });
