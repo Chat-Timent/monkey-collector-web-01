@@ -94,3 +94,26 @@
 .infos-famille th { text-align: left; font-weight: normal; color: var(--texte-doux); padding: 3px 0; }
 .infos-famille td { text-align: right; padding: 3px 0 3px 8px; white-space: nowrap; }
 .infos-famille tr.atteint th, .infos-famille tr.atteint td { color: var(--accent); font-weight: bold; }
+
+/* ---------- Sélecteur des pages Objets (Perks, Armes…) ---------- */
+
+.onglets-objets {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 0 auto 22px;
+  padding: 4px;
+  width: fit-content;
+  background: #1c1c1c;
+  border: 1px solid #333;
+  border-radius: 999px;
+}
+.onglets-objets a {
+  padding: 8px 18px;
+  border-radius: 999px;
+  color: var(--texte-doux);
+  font-weight: bold;
+  text-decoration: none;
+}
+.onglets-objets a:hover { color: var(--texte); }
+.onglets-objets a.actif { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }

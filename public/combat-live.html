@@ -454,9 +454,8 @@
     function terminerDonjon(victoire) {
       const g = contexte?.gains;
       if (victoire && g) {
-        const unite = g.ressource
-          ? RESSOURCES_AFFICHAGE[g.ressource]?.nom ?? g.ressource
-          : { tirages: g.quantite > 1 ? "tirages" : "tirage", coins: "coins", xp: "XP" }[g.donjon];
+        // Nom de la récompense enregistré avec les gains ; anciens combats : déduit du donjon
+        const unite = g.nom ?? ({ tirages: "tirages", coins: "coins", xp: "XP" }[g.donjon] ?? g.ressource ?? "");
         $("resultat").textContent += ` +${g.quantite} ${unite}`;
         if (g.niveauxGagnes > 0) $("resultat").textContent += " · Niveau supérieur !";
       }

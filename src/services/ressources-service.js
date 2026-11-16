@@ -2,9 +2,12 @@ import { pool, transaction } from "../config/database.js";
 import { DELAI_INITIAL_MS, PAS_MS } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { combat } from "../game/combat-engine.js";
-import { RESSOURCES, donjonExiste, ennemisDonjon, gainDonjon, jourParis, ticketsDisponibles, ticketsParJour } from "../game/ressources.js";
+import {
+  RESSOURCES, donjonExiste, ennemisDonjon, gainDonjon, infoRecompense, jourParis, ticketsDisponibles, ticketsParJour,
+} from "../game/ressources.js";
 import { effetsDuJoueur } from "./arbre-service.js";
 import { combatEnCours, preparerEquipe } from "./combat-service.js";
+import { ajouterRessource } from "./ressources-joueur-service.js";
 import { gagnerRecompense, getStarter } from "./starter-service.js";
 import { ajouterTirages } from "./tirage-service.js";
 
@@ -16,8 +19,8 @@ export async function lireProgression(userId, db = pool) {
   return Object.fromEntries(rows.map((r) => [r.donjon, r]));
 }
 
-// État d'un donjon pour l'affichage : palier, gain, tickets (Clé de donjon comprise),
-// et gain du balayage (dernier palier battu), null tant qu'aucun palier n'est battu.
+// État d'un donjon pour l'affichage : palier, gain et récompense (nom, icône), tickets (Clé de donjon comprise),
+// et gain du balayage (dernier palier battu) : null si le donjon n'a pas de balayage ou qu'aucun palier n'est battu.
 export function etatDonjon(id, ligne, regles, effets, aujourdhui = jourParis()) {
   const d = regles.donjons[id];
   const palier = ligne?.palier ?? 1;
@@ -25,10 +28,10 @@ export function etatDonjon(id, ligne, regles, effets, aujourdhui = jourParis()) 
     id,
     nom: d.nom,
     icone: d.icone,
-    ressource: d.ressource ?? null,
+    recompense: infoRecompense(d.recompense),
     palier,
     gain: gainDonjon(id, palier, regles),
-    balayage: palier > 1 ? gainDonjon(id, palier - 1, regles) : null,
+    balayage: d.balayage && palier > 1 ? gainDonjon(id, palier - 1, regles) : null,
     tickets: ticketsDisponibles(ligne, aujourdhui, regles, effets),
     ticketsMax: ticketsParJour(effets, regles),
   };
@@ -57,11 +60,28 @@ async function verrouillerProgression(userId, donjon, db) {
   return rows[0];
 }
 
+// Donne la récompense d'un donjon (dans la transaction `db`) et renvoie les gains à enregistrer :
+// { donjon, quantite, recompense, nom, icone } (+ niveauxGagnes pour l'XP et les coins).
+// Tirages, coins et XP ont leur propre traitement ; toute autre récompense est une ressource de ressources_joueur.
+async function donnerRecompense(userId, donjon, regles, quantite, db) {
+  const info = infoRecompense(regles.donjons[donjon].recompense);
+  const gains = { donjon, quantite, recompense: info.id, nom: info.nom, icone: info.icone };
+  if (info.id === "tirages") {
+    await ajouterTirages(userId, quantite, db);
+  } else if (info.id === "xp" || info.id === "coins") {
+    const starter = await getStarter(userId, db, { verrouiller: true });
+    const recompense = info.id === "xp" ? { xp: quantite, coins: 0 } : { xp: 0, coins: quantite };
+    gains.niveauxGagnes = starter ? (await gagnerRecompense(userId, recompense, starter, db)).niveauxGagnes : 0;
+  } else {
+    await ajouterRessource(userId, info.id, quantite, db);
+  }
+  return gains;
+}
+
 // Combat du palier courant d'un donjon, dans une transaction (ligne du donjon verrouillée).
-// Victoire : un ticket consommé, `recompenser(db, quantite)` donne la ressource (et renvoie des détails
-// ajoutés aux gains), palier suivant. Défaite : rien n'est consommé.
+// Victoire : un ticket consommé, la récompense du donjon donnée, palier suivant. Défaite : rien n'est consommé.
 // `regles` : groupe de donjons (RESSOURCES, DONJON_EVEIL) ; `mode` : mode du combat enregistré.
-export async function combattreDonjon(userId, { regles, donjon, mode, recompenser }) {
+export async function combattreDonjon(userId, { regles, donjon, mode }) {
   return transaction(async (db) => {
     const ligne = await verrouillerProgression(userId, donjon, db);
     const aujourdhui = jourParis();
@@ -81,13 +101,11 @@ export async function combattreDonjon(userId, { regles, donjon, mode, recompense
 
     let gains = null;
     if (resultat.vainqueur === "A") {
-      const quantite = gainDonjon(donjon, ligne.palier, regles);
-      const details = await recompenser(db, quantite);
+      gains = await donnerRecompense(userId, donjon, regles, gainDonjon(donjon, ligne.palier, regles), db);
       await db.query(
         "UPDATE donjons_progression SET palier = palier + 1, tickets = $3, jour = $4 WHERE user_id = $1 AND donjon = $2",
         [userId, donjon, tickets - 1, aujourdhui]
       );
-      gains = { donjon, quantite, ...details };
     }
 
     const { rows: insere } = await db.query(
@@ -100,8 +118,9 @@ export async function combattreDonjon(userId, { regles, donjon, mode, recompense
 }
 
 // Balayage : un ticket contre le gain du dernier palier battu, tout de suite et sans combat ;
-// le palier ne change pas. Impossible tant qu'aucun palier n'est battu.
-export async function balayerDonjon(userId, { regles, donjon, recompenser }) {
+// le palier ne change pas. Seulement pour un donjon dont "balayage" vaut true, et une fois le palier 1 battu.
+export async function balayerDonjon(userId, { regles, donjon }) {
+  if (!regles.donjons[donjon]?.balayage) throw new ErreurJeu("ce donjon ne se balaye pas");
   return transaction(async (db) => {
     const ligne = await verrouillerProgression(userId, donjon, db);
     if (ligne.palier <= 1) throw new ErreurJeu("bats d'abord le palier 1 pour pouvoir balayer");
@@ -110,32 +129,24 @@ export async function balayerDonjon(userId, { regles, donjon, recompenser }) {
     if (tickets <= 0) throw new ErreurJeu("plus de ticket pour ce donjon aujourd'hui, reviens demain");
 
     const palier = ligne.palier - 1;
-    const quantite = gainDonjon(donjon, palier, regles);
-    const details = await recompenser(db, quantite);
+    const gains = await donnerRecompense(userId, donjon, regles, gainDonjon(donjon, palier, regles), db);
     await db.query(
       "UPDATE donjons_progression SET tickets = $3, jour = $4 WHERE user_id = $1 AND donjon = $2",
       [userId, donjon, tickets - 1, aujourdhui]
     );
-    return { donjon, palier, quantite, ...details };
+    return { ...gains, palier };
   });
 }
 
 // Lance le combat du palier courant d'un donjon de ressources.
 export async function lancerCombatRessource(userId, donjon) {
   if (!donjonExiste(donjon)) throw new ErreurJeu("donjon inconnu");
-  return combattreDonjon(userId, {
-    regles: RESSOURCES,
-    donjon,
-    mode: "ressource",
-    async recompenser(db, quantite) {
-      if (donjon === "tirages") {
-        await ajouterTirages(userId, quantite, db);
-        return { niveauxGagnes: 0 };
-      }
-      const starter = await getStarter(userId, db, { verrouiller: true });
-      if (!starter) return { niveauxGagnes: 0 };
-      const recompense = donjon === "xp" ? { xp: quantite, coins: 0 } : { xp: 0, coins: quantite };
-      return { niveauxGagnes: (await gagnerRecompense(userId, recompense, starter, db)).niveauxGagnes };
-    },
-  });
+  return combattreDonjon(userId, { regles: RESSOURCES, donjon, mode: "ressource" });
+}
+
+// Balayage d'un donjon de ressources ; renvoie les gains et l'état à jour de la page.
+export async function balayerRessource(userId, donjon) {
+  if (!donjonExiste(donjon)) throw new ErreurJeu("donjon inconnu");
+  const gains = await balayerDonjon(userId, { regles: RESSOURCES, donjon });
+  return { gains, ...(await getRessources(userId)) };
 }

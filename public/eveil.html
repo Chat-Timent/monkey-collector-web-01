@@ -115,8 +115,9 @@
   <script src="/js/session.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
-    const ESSENCE = RESSOURCES_AFFICHAGE.essence;
     let etat = null;
+    // Nom et icône de l'essence, envoyés par le serveur avec le donjon
+    const essence = () => etat.donjon.recompense;
     let enCours = false;
 
     function afficherDonjon() {
@@ -125,7 +126,7 @@
       $("d-icone").textContent = d.icone;
       $("d-nom").textContent = d.nom;
       $("d-palier").textContent = `Palier ${d.palier}`;
-      $("d-gain").textContent = `+${d.gain} ${ESSENCE.icone}`;
+      $("d-gain").textContent = `+${d.gain} ${essence().icone}`;
       $("d-tickets").textContent = `🎫 ${d.tickets} / ${d.ticketsMax}`;
       $("d-tickets").classList.toggle("vide", d.tickets <= 0);
 
@@ -139,7 +140,7 @@
       const balayer = $("balayer");
       balayer.hidden = d.balayage === null;
       balayer.disabled = d.tickets <= 0;
-      balayer.textContent = `Balayer le palier ${d.palier - 1} · +${d.balayage} ${ESSENCE.icone}`;
+      balayer.textContent = `Balayer le palier ${d.palier - 1} · +${d.balayage} ${essence().icone}`;
     }
 
     function ligneSinge(s) {
@@ -172,7 +173,7 @@
         const morceaux = [`Éveil ${s.eveil + 1} : +${s.prochainBonusPct} %`];
         if (s.competenceAmelioree && s.competence) morceaux.push(`${s.competence.icone} ${s.competence.nom} amélioré`);
         prochain.textContent = morceaux.join(" · ");
-        bouton.textContent = `Éveiller · ${s.cout} ${ESSENCE.icone}`;
+        bouton.textContent = `Éveiller · ${s.cout} ${essence().icone}`;
         bouton.disabled = etat.essence < s.cout;
         bouton.addEventListener("click", () => eveiller(s, bouton));
       }
@@ -181,7 +182,7 @@
 
     function afficher() {
       afficherDonjon();
-      $("stock").textContent = `${ESSENCE.icone} ${etat.essence.toLocaleString("fr-FR")} ${ESSENCE.nom}`;
+      $("stock").textContent = `${essence().icone} ${etat.essence.toLocaleString("fr-FR")} ${essence().nom}`;
       const zone = $("singes");
       zone.innerHTML = "";
       if (etat.singes.length === 0) {
@@ -219,7 +220,7 @@
     $("balayer").addEventListener("click", () => {
       action($("balayer"), "/eveil/balayer", {}, (data) => {
         etat = data;
-        $("message").textContent = `+${data.gains.quantite} ${ESSENCE.nom}`;
+        $("message").textContent = `+${data.gains.quantite} ${data.gains.nom}`;
       });
     });
 

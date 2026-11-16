@@ -13,16 +13,21 @@ import { bonusDefense, bonusPv, renforcerPerk } from "../game/perks.js";
 import { appliquerResonances, resonancesAvecBonus } from "../game/resonances.js";
 import { competenceDe } from "../game/competences.js";
 import { bonusEveil, bonusEveilPct } from "../game/eveil.js";
+import { bonusObjets } from "../game/objets.js";
+import { objetsDesSinges } from "./objets-service.js";
 
 // Singe d'un joueur prêt pour le moteur de combat (fonction pure) : stats de son niveau, bonus de l'arbre (`effets`),
-// perk porté (`perk`, effet brut) et niveau d'éveil (`eveil`). Les bonus du perk et de l'éveil sont des pourcentages
-// des stats de base (sans l'arbre) ; ils s'ajoutent sans se multiplier entre eux.
-export function singeDeCombat(espece, e, niveau, { effets, perk = null, eveil = 1 }) {
+// perk porté (`perk`, effet brut), niveau d'éveil (`eveil`) et objets portés (`objets`, effets à leur niveau).
+// Les bonus du perk, de l'éveil et des objets sont des pourcentages des stats de base (sans l'arbre) ;
+// ils s'ajoutent sans se multiplier entre eux. Crit et dégâts crit des objets : en points.
+export function singeDeCombat(espece, e, niveau, { effets, perk = null, eveil = 1, objets = [] }) {
   const s = statsFinales(e, niveau);
   // Maître des perks : valeurs du perk augmentées
   const perkPorte = renforcerPerk(perk, effets.perk_pct);
   // Éveil : +x % de PV, d'ATK et de DEF
   const pctEveil = bonusEveilPct(eveil);
+  // Armes (et équipements) : PV, ATK, DEF en %, critique et dégâts crit en points
+  const obj = bonusObjets(objets, s);
   return {
     id: espece,
     nom: e.nom,
@@ -30,11 +35,11 @@ export function singeDeCombat(espece, e, niveau, { effets, perk = null, eveil = 
     rarete: e.rarete,
     categorie: e.categorie,
     // Taunt : PV du porteur augmentés de pvPct % ; Peau de fer : défense augmentée de defensePct %
-    hp: Math.round(s.hp * (1 + effets.hp_pct)) + bonusPv(perkPorte, s.hp) + bonusEveil(s.hp, pctEveil),
-    atk: Math.round(s.atk * (1 + effets.atk_pct)) + bonusEveil(s.atk, pctEveil),
-    def: Math.round(s.def * (1 + effets.def_pct)) + bonusDefense(perkPorte, s.def) + bonusEveil(s.def, pctEveil),
+    hp: Math.round(s.hp * (1 + effets.hp_pct)) + bonusPv(perkPorte, s.hp) + bonusEveil(s.hp, pctEveil) + obj.hp,
+    atk: Math.round(s.atk * (1 + effets.atk_pct)) + bonusEveil(s.atk, pctEveil) + obj.atk,
+    def: Math.round(s.def * (1 + effets.def_pct)) + bonusDefense(perkPorte, s.def) + bonusEveil(s.def, pctEveil) + obj.def,
     spd: s.spd, prec: s.prec + effets.prec_flat, esq: s.esq + effets.esq_flat,
-    crit: s.crit + effets.crit_flat, critdmg: s.critdmg + effets.critdmg_flat,
+    crit: s.crit + effets.crit_flat + obj.crit, critdmg: s.critdmg + effets.critdmg_flat + obj.critdmg,
     perk: perkPorte,
     competence: competenceDe(e, eveil),
   };
@@ -48,6 +53,7 @@ export async function preparerEquipe(userId, db = pool) {
   const collection = await lireCollection(userId, db);
   const effets = await effetsDuJoueur(userId, db);
   const perks = await perksDesSinges(userId, db);
+  const objets = await objetsDesSinges(userId, db);
   const slots = Array(nbSlots(effets)).fill(null);
 
   for (const { slot, espece } of equipe) {
@@ -56,7 +62,9 @@ export async function preparerEquipe(userId, db = pool) {
     if (!e) continue; // espèce retirée de monkeys.json : slot laissé vide plutôt que planter
     const possede = collection.singes[espece];
     const niveau = getNiveau(e.rarete, possede?.amount ?? 1).niveau;
-    slots[slot - 1] = singeDeCombat(espece, e, niveau, { effets, perk: perks[espece] ?? null, eveil: possede?.eveil ?? 1 });
+    slots[slot - 1] = singeDeCombat(espece, e, niveau, {
+      effets, perk: perks[espece] ?? null, eveil: possede?.eveil ?? 1, objets: objets[espece] ?? [],
+    });
   }
   // Résonances de catégorie : tous les singes de l'équipe comptent, rotation active ou non ;
   // bonus augmentés par Harmonie et Chœur

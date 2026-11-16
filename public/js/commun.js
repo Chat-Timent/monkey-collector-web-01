@@ -10,11 +10,6 @@ const RARETES_AFFICHAGE = {
   mythic:    { label: "Mythique",   couleur: "#E01E1E" },
 };
 
-// Ressources gagnées dans les donjons (table ressources_joueur) : nom affiché et icône.
-const RESSOURCES_AFFICHAGE = {
-  essence: { nom: "essence", icone: "✨" },
-};
-
 // ---------- Version du site ----------
 // Le serveur écrit sa version dans la page (<meta name="version">) et l'annonce dans chaque
 // réponse (en-tête X-Version). Après une mise à jour, un onglet resté ouvert sur l'ancienne
@@ -177,6 +172,29 @@ function ajouterBulleChat(zone, m) {
   bulle.append(entete, texte);
   zone.appendChild(bulle);
   zone.scrollTop = zone.scrollHeight;
+}
+
+// ---------- Objets (armes…) : textes communs (pages Équipe et Objets) ----------
+
+// Effets d'un objet ({ atkPct: 8, crit: 12 }) en texte : « ATK +8 % · Critique +12 ».
+// Avec `stats` (stats de base d'un singe), les pourcentages sont chiffrés : « ATK +8 % (+52) ».
+const LIBELLES_EFFETS_OBJET = [
+  ["hpPct", "PV", " %", "hp"], ["atkPct", "ATK", " %", "atk"], ["defPct", "DEF", " %", "def"],
+  ["crit", "Critique", ""], ["critdmg", "Dégâts crit", ""],
+];
+function texteEffetsObjet(valeurs, stats = null) {
+  return LIBELLES_EFFETS_OBJET
+    .filter(([cle]) => valeurs?.[cle])
+    .map(([cle, libelle, unite, stat]) => {
+      const chiffre = stat && stats?.[stat] ? ` (+${Math.round((stats[stat] * valeurs[cle]) / 100)})` : "";
+      return `${libelle} +${String(valeurs[cle]).replace(".", ",")}${unite}${chiffre}`;
+    })
+    .join(" · ");
+}
+
+// Nom d'un objet avec son tier en chiffres romains (« Épée III »).
+function nomObjet(catalogue, objet, tier) {
+  return `${catalogue[objet]?.nom ?? objet} ${ROMAINS[tier] ?? tier}`;
 }
 
 // ---------- Perks : textes communs (pages Équipe et Perks) ----------

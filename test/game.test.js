@@ -18,7 +18,14 @@ import { nbSlots } from "../src/services/arbre-service.js";
 import { compteurSansRare, etincelleDeclenchee } from "../src/services/tirage-service.js";
 import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../src/game/quota.js";
 import { ennemisEtage, recompensesAvecBonus, recompensesEtage, singeBonus } from "../src/game/aventure.js";
-import { DONJON_EVEIL, RESSOURCES, ennemisDonjon, etageEquivalent, gainDonjon, jourParis, ticketsApresCadeau, ticketsDisponibles, ticketsParJour, validerDonjons } from "../src/game/ressources.js";
+import {
+  DONJON_EVEIL, RESSOURCES, ennemisDonjon, estRessourceJoueur, etageEquivalent, gainDonjon, infoRecompense, jourParis,
+  ticketsApresCadeau, ticketsDisponibles, ticketsParJour, validerDonjons, validerRessourcesJoueur,
+} from "../src/game/ressources.js";
+import {
+  ARMES, apresDoublon, bonusObjets, doublonsRequis, effetObjet, nbTiersObjet, niveauMaxObjet, objetExiste, tirerObjet,
+  validerCatalogue, valeursObjet,
+} from "../src/game/objets.js";
 import { calculerElo, limiteCombatsElo } from "../src/game/elo.js";
 import { bonusDefense, bonusPv, effetPerk, nbTiers, perkExiste, renforcerPerk, tirerPerk, xpDoublon } from "../src/game/perks.js";
 import { creerApplication } from "../src/app.js";
@@ -76,6 +83,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
 
   assert.deepEqual(routes, [
     "GET /arbre",
+    "GET /armes",
     "GET /aventure",
     "GET /chat",
     "GET /classement",
@@ -93,6 +101,8 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /profil",
     "GET /ressources",
     "POST /arbre/noeuds",
+    "POST /armes/equiper",
+    "POST /armes/loterie",
     "POST /aventure/combat",
     "POST /chat",
     "POST /combats/:id/fin",
@@ -109,6 +119,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /perks/equiper",
     "POST /perks/loterie",
     "POST /presence",
+    "POST /ressources/balayer",
     "POST /ressources/combat",
     "POST /starter",
     "POST /tirage",
@@ -179,8 +190,9 @@ test("les requêtes invalides reçoivent une erreur JSON sans toucher la base", 
     const sansCorps = await fetch(`${base}/connexion`, { method: "POST" });
     assert.equal(sansCorps.status, 401);
 
-    // Page et actions de l'éveil : connexion obligatoire
-    for (const [methode, chemin] of [["GET", "/eveil"], ["POST", "/eveil/combat"], ["POST", "/eveil/balayer"], ["POST", "/eveil/eveiller"]]) {
+    // Pages et actions de l'éveil, des armes et du balayage : connexion obligatoire
+    for (const [methode, chemin] of [["GET", "/eveil"], ["POST", "/eveil/combat"], ["POST", "/eveil/balayer"], ["POST", "/eveil/eveiller"],
+      ["GET", "/armes"], ["POST", "/armes/loterie"], ["POST", "/armes/equiper"], ["POST", "/ressources/balayer"]]) {
       const r = await fetch(`${base}${chemin}`, { method: methode });
       assert.equal(r.status, 401, chemin);
     }
@@ -927,14 +939,13 @@ test("éveil : le JSON est vérifié au chargement", () => {
   const avecEveil = (eveil) => ({ x: { nom: "X", icone: "x", actif: true, critMult: 2, eveil } });
   assert.throws(() => validerCompetences(avecEveil({ 3: { vitesse: 2 } })), /réglage d'éveil inconnu/);
   assert.throws(() => validerCompetences(avecEveil({ 1: { critMult: 3 } })), /niveau d'éveil invalide/);
-  assert.doesNotThrow(() => validerDonjons(DONJON_EVEIL, "eveil", { ressourceObligatoire: true }));
-  assert.throws(() => validerDonjons(RESSOURCES, "ressources", { ressourceObligatoire: true }), /ressource manquante/);
+  assert.doesNotThrow(() => validerDonjons(DONJON_EVEIL, "eveil"));
+  assert.throws(() => validerEveil({ ...EVEIL, ressource: "or" }), /ressource d'éveil inconnue/);
   assert.throws(() => validerDonjons({ ...DONJON_EVEIL, ticketsParJour: 0 }, "eveil"), /ticketsParJour/);
 });
 
 test("donjon d'éveil : gains, tickets, balayage et ennemis propres, absent de la page Ressources", () => {
   assert.ok(!Object.hasOwn(RESSOURCES.donjons, "eveil"));
-  assert.equal(DONJON_EVEIL.donjons.eveil.ressource, "essence");
   assert.deepEqual([1, 2, 10].map((p) => gainDonjon("eveil", p, DONJON_EVEIL)), [30, 33, 57]);
   assert.equal(etageEquivalent(10, DONJON_EVEIL), 23);
   // Ennemis différents de ceux des donjons de ressources au même palier
@@ -969,4 +980,94 @@ test("éveil en combat : +x % de PV, ATK et DEF de base, cumulé avec l'arbre et
   // Avec Peau de fer IV (+25 %) : les deux bonus portent sur la DEF de base et s'additionnent
   const fer = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets, perk: effetPerk("ironskin", 4), eveil: 6 });
   assert.equal(fer.def, s.def + bonusDefense(effetPerk("ironskin", 4), s.def) + bonusEveil(s.def, 15));
+});
+
+test("récompenses de donjon lues dans le JSON : tirages, coins, XP ou ressource stockée", () => {
+  assert.deepEqual(Object.fromEntries(Object.entries(RESSOURCES.donjons).map(([id, d]) => [id, d.recompense])),
+    { tirages: "tirages", coins: "coins", xp: "xp", armement: "acier" });
+  assert.equal(DONJON_EVEIL.donjons.eveil.recompense, "essence");
+  assert.deepEqual(infoRecompense("acier"), { id: "acier", nom: "acier", icone: "🔩" });
+  assert.deepEqual(infoRecompense("xp"), { id: "xp", nom: "XP", icone: "⭐" });
+  assert.equal(infoRecompense("or"), null);
+  assert.equal(infoRecompense("toString"), null);
+  assert.ok(estRessourceJoueur("essence") && estRessourceJoueur("acier") && !estRessourceJoueur("coins"));
+  // Récompense inconnue ou balayage mal écrit : refusés au chargement
+  const avec = (d) => ({ ...RESSOURCES, donjons: { x: { ...RESSOURCES.donjons.armement, ...d } } });
+  assert.throws(() => validerDonjons(avec({ recompense: "or" }), "test"), /récompense inconnue/);
+  assert.throws(() => validerDonjons(avec({ balayage: "oui" }), "test"), /balayage invalide/);
+  assert.throws(() => validerRessourcesJoueur({ coins: { nom: "coins", icone: "x" } }), /récompense spéciale/);
+});
+
+test("donjon de l'armement : 15 acier + 1 par palier, balayage permis ; pas de balayage pour tirages, coins et XP", () => {
+  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("armement", p)), [15, 16, 24]);
+  const ids = (l) => l.filter(Boolean).map((s) => s.id).join();
+  const autres = ["tirages", "coins", "xp"].map((x) => ids(ennemisDonjon(x, 25)));
+  assert.ok(!autres.includes(ids(ennemisDonjon("armement", 25))));
+  const effets = agregerEffets([]);
+  const ligne = { palier: 10, tickets: 2, jour: "2026-11-17" };
+  const etat = (id) => etatDonjon(id, ligne, RESSOURCES, effets, "2026-11-17");
+  assert.equal(etat("armement").balayage, 23);
+  assert.deepEqual(etat("armement").recompense, { id: "acier", nom: "acier", icone: "🔩" });
+  for (const id of ["tirages", "coins", "xp"]) assert.equal(etat(id).balayage, null, id);
+});
+
+test("armes : catalogue vérifié, 4 armes à 5 tiers, loterie pondérée par tier", () => {
+  assert.deepEqual(Object.keys(ARMES.objets), ["epee", "dague", "hache", "masse"]);
+  assert.equal(nbTiersObjet(ARMES), 5);
+  assert.equal(niveauMaxObjet(ARMES), 5);
+  assert.ok(objetExiste(ARMES, "epee", 5) && !objetExiste(ARMES, "epee", 6) && !objetExiste(ARMES, "arc", 1) && !objetExiste(ARMES, "toString", 1));
+  // Hasard injecté : l'arme se choisit sur le premier nombre, le tier sur le second
+  const suite = (...v) => { let i = 0; return () => v[i++]; };
+  assert.deepEqual(tirerObjet(ARMES, suite(0, 0)), { objet: "epee", tier: 1 });
+  assert.deepEqual(tirerObjet(ARMES, suite(0.99, 0.999)), { objet: "masse", tier: 5 });
+  assert.deepEqual(tirerObjet(ARMES, suite(0.3, 0.6)), { objet: "dague", tier: 2 }); // 0,6 × 100 = 60 : après les 50 du tier I
+  // Sur beaucoup de tirages : environ 50 % de tier I et 2 % de tier V
+  let graine = 7;
+  const hasard = () => { graine = (graine * 16807) % 2147483647; return graine / 2147483647; };
+  const compte = [0, 0, 0, 0, 0];
+  for (let i = 0; i < 20000; i++) compte[tirerObjet(ARMES, hasard).tier - 1]++;
+  assert.ok(Math.abs(compte[0] / 20000 - 0.5) < 0.02 && Math.abs(compte[4] / 20000 - 0.02) < 0.006, String(compte));
+  // JSON incohérent refusé
+  const casse = (modif) => ({ ...ARMES, ...modif });
+  assert.throws(() => validerCatalogue(casse({ ressource: "or" })), /ressource inconnue/);
+  assert.throws(() => validerCatalogue(casse({ chancesTiers: [50, 50] })), /2 tiers/);
+  assert.throws(() => validerCatalogue(casse({ objets: { x: { nom: "X", icone: "x", tiers: [{ vol: 1 }, {}, {}, {}, {}] } } })), /effet inconnu/);
+  assert.throws(() => validerCatalogue(casse({ niveaux: { ...ARMES.niveaux, doublons: [1, 0] } })), /doublons/);
+});
+
+test("armes : doublons 1, 1, 2, 2 jusqu'au niveau 5, puis 5 acier rendus ; +10 % par niveau", () => {
+  let etat = { niveau: 1, doublons: 0 };
+  const suite = [];
+  for (let i = 0; i < 7; i++) {
+    const r = apresDoublon(ARMES, etat);
+    suite.push([r.niveau, r.doublons, r.monte, r.rembourse]);
+    etat = r;
+  }
+  assert.deepEqual(suite, [
+    [2, 0, true, 0], [3, 0, true, 0], [3, 1, false, 0], [4, 0, true, 0], [4, 1, false, 0], [5, 0, true, 0], [5, 0, false, 5],
+  ]);
+  assert.deepEqual([1, 2, 3, 4, 5].map((n) => doublonsRequis(ARMES, n)), [1, 1, 2, 2, null]);
+  assert.deepEqual(valeursObjet(ARMES, "epee", 5, 1), { atkPct: 12 });
+  assert.deepEqual(valeursObjet(ARMES, "epee", 5, 5), { atkPct: 16.8 });
+  assert.deepEqual(valeursObjet(ARMES, "dague", 3, 2), { atkPct: 5.5, crit: 7.7 });
+  assert.deepEqual(effetObjet(ARMES, "hache", 1, 1), { type: "arme", id: "hache", tier: 1, niveau: 1, nom: "Hache", icone: "🪓", atkPct: 3, critdmg: 15 });
+  assert.equal(effetObjet(ARMES, "hache", 9, 1), null);
+});
+
+test("armes en combat : % des stats de base, crit en points, cumulés avec l'éveil et le perk sans s'y multiplier", () => {
+  const s = { hp: 1000, atk: 500, def: 300, crit: 10, critdmg: 150 };
+  assert.deepEqual(bonusObjets([effetObjet(ARMES, "masse", 5, 1)], s), { hp: 0, atk: 40, def: 24, crit: 0, critdmg: 0 });
+  assert.deepEqual(bonusObjets([effetObjet(ARMES, "dague", 5, 5)], s), { hp: 0, atk: 56, def: 0, crit: 17, critdmg: 0 });
+  assert.deepEqual(bonusObjets([], s), { hp: 0, atk: 0, def: 0, crit: 0, critdmg: 0 });
+
+  const crystal = getEspece("crystal_ball_monkey");
+  const effets = agregerEffets([]);
+  const base = statsFinales(crystal, 5);
+  const epee = effetObjet(ARMES, "epee", 5, 5);
+  const hache = effetObjet(ARMES, "hache", 3, 1);
+  const armee = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets, eveil: 6, objets: [epee] });
+  assert.equal(armee.atk, base.atk + bonusEveil(base.atk, 15) + Math.round(base.atk * 0.168));
+  assert.equal(armee.def, base.def + bonusEveil(base.def, 15));
+  const crit = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets, objets: [hache] });
+  assert.deepEqual([crit.crit, crit.critdmg], [base.crit, base.critdmg + 35]);
 });

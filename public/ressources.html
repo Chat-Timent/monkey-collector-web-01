@@ -16,7 +16,7 @@
       min-height: 100vh;
     }
     .contenu { max-width: 900px; margin: 32px auto; padding: 0 16px 40px; }
-    .donjons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .donjons { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; }
     @media (max-width: 700px) {
       .donjons { grid-template-columns: 1fr; }
     }
@@ -53,6 +53,8 @@
       cursor: pointer;
     }
     .donjon button:disabled { background: #333; color: #888; cursor: default; }
+    .donjon button.secondaire { margin-top: 0; font-size: 14px; background: #2b2f3a; color: var(--texte); border: 1px solid #444; }
+    .donjon button.secondaire:disabled { background: #2a2a2a; color: #777; border-color: #333; }
 
     #message { min-height: 1.2em; color: var(--or); text-align: center; margin: 18px 0 0; }
   </style>
@@ -81,16 +83,16 @@
         <span class="palier"></span>
         <span class="gain"></span>
         <span class="tickets"></span>
-        <button type="button"></button>`;
+        <button type="button" class="combattre"></button>`;
       div.querySelector(".icone").textContent = d.icone;
       div.querySelector(".nom").textContent = d.nom;
       div.querySelector(".palier").textContent = `Palier ${d.palier}`;
-      div.querySelector(".gain").textContent = `+${d.gain} ${d.icone}`;
+      div.querySelector(".gain").textContent = `+${d.gain} ${d.recompense.icone}`;
       const tickets = div.querySelector(".tickets");
       tickets.textContent = `🎫 ${d.tickets} / ${d.ticketsMax}`;
       tickets.classList.toggle("vide", d.tickets <= 0);
 
-      const bouton = div.querySelector("button");
+      const bouton = div.querySelector(".combattre");
       if (combatEnCours) {
         bouton.textContent = "Voir le combat en cours";
       } else if (d.tickets <= 0) {
@@ -100,7 +102,39 @@
         bouton.textContent = "Combattre";
       }
       bouton.addEventListener("click", () => combattre(d.id, bouton));
+
+      // Balayage (donjons qui le permettent, une fois le palier 1 battu) : gain du dernier palier battu, sans combat
+      if (d.balayage !== null) {
+        const balayer = document.createElement("button");
+        balayer.type = "button";
+        balayer.className = "secondaire";
+        balayer.textContent = `Balayer le palier ${d.palier - 1} · +${d.balayage} ${d.recompense.icone}`;
+        balayer.disabled = d.tickets <= 0;
+        balayer.addEventListener("click", () => balayerDonjon(d.id, balayer));
+        div.appendChild(balayer);
+      }
       return div;
+    }
+
+    async function balayerDonjon(donjon, bouton) {
+      if (enCours) return;
+      enCours = true;
+      bouton.disabled = true;
+      message.textContent = "";
+      try {
+        const { ok, data } = await api("/ressources/balayer", { corps: { donjon } });
+        if (ok) {
+          afficher(data);
+          message.textContent = `+${data.gains.quantite} ${data.gains.nom}`;
+        } else {
+          message.textContent = data.erreur;
+          bouton.disabled = false;
+        }
+      } catch {
+        message.textContent = "Erreur réseau, réessaie.";
+        bouton.disabled = false;
+      }
+      enCours = false;
     }
 
     async function combattre(donjon, bouton) {
@@ -132,6 +166,10 @@
         message.textContent = data.erreur;
         return;
       }
+      afficher(data);
+    }
+
+    function afficher(data) {
       combatEnCours = data.combatEnCours;
       const zone = document.getElementById("donjons");
       zone.innerHTML = "";
