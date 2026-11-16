@@ -496,24 +496,27 @@ test("Présage : tous les 3 tours, un critique ×2,5 perce-armure sur l'ennemi l
   assert.ok(sans.journal.every((e) => !e.competence && (e.de !== "Devin" || e.sur === "Taunt")));
 });
 
-test("Décret royal : tous les 3 tours, +5 % ATK et DEF à l'équipe vivante, cumulable 5 fois", () => {
+test("Décret royal : tous les 2 tours, +7 % ATK, PV et DEF à la rotation active, cumulable 5 fois", () => {
   const decret = competenceDe(getEspece("king_monkey"));
-  assert.deepEqual(decret, { id: "decret_royal", nom: "Décret royal", icone: "👑", tousLes: 3, atkPct: 5, defPct: 5, cumulMax: 5 });
+  assert.deepEqual(decret, { id: "decret_royal", nom: "Décret royal", icone: "👑", tousLes: 2, atkPct: 7, hpPct: 7, defPct: 7, cumulMax: 5 });
   assert.equal(competenceDe(getEspece("king_monkey"), 1, { decret_royal: { ...COMPETENCES.decret_royal, actif: false } }), null);
 
-  const singe = (nom, extra = {}) => ({ nom, hp: 1e9, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 150, perk: null, ...extra });
+  const singe = (nom, extra = {}) => ({ nom, hp: 1e6, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 150, perk: null, ...extra });
   const r = combat([singe("Roi", { competence: decret }), singe("Soldat")], [singe("Cible")], () => 0.5);
   const decrets = r.journal.filter((e) => e.type === "decret");
-  // Déclenché aux tours 3, 6, 9, 12 et 15, puis plus rien une fois le cumul maximal atteint
-  assert.deepEqual(decrets.map((e) => e.tour), [3, 6, 9, 12, 15]);
-  assert.deepEqual(decrets[0].cibles, [{ slot: 0, cumul: 1 }, { slot: 1, cumul: 1 }]);
+  // Déclenché aux tours 2, 4, 6, 8 et 10, puis plus rien une fois le cumul maximal atteint
+  assert.deepEqual(decrets.map((e) => e.tour), [2, 4, 6, 8, 10]);
+  assert.deepEqual(decrets[0].cibles.map((c) => [c.slot, c.cumul, c.hp]), [[0, 1, 1070000], [1, 1, 1070000]]);
+  // Les PV actuels montent d'autant que les PV max
+  assert.ok(decrets[0].cibles.every((c) => c.hp - c.pv === decrets[0].cibles[0].hp - decrets[0].cibles[0].pv || c.pv <= c.hp));
+  assert.equal(decrets[4].cibles[0].hp, 1350000);
   assert.deepEqual(decrets[4].competence, { nom: "Décret royal", icone: "👑" });
   // Le bonus s'applique dès le tour du décret, sur l'ATK et la DEF de départ
   const coup = (tour, de = "Soldat") => r.journal.find((e) => e.type === "degats" && e.tour === tour && e.de === de).degats;
-  assert.equal(coup(2), degatsDe(100, 100));
-  assert.equal(coup(3), degatsDe(105, 100));
-  assert.equal(coup(18), degatsDe(125, 100));
-  assert.equal(coup(18, "Cible"), degatsDe(100, 125));
+  assert.equal(coup(1), degatsDe(100, 100));
+  assert.equal(coup(2), degatsDe(107, 100));
+  assert.equal(coup(12), degatsDe(135, 100));
+  assert.equal(coup(12, "Cible"), degatsDe(100, 135));
 
   // Roi en réserve (slot 4) : aucun décret tant que le groupe 1 est en jeu
   const reserve = combat([singe("Soldat"), null, null, singe("Roi", { competence: decret }), null, null], [singe("Cible")], () => 0.5);
@@ -926,8 +929,8 @@ test("éveil : Présage et Décret royal s'améliorent aux niveaux 3 et 6", () =
   const king = getEspece("king_monkey");
   const presage = (n) => { const c = competenceDe(crystal, n); return [c.critMult, c.percePct]; };
   assert.deepEqual([1, 2, 3, 5, 6].map(presage), [[2.5, 35], [2.5, 35], [2.8, 35], [2.8, 35], [2.8, 50]]);
-  const decret = (n) => { const c = competenceDe(king, n); return [c.atkPct, c.defPct, c.cumulMax]; };
-  assert.deepEqual([1, 3, 6].map(decret), [[5, 5, 5], [6, 6, 5], [6, 6, 6]]);
+  const decret = (n) => { const c = competenceDe(king, n); return [c.atkPct, c.hpPct, c.defPct, c.cumulMax]; };
+  assert.deepEqual([1, 3, 6].map(decret), [[7, 7, 7, 5], [8, 8, 8, 5], [8, 8, 8, 6]]);
   // Les réglages d'éveil ne sont jamais envoyés au moteur
   assert.equal(competenceDe(king, 6).eveil, undefined);
   assert.ok(ameliorationCompetence(crystal, 3) && ameliorationCompetence(king, 6));

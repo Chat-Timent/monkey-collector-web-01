@@ -267,7 +267,7 @@ function texteAmeliorationCompetence(avant, apres) {
 // Description d'une compétence de singe, calculée à partir de ses réglages (src/data/competences.json).
 function descriptionCompetence(c) {
   if (c?.id === "presage") return `Tous les ${c.tousLes} tours, frappe l'ennemi qui a le moins de PV : coup critique garanti, dégâts ×${String(c.critMult).replace(".", ",")}, ignore ${c.percePct} % de sa DEF.`;
-  if (c?.id === "decret_royal") return `Tous les ${c.tousLes} tours, donne +${c.atkPct} % d'ATK et +${c.defPct} % de DEF aux singes de sa rotation (lui compris), cumulable jusqu'à ${c.cumulMax} fois.`;
+  if (c?.id === "decret_royal") return `Tous les ${c.tousLes} tours, donne +${c.atkPct} % d'ATK, +${c.hpPct} % de PV et +${c.defPct} % de DEF aux singes de sa rotation (lui compris), cumulable jusqu'à ${c.cumulMax} fois.`;
   return "";
 }
 

@@ -373,7 +373,7 @@
       else if (e.type === "degats") txt = `${e.de} → ${e.sur} : ${e.degats} dégâts${e.critique ? " (critique)" : ""} · PV restants ${e.pvRestants}`;
       else if (e.type === "rate") txt = `${e.de} rate ${e.sur}`;
       else if (e.type === "KO") txt = `${e.nom} est K.O.`;
-      else if (e.type === "decret") txt = `${e.competence.icone} ${e.competence.nom} : ${e.de} donne +${e.atkPct} % ATK et +${e.defPct} % DEF à ${e.cibles.length} allié${e.cibles.length > 1 ? "s" : ""}`;
+      else if (e.type === "decret") txt = `${e.competence.icone} ${e.competence.nom} : ${e.de} donne +${e.atkPct} % ATK, +${e.hpPct} % PV et +${e.defPct} % DEF à ${e.cibles.length} allié${e.cibles.length > 1 ? "s" : ""}`;
       else if (e.type === "soin") txt = `🌸 ${e.de} soigne ${e.sur} : +${e.soin} PV · PV ${e.pvRestants}`;
       if (!txt) return;
 
@@ -403,6 +403,7 @@
         fx = { camp: e.camp, slot: e.slot, type: "ko", texte: "K.O." };
       } else if (e.type === "decret") {
         actif = { camp: e.deCamp, slot: e.deSlot, decret: true };
+        for (const c of e.cibles) if (c.hp) { etat[e.deCamp][c.slot].max = c.hp; etat[e.deCamp][c.slot].pv = c.pv; }
         fx = { camp: e.deCamp, slots: e.cibles.map((c) => c.slot), type: "decret", texte: `${e.competence.icone} +${e.atkPct} %` };
       } else if (e.type === "soin") {
         actif = { camp: e.deCamp, slot: e.deSlot };

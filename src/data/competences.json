@@ -15,12 +15,13 @@
     "nom": "Décret royal",
     "icone": "👑",
     "actif": true,
-    "tousLes": 3,
-    "atkPct": 5,
-    "defPct": 5,
+    "tousLes": 2,
+    "atkPct": 7,
+    "hpPct": 7,
+    "defPct": 7,
     "cumulMax": 5,
     "eveil": {
-      "3": { "atkPct": 6, "defPct": 6 },
+      "3": { "atkPct": 8, "hpPct": 8, "defPct": 8 },
       "6": { "cumulMax": 6 }
     }
   }
