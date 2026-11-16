@@ -252,7 +252,7 @@
       document.getElementById("detail-nom").style.color = r.couleur;
       document.getElementById("detail-description").textContent = s.espece.description ?? "";
       document.getElementById("detail-niveau").textContent =
-        `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}`;
+        `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}` + (s.eveil ? ` · Éveil ${s.eveil.niveau}/${s.eveil.max}` : "");
       const zoneFamille = document.getElementById("detail-famille");
       zoneFamille.innerHTML = "";
       if (infoFamille(s.espece.categorie)) {

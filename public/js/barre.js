@@ -8,7 +8,7 @@
 const ONGLETS = [
   { titre: "Tirage", href: "/tirage.html", pages: ["/tirage.html"] },
   { titre: "Équipe", href: "/equipe.html", pages: ["/equipe.html"] },
-  { titre: "Combat", href: "/combat.html", pages: ["/combat.html", "/pvp.html", "/aventure.html", "/ressources.html"] },
+  { titre: "Combat", href: "/combat.html", pages: ["/combat.html", "/pvp.html", "/aventure.html", "/ressources.html", "/eveil.html"] },
   { titre: "Perks", href: "/perks.html", pages: ["/perks.html"] },
   { titre: "Monkeydex", href: "/monkeydex.html", pages: ["/monkeydex.html"] },
 ];

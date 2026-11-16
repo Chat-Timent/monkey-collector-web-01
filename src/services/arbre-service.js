@@ -2,7 +2,7 @@ import { pool, transaction } from "../config/database.js";
 import { ETINCELLE_SEUIL, LOTERIE_CHANCE_BASE, NB_SLOTS_BASE } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { agregerEffets, ARBRE, etatArbre, noeudsPris, peutPrendre, pointsDepenses, pointsDisponibles } from "../game/starter-arbre.js";
-import { RESSOURCES, jourParis, ticketsApresCadeau } from "../game/ressources.js";
+import { DONJON_EVEIL, RESSOURCES, jourParis, ticketsApresCadeau } from "../game/ressources.js";
 import { getStarter } from "./starter-service.js";
 
 export async function lireNoeudsPris(userId, db = pool) {
@@ -30,16 +30,17 @@ export async function getPointsArbre(userId, niveau) {
   return pointsDisponibles(niveau, pointsDepenses(await lireNoeudsPris(userId)));
 }
 
-// Clé de donjon : `nombre` tickets offerts tout de suite dans chaque donjon de ressources
+// Clé de donjon : `nombre` tickets offerts tout de suite dans chaque donjon de ressources et dans le donjon d'éveil
 // (dans la transaction `db`). `effetsAvant` : effets du joueur avant le déblocage.
 async function offrirTicketsDonjons(userId, nombre, effetsAvant, db) {
   const aujourdhui = jourParis();
-  for (const donjon of Object.keys(RESSOURCES.donjons)) {
+  const donjons = [RESSOURCES, DONJON_EVEIL].flatMap((regles) => Object.keys(regles.donjons).map((id) => [id, regles]));
+  for (const [donjon, regles] of donjons) {
     const { rows } = await db.query(
       "SELECT tickets, jour::text AS jour FROM donjons_progression WHERE user_id = $1 AND donjon = $2 FOR UPDATE",
       [userId, donjon]
     );
-    const tickets = ticketsApresCadeau(rows[0] ?? null, aujourdhui, nombre, effetsAvant);
+    const tickets = ticketsApresCadeau(rows[0] ?? null, aujourdhui, nombre, effetsAvant, regles);
     await db.query(
       `INSERT INTO donjons_progression (user_id, donjon, tickets, jour) VALUES ($1, $2, $3, $4)
        ON CONFLICT (user_id, donjon) DO UPDATE SET tickets = EXCLUDED.tickets, jour = EXCLUDED.jour`,

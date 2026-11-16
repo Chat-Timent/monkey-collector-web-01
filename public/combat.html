@@ -48,6 +48,7 @@
     .donjon.pvp        { --lueur: #ff4d4d; }
     .donjon.aventure   { --lueur: #7fdc9a; }
     .donjon.ressources { --lueur: #4fc3f7; }
+    .donjon.eveil      { --lueur: #ffd54f; }
     .donjon.evenements { --lueur: #c58bff; }
 
     /* Encadrement de pierre en arche, ouverture éclairée de l'intérieur */
@@ -146,14 +147,6 @@
     }
     .donjon.ferme .titre, .donjon.ferme .cle { opacity: 0.5; }
 
-    /* Emplacement réservé au 5e type de donjon : arche murée */
-    .donjon.vide { --lueur: transparent; }
-    .donjon.vide .embrasure { background: #1a1920; }
-    .donjon.vide .battant {
-      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'%3E%3Crect width='40' height='24' fill='%23333139'/%3E%3Cpath d='M0 1H40M0 13H40M1 0V12M21 12V24' stroke='%2318171c' stroke-width='2'/%3E%3C/svg%3E");
-    }
-    .donjon.vide .battant::after { display: none; }
-
     .badge {
       position: absolute;
       top: 14px;
@@ -198,8 +191,6 @@
       .donjon.ferme .battant::after { font-size: 22px; }
       .texte { align-items: flex-start; align-self: center; min-height: 0; padding-bottom: 20px; }
       .titre { font-size: 18px; }
-      .donjon.vide { min-height: 110px; }
-      .donjon.vide .embrasure { height: 84px; }
     }
   </style>
 </head>
@@ -224,11 +215,13 @@
         <span class="etiquette" id="tickets-ressources"></span>
       </span>
     </a>
-    <!-- Emplacement réservé au 5e type de donjon (arche murée en attendant) -->
-    <div class="donjon vide" aria-hidden="true">
-      <span class="embrasure"><span class="battant"></span></span>
-      <span class="texte"></span>
-    </div>
+    <a class="donjon eveil" href="/eveil.html">
+      <span class="embrasure"><span class="cle">🌟</span><span class="battant"></span></span>
+      <span class="texte">
+        <span class="titre">Éveil</span>
+        <span class="etiquette" id="tickets-eveil"></span>
+      </span>
+    </a>
     <div class="donjon evenements ferme">
       <span class="embrasure"><span class="cle">🎉</span><span class="battant"></span></span>
       <span class="texte">
@@ -276,10 +269,20 @@
       }
     }
 
+    async function majEveil() {
+      try {
+        const { ok, data } = await api("/eveil");
+        if (ok) document.getElementById("tickets-eveil").textContent = `🎫 ${data.donjon.tickets}`;
+      } catch {
+        // Réseau indisponible : la porte reste sans compteur
+      }
+    }
+
     exigerConnexion().then((moi) => {
       if (!moi) return;
       majAventure();
       majRessources();
+      majEveil();
       majDefis();
       setInterval(majDefis, 5000);
     });

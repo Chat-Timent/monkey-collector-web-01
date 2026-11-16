@@ -8,6 +8,7 @@ import { socialRoutes } from "./routes/social-routes.js";
 import { aventureRoutes } from "./routes/aventure-routes.js";
 import { ressourcesRoutes } from "./routes/ressources-routes.js";
 import { perksRoutes } from "./routes/perks-routes.js";
+import { eveilRoutes } from "./routes/eveil-routes.js";
 import { gererErreurs } from "./erreurs.js";
 import { VERSION, versionnerHtml } from "./version.js";
 
@@ -62,6 +63,7 @@ export function creerApplication() {
   app.use(aventureRoutes);
   app.use(ressourcesRoutes);
   app.use(perksRoutes);
+  app.use(eveilRoutes);
   app.use(gererErreurs);
   return app;
 }

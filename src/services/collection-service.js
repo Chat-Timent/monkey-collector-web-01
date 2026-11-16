@@ -2,14 +2,15 @@ import { pool } from "../config/database.js";
 import { RARETES } from "../constants/game.js";
 import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
 import { competenceDe } from "../game/competences.js";
+import { EVEIL, bonusEveil, bonusEveilPct, peutEveiller } from "../game/eveil.js";
 
 export async function lireCollection(userId, db = pool) {
   const { rows } = await db.query(
-    "SELECT espece, amount FROM collections WHERE user_id = $1",
+    "SELECT espece, amount, eveil FROM collections WHERE user_id = $1",
     [userId]
   );
   const singes = {};
-  for (const r of rows) singes[r.espece] = { amount: r.amount };
+  for (const r of rows) singes[r.espece] = { amount: r.amount, eveil: r.eveil };
   return { userId, singes };
 }
 
@@ -30,18 +31,23 @@ function construireMonkeydex(collection) {
 
   return Object.entries(collection.singes)
     .filter(([id]) => SINGES[id])
-    .map(([id, { amount }]) => {
+    .map(([id, { amount, eveil = 1 }]) => {
       const espece = SINGES[id];
       const niveau = getNiveau(espece.rarete, amount);
+      // Stats actuelles : niveau et éveil (les bonus de l'arbre et des perks dépendent du joueur, pas du singe)
+      const stats = statsFinales(espece, niveau.niveau);
+      const pct = bonusEveilPct(eveil);
+      for (const k of ["hp", "atk", "def"]) stats[k] += bonusEveil(stats[k], pct);
       return {
         id,
         espece,
         amount,
         niveau,
-        stats: statsFinales(espece, niveau.niveau),
+        stats,
         image: getImageUrl(id),
         rang: ordre[espece.rarete] ?? 0,
-        competence: competenceDe(espece),
+        competence: competenceDe(espece, eveil),
+        eveil: peutEveiller(espece.rarete) ? { niveau: eveil, max: EVEIL.niveauMax } : null,
       };
     })
     .sort((a, b) => b.rang - a.rang);

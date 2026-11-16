@@ -10,6 +10,11 @@ const RARETES_AFFICHAGE = {
   mythic:    { label: "Mythique",   couleur: "#E01E1E" },
 };
 
+// Ressources gagnées dans les donjons (table ressources_joueur) : nom affiché et icône.
+const RESSOURCES_AFFICHAGE = {
+  essence: { nom: "essence", icone: "✨" },
+};
+
 // ---------- Version du site ----------
 // Le serveur écrit sa version dans la page (<meta name="version">) et l'annonce dans chaque
 // réponse (en-tête X-Version). Après une mise à jour, un onglet resté ouvert sur l'ancienne

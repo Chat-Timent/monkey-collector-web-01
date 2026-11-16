@@ -94,5 +94,24 @@
         "graine": 303
       }
     }
+  },
+  "eveil": {
+    "ticketsParJour": 2,
+    "difficulte": {
+      "multiplicateur": 2,
+      "decalage": 3
+    },
+    "donjons": {
+      "eveil": {
+        "nom": "Donjon d'éveil",
+        "icone": "🌟",
+        "ressource": "essence",
+        "gain": {
+          "base": 30,
+          "parPalier": 3
+        },
+        "graine": 404
+      }
+    }
   }
 }
