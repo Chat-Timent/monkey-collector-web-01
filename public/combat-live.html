@@ -112,6 +112,14 @@
       animation: monte-fort calc(1.2s / var(--vitesse)) forwards;
     }
 
+    /* Compétence Décret royal : le roi s'illumine en or, ses alliés reçoivent le bonus */
+    .carte.decret-lanceur {
+      transform: scale(1.1);
+      border-color: #f2c94c;
+      box-shadow: 0 0 18px #f2c94c;
+    }
+    .bulle.decret { color: #f2c94c; text-shadow: 0 0 6px #b8860b; }
+
     @keyframes secousse {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
@@ -326,11 +334,11 @@
       if (!m) return `<div class="carte vide">Slot ${i + 1}</div>`;
 
       const estActif = actif && actif.camp === camp && actif.slot === i;
-      const estCible = fx && fx.camp === camp && fx.slot === i;
+      const estCible = fx && fx.camp === camp && (fx.slots ? fx.slots.includes(i) : fx.slot === i);
 
       const classes = ["carte", camp === monCamp ? "moi" : "adv"];
       if (m.dead) classes.push("mort");
-      if (estActif) classes.push(actif.presage ? "presage-lanceur" : "attaque");
+      if (estActif) classes.push(actif.presage ? "presage-lanceur" : actif.decret ? "decret-lanceur" : "attaque");
       if (estCible && fx.type === "degats") classes.push("touche");
       if (estCible && fx.type === "presage") classes.push("touche-fort");
 
@@ -363,6 +371,7 @@
       else if (e.type === "degats") txt = `${e.de} → ${e.sur} : ${e.degats} dégâts${e.critique ? " (critique)" : ""} · PV restants ${e.pvRestants}`;
       else if (e.type === "rate") txt = `${e.de} rate ${e.sur}`;
       else if (e.type === "KO") txt = `${e.nom} est K.O.`;
+      else if (e.type === "decret") txt = `${e.competence.icone} ${e.competence.nom} : ${e.de} donne +${e.atkPct} % ATK et +${e.defPct} % DEF à ${e.cibles.length} allié${e.cibles.length > 1 ? "s" : ""}`;
       else if (e.type === "soin") txt = `🌸 ${e.de} soigne ${e.sur} : +${e.soin} PV · PV ${e.pvRestants}`;
       if (!txt) return;
 
@@ -390,6 +399,9 @@
       } else if (e.type === "KO") {
         etat[e.camp][e.slot].dead = true;
         fx = { camp: e.camp, slot: e.slot, type: "ko", texte: "K.O." };
+      } else if (e.type === "decret") {
+        actif = { camp: e.deCamp, slot: e.deSlot, decret: true };
+        fx = { camp: e.deCamp, slots: e.cibles.map((c) => c.slot), type: "decret", texte: `${e.competence.icone} +${e.atkPct} %` };
       } else if (e.type === "soin") {
         actif = { camp: e.deCamp, slot: e.deSlot };
         etat[e.surCamp][e.surSlot].pv = e.pvRestants;

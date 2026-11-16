@@ -220,7 +220,7 @@
     "croissance": { "hp": 230, "atk": 20, "def": 38, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
   },
   "king_monkey": {
-    "id": 48, "nom": "King Monkey", "description": "Le roi de la jungle.", "rarete": "mythic", "categorie": "Sang-froid",
+    "id": 48, "nom": "King Monkey", "description": "Le roi de la jungle.", "rarete": "mythic", "categorie": "Sang-froid", "competence": "decret_royal",
     "base": { "hp": 3473, "atk": 595, "def": 397, "spd": 119, "prec": 17, "esq": 14, "crit": 10, "critdmg": 168 },
     "croissance": { "hp": 115, "atk": 40, "def": 29, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
   },

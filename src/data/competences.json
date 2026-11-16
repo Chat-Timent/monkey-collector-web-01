@@ -6,5 +6,14 @@
     "tousLes": 3,
     "critMult": 2.5,
     "percePct": 35
+  },
+  "decret_royal": {
+    "nom": "Décret royal",
+    "icone": "👑",
+    "actif": true,
+    "tousLes": 3,
+    "atkPct": 5,
+    "defPct": 5,
+    "cumulMax": 5
   }
 }

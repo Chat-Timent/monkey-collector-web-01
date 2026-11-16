@@ -21,6 +21,12 @@ function tousVivants(camp) {
   return camp.filter((s) => s && estVivant(s));
 }
 
+// Seuls les singes de la rotation active agissent : attaques, perks et compétences.
+// Un singe en réserve (groupes suivants) ne déclenche rien tant que son groupe n'est pas entré en jeu.
+function enRotation(camp, s) {
+  return rotationActive(camp).includes(s);
+}
+
 // Perk taunt : un singe vivant du groupe actif qui le porte attire toutes les attaques.
 // Sinon, tirage aléatoire parmi les vivants du groupe actif.
 function choisirCible(camp, hasard) {
@@ -31,12 +37,12 @@ function choisirCible(camp, hasard) {
   return actifs[Math.floor(hasard() * actifs.length)];
 }
 
-// Perk floraison : tous les 2 tours, chaque porteur vivant soigne le singe vivant
-// le plus bas en PV de son équipe, d'un pourcentage de ses PV max (sans dépasser le max).
+// Perk floraison : tous les 2 tours, chaque porteur de la rotation active soigne le singe
+// le plus bas en PV de la rotation active, d'un pourcentage de ses PV max (sans dépasser le max).
 function floraison(camp, tour, journal) {
   for (const porteur of camp) {
-    if (!porteur || !estVivant(porteur) || porteur.perk?.id !== "blossoming") continue;
-    const cible = tousVivants(camp).reduce((bas, s) => (s.pv < bas.pv ? s : bas));
+    if (!porteur || !estVivant(porteur) || porteur.perk?.id !== "blossoming" || !enRotation(camp, porteur)) continue;
+    const cible = rotationActive(camp).reduce((bas, s) => (s.pv < bas.pv ? s : bas));
     const soin = Math.min(Math.round(cible.hp * (porteur.perk.soinPct / 100)), cible.hp - cible.pv);
     if (soin <= 0) continue;
     cible.pv += soin;
@@ -63,6 +69,30 @@ function plusBasEnPv(camp) {
   return actifs.reduce((bas, s) => (s.pv < bas.pv ? s : bas));
 }
 
+// Compétence Décret royal : tous les `tousLes` tours, chaque porteur de la rotation active octroie aux singes de la rotation active
+// (lui compris) +`atkPct` % d'ATK et +`defPct` % de DEF (de leur valeur de départ),
+// cumulable jusqu'à `cumulMax` fois par singe. Les bonus restent acquis même si le porteur tombe.
+function decretRoyal(camp, tour, journal) {
+  for (const porteur of camp) {
+    const c = porteur?.competence;
+    if (!porteur || !estVivant(porteur) || c?.id !== "decret_royal" || tour % c.tousLes !== 0 || !enRotation(camp, porteur)) continue;
+    const beneficiaires = rotationActive(camp).filter((s) => (s.decret ?? 0) < c.cumulMax);
+    if (beneficiaires.length === 0) continue;
+    for (const s of beneficiaires) {
+      s.decret = (s.decret ?? 0) + 1;
+      s.atk = Math.round(s.atkDepart * (1 + (c.atkPct * s.decret) / 100));
+      s.def = Math.round(s.defDepart * (1 + (c.defPct * s.decret) / 100));
+    }
+    journal.push({
+      type: "decret", tour,
+      de: porteur.nom, deCamp: porteur.camp, deSlot: porteur.slot,
+      competence: { nom: c.nom, icone: c.icone },
+      atkPct: c.atkPct, defPct: c.defPct,
+      cibles: beneficiaires.map((s) => ({ slot: s.slot, cumul: s.decret })),
+    });
+  }
+}
+
 // Quasi toujours 100 % de toucher. La précision et l'esquive ne retirent
 // qu'au maximum 15 points, donc elles n'interviennent que occasionnellement.
 function chanceTouche(attaquant, cible) {
@@ -79,7 +109,7 @@ export function degatsDe(atk, def) {
 
 export function combat(equipeA, equipeB, hasard = Math.random) {
   const preparer = (equipe, camp) =>
-    equipe.map((s, slot) => (s ? { ...s, camp, slot, pv: s.hp } : null));
+    equipe.map((s, slot) => (s ? { ...s, camp, slot, pv: s.hp, atkDepart: s.atk, defDepart: s.def } : null));
 
   const A = preparer(equipeA, "A");
   const B = preparer(equipeB, "B");
@@ -93,13 +123,15 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
       floraison(A, tour, journal);
       floraison(B, tour, journal);
     }
+    decretRoyal(A, tour, journal);
+    decretRoyal(B, tour, journal);
 
     // Ordre fixe : slot 1 A, slot 1 B, slot 2 A, slot 2 B, etc.
     for (let i = 0; i < Math.max(A.length, B.length); i++) {
       for (const [camp, adverses] of [[A, B], [B, A]]) {
         const attaquant = camp[i];
         if (!attaquant || !estVivant(attaquant)) continue;
-        if (!rotationActive(camp).includes(attaquant)) continue;
+        if (!enRotation(camp, attaquant)) continue;
 
         const presage = presageDeclenche(attaquant, tour);
         const cible = presage ? plusBasEnPv(adverses) : choisirCible(adverses, hasard);

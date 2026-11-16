@@ -467,6 +467,33 @@ test("Présage : tous les 3 tours, un critique ×2,5 perce-armure sur l'ennemi l
   assert.ok(sans.journal.every((e) => !e.competence && (e.de !== "Devin" || e.sur === "Taunt")));
 });
 
+test("Décret royal : tous les 3 tours, +5 % ATK et DEF à l'équipe vivante, cumulable 5 fois", () => {
+  const decret = competenceDe(getEspece("king_monkey"));
+  assert.deepEqual(decret, { id: "decret_royal", nom: "Décret royal", icone: "👑", tousLes: 3, atkPct: 5, defPct: 5, cumulMax: 5 });
+  assert.equal(competenceDe(getEspece("king_monkey"), { decret_royal: { ...COMPETENCES.decret_royal, actif: false } }), null);
+
+  const singe = (nom, extra = {}) => ({ nom, hp: 1e9, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 150, perk: null, ...extra });
+  const r = combat([singe("Roi", { competence: decret }), singe("Soldat")], [singe("Cible")], () => 0.5);
+  const decrets = r.journal.filter((e) => e.type === "decret");
+  // Déclenché aux tours 3, 6, 9, 12 et 15, puis plus rien une fois le cumul maximal atteint
+  assert.deepEqual(decrets.map((e) => e.tour), [3, 6, 9, 12, 15]);
+  assert.deepEqual(decrets[0].cibles, [{ slot: 0, cumul: 1 }, { slot: 1, cumul: 1 }]);
+  assert.deepEqual(decrets[4].competence, { nom: "Décret royal", icone: "👑" });
+  // Le bonus s'applique dès le tour du décret, sur l'ATK et la DEF de départ
+  const coup = (tour, de = "Soldat") => r.journal.find((e) => e.type === "degats" && e.tour === tour && e.de === de).degats;
+  assert.equal(coup(2), degatsDe(100, 100));
+  assert.equal(coup(3), degatsDe(105, 100));
+  assert.equal(coup(18), degatsDe(125, 100));
+  assert.equal(coup(18, "Cible"), degatsDe(100, 125));
+
+  // Roi en réserve (slot 4) : aucun décret tant que le groupe 1 est en jeu
+  const reserve = combat([singe("Soldat"), null, null, singe("Roi", { competence: decret }), null, null], [singe("Cible")], () => 0.5);
+  assert.equal(reserve.journal.filter((e) => e.type === "decret").length, 0);
+  // Roi en jeu : le singe en réserve ne reçoit rien
+  const enJeu = combat([singe("Roi", { competence: decret }), null, null, singe("Réserviste"), null, null], [singe("Cible")], () => 0.5);
+  assert.ok(enJeu.journal.filter((e) => e.type === "decret").every((e) => e.cibles.every((c) => c.slot === 0)));
+});
+
 test("Duelliste : un combat classé de plus par jour contre un même adversaire", () => {
   const sans = agregerEffets([]);
   const duelliste = agregerEffets(["pvp.duel"]);
@@ -708,6 +735,15 @@ test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 t
   // Personne n'est blessé (toutes les attaques ratent) : pas de soin
   const calme = combat([singe("S", 1000, 1, 0, effetPerk("blossoming", 5))], [singe("X", 1000, 1, 0)], () => 0.99);
   assert.equal(calme.journal.filter((e) => e.type === "soin").length, 0);
+  // En réserve (slot 4), le soigneur ne soigne pas tant que le groupe 1 tient ; il prend le relais une fois en jeu
+  const reserve = combat(
+    [singe("Blessé", 1000, 1, 0), null, null, singe("Soigneur", 1000, 1, 0, effetPerk("blossoming", 1)), null, null],
+    [singe("Brute", 100000, 300, 0)],
+    () => 0
+  );
+  const koBlesse = reserve.journal.findIndex((e) => e.type === "KO" && e.nom === "Blessé");
+  assert.ok(koBlesse > 0 && reserve.journal.slice(0, koBlesse).every((e) => e.type !== "soin"));
+  assert.ok(reserve.journal.slice(koBlesse).some((e) => e.type === "soin" && e.de === "Soigneur"));
 });
 
 test("défense : les dégâts diminuent sans jamais s'annuler", () => {
