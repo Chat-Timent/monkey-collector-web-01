@@ -1,4 +1,4 @@
-// Page d'un type d'objet tiré à la loterie (Armes, puis Équipements). Réglages lus sur <body> :
+// Page d'un type d'objet tiré à la loterie (Armes, Équipements). Réglages lus sur <body> :
 //   data-api="/armes"  data-tirer="Tirer une arme"  data-vide="Aucune arme pour l'instant."
 //   data-non-equipe="Non équipée"
 // Script classique : utilise api, exigerConnexion, ROMAINS, nomObjet, texteEffetsObjet (commun.js).

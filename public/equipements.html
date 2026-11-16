@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Équipements</title>
+  <link rel="stylesheet" href="/css/commun.css">
+  <link rel="stylesheet" href="/css/arbre.css">
+  <link rel="stylesheet" href="/css/barre.css">
+  <link rel="stylesheet" href="/css/objets.css">
+</head>
+<body data-api="/equipements" data-tirer="Tirer un équipement" data-vide="Aucun équipement pour l'instant : l'étoffe se gagne au donjon de l'équipement (page Ressources)." data-non-equipe="Non équipé">
+  <main class="contenu">
+    <nav class="onglets-objets">
+      <a href="/perks.html">🎯 Perks</a>
+      <a href="/armes.html">⚔️ Armes</a>
+      <a href="/equipements.html" class="actif">🎒 Équipements</a>
+    </nav>
+    <section class="loterie">
+      <button id="tirer" type="button" disabled>🎰 Tirer un équipement</button>
+      <p id="stock"></p>
+      <div id="resultat"></div>
+    </section>
+
+    <h2>Mes équipements</h2>
+    <div id="objets" class="objets"></div>
+    <p id="message"></p>
+  </main>
+
+  <div id="fond" class="fond" hidden>
+    <div class="detail" role="dialog" aria-modal="true">
+      <button class="fermer" type="button" aria-label="Fermer">✕</button>
+      <div id="detail"></div>
+    </div>
+  </div>
+
+  <script src="/js/commun.js"></script>
+  <script src="/js/arbre.js"></script>
+  <script src="/js/barre.js"></script>
+  <script src="/js/session.js"></script>
+  <script src="/js/objets.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+{
+  "type": "equipement",
+  "slots": 3,
+  "uneSorteParSinge": true,
+  "prix": 10,
+  "ressource": "etoffe",
+  "chancesTiers": [50, 27, 14, 7, 2],
+  "niveaux": {
+    "doublons": [1, 1, 2, 2],
+    "bonusParNiveauPct": 10,
+    "rembourseAuMax": 5
+  },
+  "objets": {
+    "casque": {
+      "nom": "Casque",
+      "icone": "⛑️",
+      "tiers": [{ "defPct": 4 }, { "defPct": 6 }, { "defPct": 8 }, { "defPct": 10 }, { "defPct": 12 }]
+    },
+    "armure": {
+      "nom": "Armure",
+      "icone": "🦺",
+      "tiers": [{ "hpPct": 4 }, { "hpPct": 6 }, { "hpPct": 8 }, { "hpPct": 10 }, { "hpPct": 12 }]
+    },
+    "bottes": {
+      "nom": "Bottes",
+      "icone": "👢",
+      "tiers": [
+        { "hpPct": 3, "defPct": 3 }, { "hpPct": 4, "defPct": 4 }, { "hpPct": 5, "defPct": 5 },
+        { "hpPct": 6, "defPct": 6 }, { "hpPct": 8, "defPct": 8 }
+      ]
+    },
+    "gants": {
+      "nom": "Gants",
+      "icone": "🧤",
+      "tiers": [
+        { "atkPct": 2, "hpPct": 2 }, { "atkPct": 3, "hpPct": 3 }, { "atkPct": 4, "hpPct": 4 },
+        { "atkPct": 5, "hpPct": 5 }, { "atkPct": 6, "hpPct": 6 }
+      ]
+    },
+    "anneau": {
+      "nom": "Anneau",
+      "icone": "💍",
+      "tiers": [
+        { "atkPct": 2, "crit": 2 }, { "atkPct": 3, "crit": 3 }, { "atkPct": 4, "crit": 4 },
+        { "atkPct": 5, "crit": 5 }, { "atkPct": 6, "crit": 7 }
+      ]
+    },
+    "amulette": {
+      "nom": "Amulette",
+      "icone": "📿",
+      "tiers": [
+        { "atkPct": 2, "critdmg": 10 }, { "atkPct": 3, "critdmg": 15 }, { "atkPct": 4, "critdmg": 20 },
+        { "atkPct": 5, "critdmg": 30 }, { "atkPct": 6, "critdmg": 40 }
+      ]
+    }
+  }
+}

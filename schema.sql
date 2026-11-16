@@ -51,7 +51,7 @@ CREATE TABLE perks_obtenus (
   UNIQUE (user_id, espece)
 );
 
--- Objets obtenus (src/data/armes.json, puis equipements.json), niveau d'objet et singe qui les porte.
+-- Objets obtenus (src/data/armes.json, src/data/equipements.json), niveau d'objet et singe qui les porte.
 CREATE TABLE objets_obtenus (
   user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type      text NOT NULL CHECK (type IN ('arme', 'equipement')),
@@ -60,7 +60,7 @@ CREATE TABLE objets_obtenus (
   niveau    integer NOT NULL DEFAULT 1,    -- niveau d'objet, monté par les doublons
   doublons  integer NOT NULL DEFAULT 0,    -- doublons accumulés vers le niveau suivant
   espece    text,                          -- singe qui le porte (null = non équipé)
-  slot      integer,                       -- emplacement sur ce singe (1 pour une arme)
+  slot      integer,                       -- emplacement sur ce singe (1 pour une arme, 1 à 3 pour un équipement)
   obtenu_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (user_id, type, objet, tier),
   UNIQUE (user_id, type, espece, slot),    -- un seul objet par emplacement et par singe
@@ -70,7 +70,7 @@ CREATE TABLE objets_obtenus (
 -- Donjons de ressources et donjon d'éveil : palier courant et tickets du jour (heure de Paris) par donjon.
 CREATE TABLE donjons_progression (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  donjon  text NOT NULL,                       -- 'tirages', 'coins', 'xp', 'armement', 'eveil'
+  donjon  text NOT NULL,                       -- 'tirages', 'coins', 'xp', 'armement', 'equipement', 'eveil'
   palier  integer NOT NULL DEFAULT 1,
   tickets integer NOT NULL DEFAULT 2,
   jour    date NOT NULL DEFAULT CURRENT_DATE,  -- jour des tickets ; un jour passé = tickets pleins
@@ -78,7 +78,8 @@ CREATE TABLE donjons_progression (
 );
 
 -- Ressources gagnées dans les donjons et dépensées ailleurs (src/data/ressources-joueur.json) :
--- 'essence' (donjon d'éveil, éveil des singes), 'acier' (donjon de l'armement, loterie des armes).
+-- 'essence' (donjon d'éveil, éveil des singes), 'acier' (donjon de l'armement, loterie des armes),
+-- 'etoffe' (donjon de l'équipement, loterie des équipements).
 CREATE TABLE ressources_joueur (
   user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   ressource text NOT NULL,

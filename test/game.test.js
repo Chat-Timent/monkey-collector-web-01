@@ -23,7 +23,7 @@ import {
   ticketsApresCadeau, ticketsDisponibles, ticketsParJour, validerDonjons, validerRessourcesJoueur,
 } from "../src/game/ressources.js";
 import {
-  ARMES, apresDoublon, bonusObjets, doublonsRequis, effetObjet, nbTiersObjet, niveauMaxObjet, objetExiste, tirerObjet,
+  ARMES, CATALOGUES, EQUIPEMENTS, apresDoublon, bonusObjets, doublonsRequis, effetObjet, nbTiersObjet, niveauMaxObjet, objetExiste, tirerObjet,
   validerCatalogue, valeursObjet,
 } from "../src/game/objets.js";
 import { calculerElo, limiteCombatsElo } from "../src/game/elo.js";
@@ -93,6 +93,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /combats/:id/messages",
     "GET /defis",
     "GET /equipe",
+    "GET /equipements",
     "GET /eveil",
     "GET /joueurs",
     "GET /moi",
@@ -112,6 +113,8 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /defis",
     "POST /defis/:id/repondre",
     "POST /equipe",
+    "POST /equipements/equiper",
+    "POST /equipements/loterie",
     "POST /eveil/balayer",
     "POST /eveil/combat",
     "POST /eveil/eveiller",
@@ -192,7 +195,8 @@ test("les requêtes invalides reçoivent une erreur JSON sans toucher la base", 
 
     // Pages et actions de l'éveil, des armes et du balayage : connexion obligatoire
     for (const [methode, chemin] of [["GET", "/eveil"], ["POST", "/eveil/combat"], ["POST", "/eveil/balayer"], ["POST", "/eveil/eveiller"],
-      ["GET", "/armes"], ["POST", "/armes/loterie"], ["POST", "/armes/equiper"], ["POST", "/ressources/balayer"]]) {
+      ["GET", "/armes"], ["POST", "/armes/loterie"], ["POST", "/armes/equiper"], ["POST", "/ressources/balayer"],
+      ["GET", "/equipements"], ["POST", "/equipements/loterie"], ["POST", "/equipements/equiper"]]) {
       const r = await fetch(`${base}${chemin}`, { method: methode });
       assert.equal(r.status, 401, chemin);
     }
@@ -984,7 +988,7 @@ test("éveil en combat : +x % de PV, ATK et DEF de base, cumulé avec l'arbre et
 
 test("récompenses de donjon lues dans le JSON : tirages, coins, XP ou ressource stockée", () => {
   assert.deepEqual(Object.fromEntries(Object.entries(RESSOURCES.donjons).map(([id, d]) => [id, d.recompense])),
-    { tirages: "tirages", coins: "coins", xp: "xp", armement: "acier" });
+    { tirages: "tirages", coins: "coins", xp: "xp", armement: "acier", equipement: "etoffe" });
   assert.equal(DONJON_EVEIL.donjons.eveil.recompense, "essence");
   assert.deepEqual(infoRecompense("acier"), { id: "acier", nom: "acier", icone: "🔩" });
   assert.deepEqual(infoRecompense("xp"), { id: "xp", nom: "XP", icone: "⭐" });
@@ -1049,7 +1053,7 @@ test("armes : doublons 1, 1, 2, 2 jusqu'au niveau 5, puis 5 acier rendus ; +10 %
   assert.deepEqual([1, 2, 3, 4, 5].map((n) => doublonsRequis(ARMES, n)), [1, 1, 2, 2, null]);
   assert.deepEqual(valeursObjet(ARMES, "epee", 5, 1), { atkPct: 12 });
   assert.deepEqual(valeursObjet(ARMES, "epee", 5, 5), { atkPct: 16.8 });
-  assert.deepEqual(valeursObjet(ARMES, "dague", 3, 2), { atkPct: 5.5, crit: 7.7 });
+  assert.deepEqual(valeursObjet(ARMES, "dague", 3, 2), { atkPct: 5.5, crit: 8 }); // points arrondis à l'unité
   assert.deepEqual(effetObjet(ARMES, "hache", 1, 1), { type: "arme", id: "hache", tier: 1, niveau: 1, nom: "Hache", icone: "🪓", atkPct: 3, critdmg: 15 });
   assert.equal(effetObjet(ARMES, "hache", 9, 1), null);
 });
@@ -1070,4 +1074,35 @@ test("armes en combat : % des stats de base, crit en points, cumulés avec l'év
   assert.equal(armee.def, base.def + bonusEveil(base.def, 15));
   const crit = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets, objets: [hache] });
   assert.deepEqual([crit.crit, crit.critdmg], [base.crit, base.critdmg + 35]);
+});
+
+test("équipements : 6 sortes à 5 tiers, 3 emplacements, une sorte par singe, payés en étoffe", () => {
+  assert.deepEqual(Object.keys(EQUIPEMENTS.objets), ["casque", "armure", "bottes", "gants", "anneau", "amulette"]);
+  assert.deepEqual([EQUIPEMENTS.type, EQUIPEMENTS.slots, EQUIPEMENTS.uneSorteParSinge, EQUIPEMENTS.prix, EQUIPEMENTS.ressource],
+    ["equipement", 3, true, 10, "etoffe"]);
+  assert.deepEqual(Object.keys(CATALOGUES), ["arme", "equipement"]);
+  // 30 objets distincts : assez pour équiper 9 singes de 3 objets de sortes différentes
+  assert.ok(Object.keys(EQUIPEMENTS.objets).length * nbTiersObjet(EQUIPEMENTS) >= 27);
+  assert.deepEqual(infoRecompense("etoffe"), { id: "etoffe", nom: "étoffe", icone: "🧵" });
+  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("equipement", p)), [15, 16, 24]);
+  assert.equal(RESSOURCES.donjons.equipement.balayage, true);
+  const ids = (l) => l.filter(Boolean).map((s) => s.id).join();
+  assert.notEqual(ids(ennemisDonjon("equipement", 25)), ids(ennemisDonjon("armement", 25)));
+  assert.deepEqual(valeursObjet(EQUIPEMENTS, "bottes", 5, 5), { hpPct: 11.2, defPct: 11.2 });
+  assert.throws(() => validerCatalogue({ ...EQUIPEMENTS, uneSorteParSinge: "oui" }), /uneSorteParSinge/);
+});
+
+test("équipements en combat : les 3 objets et l'arme s'additionnent en % des stats de base", () => {
+  const s = { hp: 1000, atk: 500, def: 300, crit: 10, critdmg: 150 };
+  const portes = [
+    effetObjet(EQUIPEMENTS, "armure", 5, 1), effetObjet(EQUIPEMENTS, "casque", 5, 1), effetObjet(EQUIPEMENTS, "bottes", 5, 1),
+    effetObjet(ARMES, "epee", 5, 1),
+  ];
+  // PV : 12 + 8 = 20 % ; DEF : 12 + 8 = 20 % ; ATK : 12 %
+  assert.deepEqual(bonusObjets(portes, s), { hp: 200, atk: 60, def: 60, crit: 0, critdmg: 0 });
+  const crystal = getEspece("crystal_ball_monkey");
+  const base = statsFinales(crystal, 5);
+  const singe = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets: agregerEffets([]), objets: portes });
+  assert.deepEqual([singe.hp, singe.atk, singe.def],
+    [base.hp + Math.round(base.hp * 0.2), base.atk + Math.round(base.atk * 0.12), base.def + Math.round(base.def * 0.2)]);
 });

@@ -1,4 +1,4 @@
-// Objets portés par les singes (armes, puis équipements) : loterie payée en ressource de donjon,
+// Objets portés par les singes (armes, équipements) : loterie payée en ressource de donjon,
 // doublons convertis en niveaux d'objet, équipement sur un singe possédé. Un seul code pour tous les types.
 import { pool, transaction } from "../config/database.js";
 import { ErreurJeu } from "../erreurs.js";
@@ -55,6 +55,7 @@ export async function getObjets(userId, type) {
     ressource: infoRecompense(c.ressource),
     stock: ressources[c.ressource] ?? 0,
     slots: c.slots,
+    uneSorteParSinge: !!c.uneSorteParSinge,
     nbTiers: nbTiersObjet(c),
     niveauMax: niveauMaxObjet(c),
     bonusParNiveauPct: c.niveaux.bonusParNiveauPct,
@@ -99,6 +100,7 @@ export async function tirerLoterieObjet(userId, type) {
 
 // Équipe un objet obtenu sur un singe possédé (`espece`, emplacement `slot`), ou le retire (`espece` null).
 // L'objet qui occupait cet emplacement sur ce singe est retiré ; un objet n'est porté que par un singe à la fois.
+// Avec "uneSorteParSinge", un singe ne peut pas porter deux objets de la même sorte (dans deux emplacements).
 export async function equiperObjet(userId, type, objet, tier, espece, slot = 1) {
   const c = catalogueDe(type);
   if (!objetExiste(c, objet, tier)) throw new ErreurJeu("objet inconnu");
@@ -115,6 +117,14 @@ export async function equiperObjet(userId, type, objet, tier, espece, slot = 1) 
       [userId, type, objet, tier]
     );
     if (rows.length === 0) throw new ErreurJeu("objet non obtenu");
+    if (espece !== null && c.uneSorteParSinge) {
+      const { rows: memeSorte } = await db.query(
+        `SELECT 1 FROM objets_obtenus
+         WHERE user_id = $1 AND type = $2 AND espece = $3 AND objet = $4 AND tier <> $5 AND slot <> $6`,
+        [userId, type, espece, objet, tier, slot]
+      );
+      if (memeSorte.length > 0) throw new ErreurJeu(`ce singe porte déjà : ${c.objets[objet].nom}`);
+    }
     if (espece !== null) {
       await db.query(
         `UPDATE objets_obtenus SET espece = NULL, slot = NULL
