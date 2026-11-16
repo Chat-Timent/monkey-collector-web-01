@@ -10,93 +10,231 @@
   <style>
     body {
       font-family: system-ui, sans-serif;
-      background: #161616;
+      background: #121116;
       color: var(--texte);
       margin: 0;
       min-height: 100vh;
+      overflow-x: hidden;
     }
-    .modes {
-      max-width: 760px;
-      margin: 32px auto;
-      padding: 0 16px 40px;
+
+    /* Rangée de donjons : une colonne de pierre par mode, sur toute la hauteur */
+    .donjons {
+      height: calc(100vh - var(--topbar-h, 0px));
+      height: calc(100dvh - var(--topbar-h, 0px));
+      min-height: 420px;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
+      grid-template-columns: repeat(5, 1fr);
     }
-    .mode {
+    .donjon {
+      --lueur: #ff8a3d;
       position: relative;
-      min-height: 160px;
-      border-radius: 16px;
-      border: 1px solid #333;
-      background: #242424;
-      color: var(--texte);
-      text-decoration: none;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      transition: transform 0.15s, border-color 0.15s;
+      gap: 16px;
+      padding: 56px 12px 32px;
+      color: var(--texte);
+      text-decoration: none;
+      overflow: hidden;
+      border-right: 6px solid #0c0b10;
+      background-color: #2a2830;
+      background-image:
+        radial-gradient(ellipse at 50% 40%, color-mix(in srgb, var(--lueur) 14%, transparent), transparent 65%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 75%, rgba(0, 0, 0, 0.6)),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='60'%3E%3Cg fill='none' stroke='%2318171c' stroke-width='3'%3E%3Cpath d='M0 1.5H80M0 31.5H80M1.5 0V30M41.5 30V60'/%3E%3C/g%3E%3C/svg%3E");
     }
-    a.mode:hover { border-color: var(--accent); transform: translateY(-2px); }
-    .mode .icone { font-size: 44px; line-height: 1; }
-    .mode .titre { font-size: 20px; font-weight: bold; }
-    .mode.bientot { opacity: 0.45; cursor: default; }
-    .mode .etiquette:empty { display: none; }
-    .mode .etiquette {
-      font-size: 12px;
+    .donjon:last-child { border-right: none; }
+    .donjon.pvp        { --lueur: #ff4d4d; }
+    .donjon.aventure   { --lueur: #7fdc9a; }
+    .donjon.ressources { --lueur: #4fc3f7; }
+    .donjon.evenements { --lueur: #c58bff; }
+
+    /* Encadrement de pierre en arche, ouverture éclairée de l'intérieur */
+    .embrasure {
+      position: relative;
+      width: min(80%, 230px);
+      flex: 1;
+      max-height: 560px;
+      border-radius: 999px 999px 0 0;
+      border: 12px solid #4a4752;
+      border-bottom: none;
+      box-shadow: inset 0 0 0 3px #222027, 0 0 0 3px #1a1920, 0 10px 30px rgba(0, 0, 0, 0.6);
+      background: radial-gradient(ellipse at 50% 75%, var(--lueur), #000 75%);
+      perspective: 900px;
+      transition: box-shadow 0.3s;
+    }
+    /* Battant de bois : planches, ferrures, anneau */
+    .battant {
+      position: absolute;
+      inset: 0;
+      border-radius: 999px 999px 0 0;
+      transform-origin: left center;
+      transition: transform 0.45s ease, filter 0.3s;
+      background:
+        linear-gradient(180deg, transparent 22%, #2b2b30 22%, #3a3a40 24%, transparent 24%,
+                        transparent 68%, #2b2b30 68%, #3a3a40 70%, transparent 70%),
+        repeating-linear-gradient(90deg, #5e3d24 0 23%, #3e2615 23% 25%);
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
+    }
+    .battant::after {
+      content: "";
+      position: absolute;
+      right: 16%;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      border: 4px solid #8a8a93;
+      border-radius: 50%;
+      transform: translateY(-50%);
+    }
+    /* La porte s'ouvre vers l'intérieur du donjon : elle rétrécit au lieu de déborder sur le texte */
+    a.donjon:hover .battant { transform: rotateY(55deg); filter: brightness(0.8); }
+    a.donjon:hover .embrasure {
+      box-shadow: inset 0 0 0 3px #222027, 0 0 0 3px #1a1920,
+                  0 0 40px color-mix(in srgb, var(--lueur) 45%, transparent);
+    }
+
+    /* Clé de voûte avec l'icône du mode */
+    .cle {
+      position: absolute;
+      top: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #4a4752;
+      border: 3px solid #1a1920;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      z-index: 2;
+    }
+    .texte { position: relative; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 64px; }
+    .titre {
+      font-size: 22px;
       font-weight: bold;
-      padding: 3px 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-align: center;
+      text-shadow: 0 2px 6px #000, 0 0 14px color-mix(in srgb, var(--lueur) 60%, transparent);
+    }
+    .etiquette:empty { display: none; }
+    .etiquette {
+      font-size: 13px;
+      font-weight: bold;
+      padding: 4px 12px;
       border-radius: 999px;
-      background: #333;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid #444;
       color: var(--texte-doux);
     }
+
+    /* Donjon fermé (pas encore disponible) : porte terne, cadenas */
+    .donjon.ferme { cursor: default; }
+    .donjon.ferme .battant { filter: grayscale(1) brightness(0.55); }
+    .donjon.ferme .battant::after {
+      content: "🔒";
+      border: none;
+      width: auto;
+      height: auto;
+      right: 50%;
+      font-size: 32px;
+      transform: translate(50%, -50%);
+    }
+    .donjon.ferme .titre, .donjon.ferme .cle { opacity: 0.5; }
+
+    /* Emplacement réservé au 5e type de donjon : arche murée */
+    .donjon.vide { --lueur: transparent; }
+    .donjon.vide .embrasure { background: #1a1920; }
+    .donjon.vide .battant {
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='24'%3E%3Crect width='40' height='24' fill='%23333139'/%3E%3Cpath d='M0 1H40M0 13H40M1 0V12M21 12V24' stroke='%2318171c' stroke-width='2'/%3E%3C/svg%3E");
+    }
+    .donjon.vide .battant::after { display: none; }
+
     .badge {
       position: absolute;
-      top: 12px;
-      right: 12px;
-      min-width: 24px;
-      height: 24px;
-      padding: 0 7px;
+      top: 14px;
+      right: 14px;
+      min-width: 26px;
+      height: 26px;
+      padding: 0 8px;
       border-radius: 999px;
       background: var(--accent-2);
       color: #fff;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: bold;
       display: none;
       align-items: center;
       justify-content: center;
+      z-index: 3;
     }
     .badge.visible { display: inline-flex; }
-    @media (max-width: 480px) {
-      .modes { gap: 10px; margin-top: 20px; }
-      .mode { min-height: 130px; }
-      .mode .icone { font-size: 36px; }
-      .mode .titre { font-size: 17px; }
+
+    /* Écran moyen : portes plus fines */
+    @media (max-width: 1000px) {
+      .titre { font-size: 16px; letter-spacing: 0; }
+      .embrasure { border-width: 8px; }
+      .cle { width: 46px; height: 46px; font-size: 24px; top: -32px; }
+    }
+    /* Téléphone : les donjons s'empilent, porte à gauche */
+    @media (max-width: 700px) {
+      .donjons { height: auto; min-height: 0; grid-template-columns: 1fr; }
+      .donjon {
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 22px;
+        min-height: 150px;
+        padding: 30px 16px 0;
+        border-right: none;
+        border-bottom: 5px solid #0c0b10;
+      }
+      .donjon:last-child { border-bottom: none; }
+      .embrasure { flex: none; width: 92px; height: 124px; align-self: flex-end; }
+      .cle { width: 36px; height: 36px; font-size: 19px; top: -22px; }
+      .battant::after { width: 12px; height: 12px; border-width: 3px; }
+      .donjon.ferme .battant::after { font-size: 22px; }
+      .texte { align-items: flex-start; align-self: center; min-height: 0; padding-bottom: 20px; }
+      .titre { font-size: 18px; }
+      .donjon.vide { min-height: 110px; }
+      .donjon.vide .embrasure { height: 84px; }
     }
   </style>
 </head>
 <body>
-  <main class="modes">
-    <a class="mode" href="/pvp.html">
+  <main class="donjons">
+    <a class="donjon pvp" href="/pvp.html">
       <span class="badge" id="badge-pvp" title="Défis reçus"></span>
-      <span class="icone">⚔️</span>
-      <span class="titre">PVP</span>
+      <span class="embrasure"><span class="cle">⚔️</span><span class="battant"></span></span>
+      <span class="texte"><span class="titre">PVP</span></span>
     </a>
-    <a class="mode" href="/aventure.html">
-      <span class="icone">🗺️</span>
-      <span class="titre">Aventure</span>
-      <span class="etiquette" id="etage-aventure"></span>
+    <a class="donjon aventure" href="/aventure.html">
+      <span class="embrasure"><span class="cle">🗺️</span><span class="battant"></span></span>
+      <span class="texte">
+        <span class="titre">Aventure</span>
+        <span class="etiquette" id="etage-aventure"></span>
+      </span>
     </a>
-    <a class="mode" href="/ressources.html">
-      <span class="icone">💎</span>
-      <span class="titre">Ressources</span>
-      <span class="etiquette" id="tickets-ressources"></span>
+    <a class="donjon ressources" href="/ressources.html">
+      <span class="embrasure"><span class="cle">💎</span><span class="battant"></span></span>
+      <span class="texte">
+        <span class="titre">Ressources</span>
+        <span class="etiquette" id="tickets-ressources"></span>
+      </span>
     </a>
-    <div class="mode bientot">
-      <span class="icone">🎉</span>
-      <span class="titre">Événements</span>
-      <span class="etiquette">Bientôt</span>
+    <!-- Emplacement réservé au 5e type de donjon (arche murée en attendant) -->
+    <div class="donjon vide" aria-hidden="true">
+      <span class="embrasure"><span class="battant"></span></span>
+      <span class="texte"></span>
+    </div>
+    <div class="donjon evenements ferme">
+      <span class="embrasure"><span class="cle">🎉</span><span class="battant"></span></span>
+      <span class="texte">
+        <span class="titre">Événements</span>
+        <span class="etiquette">Bientôt</span>
+      </span>
     </div>
   </main>
 
@@ -105,7 +243,7 @@
   <script src="/js/barre.js"></script>
   <script src="/js/session.js"></script>
   <script>
-    // Pastille sur la carte PVP : nombre de défis reçus en attente
+    // Pastille sur la porte PVP : nombre de défis reçus en attente
     async function majDefis() {
       try {
         const { ok, data } = await api("/defis");
@@ -123,7 +261,7 @@
         const { ok, data } = await api("/aventure");
         if (ok) document.getElementById("etage-aventure").textContent = `Étage ${data.etage}`;
       } catch {
-        // Réseau indisponible : la carte reste sans étage
+        // Réseau indisponible : la porte reste sans étage
       }
     }
 
@@ -134,7 +272,7 @@
         const tickets = data.donjons.reduce((t, d) => t + d.tickets, 0);
         document.getElementById("tickets-ressources").textContent = `🎫 ${tickets}`;
       } catch {
-        // Réseau indisponible : la carte reste sans compteur
+        // Réseau indisponible : la porte reste sans compteur
       }
     }
 
