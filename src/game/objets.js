@@ -1,12 +1,15 @@
-// Objets portés par les singes (armes, puis équipements) : fonctions pures, sans base de données.
+// Objets portés par les singes (armes, équipements) : fonctions pures, sans base de données.
 // Un catalogue par type (src/data/armes.json…), de même forme : prix et ressource de la loterie, chances des tiers,
 // règle des niveaux d'objet, et valeurs de chaque tier.
+// "uneSorteParSinge": true : un singe ne porte qu'un objet de chaque sorte (pas deux casques), quel que soit le tier.
 // Effets possibles : hpPct, atkPct, defPct (pourcentage des stats de base, comme les perks)
 // et crit, critdmg (points, ces stats étant déjà des pourcentages).
 import fs from "node:fs";
 import { estRessourceJoueur } from "./ressources.js";
 
 export const EFFETS_OBJETS = ["hpPct", "atkPct", "defPct", "crit", "critdmg"];
+// Effets en points (les autres sont des pourcentages des stats de base)
+const POINTS = ["crit", "critdmg"];
 const TYPES = ["arme", "equipement"];
 
 // Vérifie un catalogue au chargement (le serveur refuse de démarrer sur des données incohérentes).
@@ -14,6 +17,7 @@ export function validerCatalogue(c, nom = "catalogue") {
   if (!TYPES.includes(c.type)) throw new Error(`type d'objet inconnu "${c.type}" (${nom})`);
   if (!Number.isInteger(c.slots) || c.slots < 1) throw new Error(`nombre d'emplacements invalide (${nom})`);
   if (!Number.isInteger(c.prix) || c.prix < 1) throw new Error(`prix invalide (${nom})`);
+  if (c.uneSorteParSinge !== undefined && typeof c.uneSorteParSinge !== "boolean") throw new Error(`uneSorteParSinge invalide (${nom})`);
   if (!estRessourceJoueur(c.ressource)) throw new Error(`ressource inconnue "${c.ressource}" (${nom})`);
   const nbTiers = c.chancesTiers?.length ?? 0;
   if (nbTiers === 0 || !c.chancesTiers.every((p) => typeof p === "number" && p > 0)) throw new Error(`chances des tiers invalides (${nom})`);
@@ -43,8 +47,12 @@ export function chargerCatalogue(fichier) {
 }
 
 export const ARMES = chargerCatalogue("armes.json");
-// Catalogues par type (la phase des équipements ajoutera le sien)
-export const CATALOGUES = { arme: ARMES };
+export const EQUIPEMENTS = chargerCatalogue("equipements.json");
+// Catalogues par type
+export const CATALOGUES = { arme: ARMES, equipement: EQUIPEMENTS };
+for (const [type, c] of Object.entries(CATALOGUES)) {
+  if (c.type !== type) throw new Error(`le catalogue du type "${type}" déclare le type "${c.type}"`);
+}
 
 export function nbTiersObjet(c) {
   return c.chancesTiers.length;
@@ -92,12 +100,14 @@ export function apresDoublon(c, { niveau, doublons }) {
 }
 
 // Valeurs d'un objet à son niveau : celles du tier, augmentées de `bonusParNiveauPct` % par niveau au-dessus de 1,
-// arrondies au dixième.
+// arrondies au dixième pour les pourcentages et à l'unité pour les points (crit, critdmg).
 export function valeursObjet(c, objet, tier, niveau = 1) {
   const mult = 1 + (c.niveaux.bonusParNiveauPct * (Math.min(niveau, niveauMaxObjet(c)) - 1)) / 100;
   const valeurs = {};
   // (+1e-9 : arrondi au dixième supérieur malgré les flottants)
-  for (const [cle, v] of Object.entries(c.objets[objet].tiers[tier - 1])) valeurs[cle] = Math.round(v * mult * 10 + 1e-9) / 10;
+  for (const [cle, v] of Object.entries(c.objets[objet].tiers[tier - 1])) {
+    valeurs[cle] = POINTS.includes(cle) ? Math.round(v * mult + 1e-9) : Math.round(v * mult * 10 + 1e-9) / 10;
+  }
   return valeurs;
 }
 

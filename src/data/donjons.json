@@ -106,6 +106,17 @@
           "parPalier": 1
         },
         "graine": 505
+      },
+      "equipement": {
+        "nom": "Donjon de l'équipement",
+        "icone": "🎒",
+        "recompense": "etoffe",
+        "balayage": true,
+        "gain": {
+          "base": 15,
+          "parPalier": 1
+        },
+        "graine": 606
       }
     }
   },

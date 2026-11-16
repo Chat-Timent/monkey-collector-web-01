@@ -24,3 +24,4 @@ function routesObjets(type, chemin) {
 }
 
 export const armesRoutes = routesObjets("arme", "armes");
+export const equipementsRoutes = routesObjets("equipement", "equipements");

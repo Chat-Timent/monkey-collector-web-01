@@ -1,4 +1,5 @@
 {
   "essence": { "nom": "essence", "icone": "✨" },
-  "acier": { "nom": "acier", "icone": "🔩" }
+  "acier": { "nom": "acier", "icone": "🔩" },
+  "etoffe": { "nom": "étoffe", "icone": "🧵" }
 }

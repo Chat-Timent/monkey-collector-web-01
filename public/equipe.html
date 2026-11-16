@@ -73,6 +73,22 @@
     .perk-bouton.sans { border-style: dashed; color: #888; font-weight: normal; }
     .option .icone-perk { width: 48px; font-size: 30px; text-align: center; flex-shrink: 0; }
 
+    /* Équipements portés : une case par emplacement */
+    .cases-objets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+    .case-objet {
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid #333;
+      background: #1e1b2e;
+      color: var(--texte);
+      font: inherit;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .case-objet:hover { border-color: var(--accent); }
+    .case-objet.sans { border-style: dashed; color: #888; font-size: 16px; }
+
     .pastille {
       display: inline-flex;
       align-items: center;
@@ -168,7 +184,11 @@
 
     let possedes = [];
     let perks = { catalogue: {}, obtenus: [] }; // réponse /perks
-    let armes = { catalogue: {}, obtenus: [] }; // réponse /armes
+    // Objets portés (arme, équipements) : réponses /armes et /equipements, textes du menu
+    const OBJETS = {
+      arme: { api: "/armes", donnees: { catalogue: {}, obtenus: [], slots: 1 }, retirer: "✕ Retirer l'arme", vide: "Aucune arme : tire-en dans l'onglet Objets !" },
+      equipement: { api: "/equipements", donnees: { catalogue: {}, obtenus: [], slots: 3 }, retirer: "✕ Retirer l'équipement", vide: "Aucun équipement : tire-en dans l'onglet Objets !" },
+    };
     let resonances = { paliers: [], categories: {} }; // réponse /equipe
     let equipe = Array(6).fill(null);
     let minuteurMessage = null;
@@ -300,56 +320,67 @@
       }
     }
 
-    // ---------- Armes ----------
+    // ---------- Objets (arme, équipements) ----------
 
-    function armePortee(espece) {
-      return armes.obtenus.find((a) => a.espece === espece && armes.catalogue[a.objet]) ?? null;
+    // Objet de ce type porté par ce singe dans cet emplacement, ou null
+    function objetPorte(type, espece, emplacement = 1) {
+      const d = OBJETS[type].donnees;
+      return d.obtenus.find((o) => o.espece === espece && o.slot === emplacement && d.catalogue[o.objet]) ?? null;
     }
 
-    function ouvrirMenuArme(slot, espece) {
+    function ouvrirMenuObjet(slot, espece, type, emplacement = 1) {
       const menu = slot.querySelector(".menu");
-      const dejaOuvert = menu.classList.contains("ouvert") && menu.dataset.type === "arme";
+      const cle = `${type}:${emplacement}`;
+      const dejaOuvert = menu.classList.contains("ouvert") && menu.dataset.type === cle;
       fermerMenus();
       if (dejaOuvert) return;
-      menu.dataset.type = "arme";
-      const actuelle = armePortee(espece);
+      menu.dataset.type = cle;
+      const { donnees: d, retirer: texteRetirer, vide } = OBJETS[type];
+      const actuel = objetPorte(type, espece, emplacement);
       const cible = trouverSinge(espece);
-      // Armes libres d'abord, celles portées par un autre singe tout en bas
-      const autres = armes.obtenus
-        .filter((a) => armes.catalogue[a.objet] && a !== actuelle)
-        .sort((a, b) => Boolean(a.espece) - Boolean(b.espece));
+      // Une sorte par singe : les sortes qu'il porte déjà ailleurs sont grisées (sauf l'objet lui-même, qui change d'emplacement)
+      const sortesPrises = new Set(d.uneSorteParSinge
+        ? d.obtenus.filter((o) => o.espece === espece && o.slot !== emplacement).map((o) => o.objet) : []);
+      const bloque = (o) => sortesPrises.has(o.objet) && o.espece !== espece;
+      // Objets libres d'abord, puis ceux portés ailleurs, les sortes bloquées tout en bas
+      const rang = (o) => (bloque(o) ? 2 : o.espece ? 1 : 0);
+      const autres = d.obtenus.filter((o) => d.catalogue[o.objet] && o !== actuel).sort((a, b) => rang(a) - rang(b));
       menu.innerHTML = "";
-      if (actuelle) {
+      if (actuel) {
         const retirer = document.createElement("button");
         retirer.className = "option retirer";
-        retirer.textContent = "✕ Retirer l'arme";
-        retirer.addEventListener("click", (e) => { e.stopPropagation(); equiperArme(actuelle, null); });
+        retirer.textContent = texteRetirer;
+        retirer.addEventListener("click", (e) => { e.stopPropagation(); equiperObjet(type, actuel, null, emplacement); });
         menu.appendChild(retirer);
       }
-      if (armes.obtenus.length === 0) {
-        menu.insertAdjacentHTML("beforeend", `<p class="vide">Aucune arme : tire-en dans l'onglet Objets !</p>`);
+      if (d.obtenus.length === 0) {
+        menu.insertAdjacentHTML("beforeend", `<p class="vide">${vide}</p>`);
       }
-      for (const a of autres) {
-        const c = armes.catalogue[a.objet];
-        const porteur = a.espece ? trouverSinge(a.espece) : null;
+      for (const o of autres) {
+        const c = d.catalogue[o.objet];
+        const porteur = o.espece ? trouverSinge(o.espece) : null;
         const option = document.createElement("button");
         option.className = "option";
+        option.disabled = bloque(o);
         option.innerHTML = `<span class="icone-perk"></span><div class="infos"><span class="nom"></span><span class="sous"></span></div>`;
         option.querySelector(".icone-perk").textContent = c.icone;
-        option.querySelector(".nom").textContent = `${nomObjet(armes.catalogue, a.objet, a.tier)} · Niv. ${a.niveau}`;
-        option.querySelector(".sous").textContent = texteEffetsObjet(a.valeurs, (cible?.statsBase ?? cible?.stats)) + (porteur ? ` · sur ${porteur.espece.nom}` : "");
-        option.addEventListener("click", (e) => { e.stopPropagation(); equiperArme(a, espece); });
+        option.querySelector(".nom").textContent = `${nomObjet(d.catalogue, o.objet, o.tier)} · Niv. ${o.niveau}`;
+        let sous = texteEffetsObjet(o.valeurs, (cible?.statsBase ?? cible?.stats));
+        if (bloque(o)) sous += ` · ce singe porte déjà : ${c.nom}`;
+        else if (porteur) sous += ` · sur ${porteur.espece.nom}`;
+        option.querySelector(".sous").textContent = sous;
+        option.addEventListener("click", (e) => { e.stopPropagation(); equiperObjet(type, o, espece, emplacement); });
         menu.appendChild(option);
       }
       menu.classList.add("ouvert");
     }
 
-    async function equiperArme(a, espece) {
+    async function equiperObjet(type, o, espece, emplacement) {
       fermerMenus();
       try {
-        const { ok, data } = await api("/armes/equiper", { corps: { objet: a.objet, tier: a.tier, espece } });
+        const { ok, data } = await api(`${OBJETS[type].api}/equiper`, { corps: { objet: o.objet, tier: o.tier, espece, slot: emplacement } });
         if (!ok) throw new Error(data.erreur);
-        armes = data;
+        OBJETS[type].donnees = data;
         afficherSlots();
         afficherMessage("✓ Sauvegardé", true);
       } catch (err) {
@@ -390,11 +421,22 @@
           ? `<button class="perk-bouton" type="button">${perks.catalogue[p.perk].icone} ${nomPerk(perks.catalogue, p.perk, p.tier)}
                <span class="effet">${effetPerkSur(perks.catalogue, p.perk, p.tier, (singe.statsBase ?? singe.stats))}</span></button>`
           : `<button class="perk-bouton sans" type="button">+ Perk</button>`;
-        const a = armePortee(id);
+        const stats = singe.statsBase ?? singe.stats;
+        const armes = OBJETS.arme.donnees;
+        const a = objetPorte("arme", id);
         perkHTML += a
           ? `<button class="perk-bouton arme-bouton" type="button">${armes.catalogue[a.objet].icone} ${nomObjet(armes.catalogue, a.objet, a.tier)}
-               <span class="effet">${texteEffetsObjet(a.valeurs, (singe.statsBase ?? singe.stats))}</span></button>`
+               <span class="effet">${texteEffetsObjet(a.valeurs, stats)}</span></button>`
           : `<button class="perk-bouton arme-bouton sans" type="button">+ Arme</button>`;
+        // Équipements : une case par emplacement (icône de l'objet porté, ou +)
+        const equipements = OBJETS.equipement.donnees;
+        const cases = Array.from({ length: equipements.slots ?? 3 }, (_, i) => {
+          const o = objetPorte("equipement", id, i + 1);
+          if (!o) return `<button class="case-objet sans" type="button" data-emplacement="${i + 1}" aria-label="Équipement ${i + 1} : vide">+</button>`;
+          const titre = `${nomObjet(equipements.catalogue, o.objet, o.tier)} · ${texteEffetsObjet(o.valeurs, stats)}`;
+          return `<button class="case-objet" type="button" data-emplacement="${i + 1}" title="${titre}" aria-label="${titre}">${equipements.catalogue[o.objet].icone}</button>`;
+        }).join("");
+        perkHTML += `<div class="cases-objets">${cases}</div>`;
       }
       return `<button class="slot-bouton ${singe ? "plein" : ""}" type="button" aria-label="Emplacement ${index + 1}">${contenu}</button>
               ${perkHTML}
@@ -460,8 +502,12 @@
           });
           slot.querySelector(".arme-bouton")?.addEventListener("click", (e) => {
             e.stopPropagation();
-            ouvrirMenuArme(slot, equipe[index]);
+            ouvrirMenuObjet(slot, equipe[index], "arme");
           });
+          slot.querySelectorAll(".case-objet").forEach((bouton) => bouton.addEventListener("click", (e) => {
+            e.stopPropagation();
+            ouvrirMenuObjet(slot, equipe[index], "equipement", Number(bouton.dataset.emplacement));
+          }));
           grille.appendChild(slot);
         }
         rangee.append(titre, grille);
@@ -470,9 +516,11 @@
     }
 
     async function charger() {
-      const [resDex, resEquipe, resPerks, resArmes] = await Promise.all([api("/monkeydex"), api("/equipe"), api("/perks"), api("/armes")]);
+      const [resDex, resEquipe, resPerks, resArmes, resEquipements] = await Promise.all(
+        [api("/monkeydex"), api("/equipe"), api("/perks"), api("/armes"), api("/equipements")]);
       if (resPerks.ok) perks = resPerks.data;
-      if (resArmes.ok) armes = resArmes.data;
+      if (resArmes.ok) OBJETS.arme.donnees = resArmes.data;
+      if (resEquipements.ok) OBJETS.equipement.donnees = resEquipements.data;
       if (!resDex.ok || !resEquipe.ok) {
         afficherMessage("Erreur de chargement, réessaie.");
         return;
