@@ -69,6 +69,7 @@
       "tirages": {
         "nom": "Donjon des tirages",
         "icone": "🎟️",
+        "recompense": "tirages",
         "gain": {
           "base": 20,
           "parPalier": 1
@@ -78,6 +79,7 @@
       "coins": {
         "nom": "Donjon des coins",
         "icone": "💰",
+        "recompense": "coins",
         "gain": {
           "base": 500,
           "parPalier": 50
@@ -87,11 +89,23 @@
       "xp": {
         "nom": "Donjon de l'XP",
         "icone": "⭐",
+        "recompense": "xp",
         "gain": {
           "base": 400,
           "parPalier": 40
         },
         "graine": 303
+      },
+      "armement": {
+        "nom": "Donjon de l'armement",
+        "icone": "⚒️",
+        "recompense": "acier",
+        "balayage": true,
+        "gain": {
+          "base": 15,
+          "parPalier": 1
+        },
+        "graine": 505
       }
     }
   },
@@ -105,7 +119,8 @@
       "eveil": {
         "nom": "Donjon d'éveil",
         "icone": "🌟",
-        "ressource": "essence",
+        "recompense": "essence",
+        "balayage": true,
         "gain": {
           "base": 30,
           "parPalier": 3

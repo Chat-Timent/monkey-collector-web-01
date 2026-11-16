@@ -9,7 +9,7 @@ import { DONJON_EVEIL, jourParis } from "../game/ressources.js";
 import { effetsDuJoueur } from "./arbre-service.js";
 import { lireCollection } from "./collection-service.js";
 import { combatEnCours } from "./combat-service.js";
-import { ajouterRessource, depenserRessource, lireRessources } from "./ressources-joueur-service.js";
+import { depenserRessource, lireRessources } from "./ressources-joueur-service.js";
 import { balayerDonjon, combattreDonjon, etatDonjon, lireProgression } from "./ressources-service.js";
 
 const DONJON = "eveil";
@@ -53,19 +53,14 @@ export async function getEveil(userId) {
   };
 }
 
-const recompenser = (userId) => async (db, quantite) => {
-  await ajouterRessource(userId, RESSOURCE, quantite, db);
-  return { ressource: RESSOURCE };
-};
-
 // Combat du palier courant du donjon d'éveil ; renvoie l'id du combat.
 export async function lancerCombatEveil(userId) {
-  return combattreDonjon(userId, { regles: DONJON_EVEIL, donjon: DONJON, mode: MODE, recompenser: recompenser(userId) });
+  return combattreDonjon(userId, { regles: DONJON_EVEIL, donjon: DONJON, mode: MODE });
 }
 
 // Balayage du dernier palier battu ; renvoie l'essence gagnée et l'état à jour de la page.
 export async function balayerEveil(userId) {
-  const gains = await balayerDonjon(userId, { regles: DONJON_EVEIL, donjon: DONJON, recompenser: recompenser(userId) });
+  const gains = await balayerDonjon(userId, { regles: DONJON_EVEIL, donjon: DONJON });
   return { gains, ...(await getEveil(userId)) };
 }
 

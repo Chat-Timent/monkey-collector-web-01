@@ -1,0 +1,43 @@
+{
+  "type": "arme",
+  "slots": 1,
+  "prix": 10,
+  "ressource": "acier",
+  "chancesTiers": [50, 27, 14, 7, 2],
+  "niveaux": {
+    "doublons": [1, 1, 2, 2],
+    "bonusParNiveauPct": 10,
+    "rembourseAuMax": 5
+  },
+  "objets": {
+    "epee": {
+      "nom": "Épée",
+      "icone": "⚔️",
+      "tiers": [{ "atkPct": 4 }, { "atkPct": 6 }, { "atkPct": 8 }, { "atkPct": 10 }, { "atkPct": 12 }]
+    },
+    "dague": {
+      "nom": "Dague",
+      "icone": "🗡️",
+      "tiers": [
+        { "atkPct": 3, "crit": 3 }, { "atkPct": 4, "crit": 5 }, { "atkPct": 5, "crit": 7 },
+        { "atkPct": 6, "crit": 9 }, { "atkPct": 8, "crit": 12 }
+      ]
+    },
+    "hache": {
+      "nom": "Hache",
+      "icone": "🪓",
+      "tiers": [
+        { "atkPct": 3, "critdmg": 15 }, { "atkPct": 4, "critdmg": 25 }, { "atkPct": 5, "critdmg": 35 },
+        { "atkPct": 6, "critdmg": 45 }, { "atkPct": 8, "critdmg": 60 }
+      ]
+    },
+    "masse": {
+      "nom": "Masse",
+      "icone": "🔨",
+      "tiers": [
+        { "atkPct": 3, "defPct": 3 }, { "atkPct": 4, "defPct": 4 }, { "atkPct": 5, "defPct": 5 },
+        { "atkPct": 6, "defPct": 6 }, { "atkPct": 8, "defPct": 8 }
+      ]
+    }
+  }
+}

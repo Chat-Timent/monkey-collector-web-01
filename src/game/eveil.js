@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import { RARETES } from "../constants/game.js";
 import { COMPETENCES, niveauxAmelioration } from "./competences.js";
+import { estRessourceJoueur } from "./ressources.js";
 
 export const EVEIL = JSON.parse(fs.readFileSync(new URL("../data/eveil.json", import.meta.url), "utf8"));
 
@@ -22,7 +23,7 @@ export function validerEveil(regles, competences = COMPETENCES) {
     if (!(typeof mult === "number" && mult > 0)) throw new Error(`multiplicateur d'éveil invalide pour ${rarete}`);
   }
   if (!(typeof regles.bonusParNiveauPct === "number" && regles.bonusParNiveauPct >= 0)) throw new Error("bonus d'éveil invalide");
-  if (typeof regles.ressource !== "string" || !regles.ressource) throw new Error("ressource d'éveil manquante");
+  if (!estRessourceJoueur(regles.ressource)) throw new Error(`ressource d'éveil inconnue "${regles.ressource}"`);
   for (const [id, c] of Object.entries(competences)) {
     for (const niveau of niveauxAmelioration(c)) {
       if (niveau > regles.niveauMax) throw new Error(`la compétence ${id} s'améliore au niveau ${niveau}, au-delà du maximum`);

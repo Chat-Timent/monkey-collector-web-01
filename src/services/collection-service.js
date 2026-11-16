@@ -35,7 +35,8 @@ function construireMonkeydex(collection) {
       const espece = SINGES[id];
       const niveau = getNiveau(espece.rarete, amount);
       // Stats actuelles : niveau et éveil (les bonus de l'arbre et des perks dépendent du joueur, pas du singe)
-      const stats = statsFinales(espece, niveau.niveau);
+      const statsBase = statsFinales(espece, niveau.niveau);
+      const stats = { ...statsBase };
       const pct = bonusEveilPct(eveil);
       for (const k of ["hp", "atk", "def"]) stats[k] += bonusEveil(stats[k], pct);
       return {
@@ -44,6 +45,8 @@ function construireMonkeydex(collection) {
         amount,
         niveau,
         stats,
+        // Stats du niveau sans l'éveil : base de calcul des bonus en % (perks, objets)
+        statsBase,
         image: getImageUrl(id),
         rang: ordre[espece.rarete] ?? 0,
         competence: competenceDe(espece, eveil),

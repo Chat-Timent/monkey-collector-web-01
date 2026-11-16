@@ -1,0 +1,103 @@
+/* Pages d'objets tirés à la loterie (Armes, puis Équipements) : loterie, objets obtenus, fiche détaillée. */
+
+body {
+  font-family: system-ui, sans-serif;
+  background: #161616;
+  color: var(--texte);
+  margin: 0;
+  min-height: 100vh;
+}
+.contenu { max-width: 900px; margin: 28px auto; padding: 0 16px 40px; }
+
+/* ---------- Loterie ---------- */
+.loterie { text-align: center; margin-bottom: 30px; }
+#tirer {
+  padding: 16px 34px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  font: inherit;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+#tirer:disabled { background: #333; color: #888; cursor: default; }
+#stock { margin: 10px 0 0; font-size: 15px; font-weight: bold; color: var(--texte-doux); }
+#resultat { min-height: 28px; margin-top: 10px; font-size: 18px; font-weight: bold; }
+#resultat.nouveau { color: var(--vert); }
+#resultat.doublon { color: var(--or); }
+
+/* ---------- Objets obtenus ---------- */
+h2 { font-size: 13px; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px; }
+.objets { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.objet {
+  background: #242424;
+  border: 1px solid #333;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  color: var(--texte);
+  font: inherit;
+  cursor: pointer;
+}
+.objet:hover { border-color: var(--accent); }
+.objet.flash { border-color: var(--vert); box-shadow: 0 0 14px rgba(127, 220, 154, 0.4); }
+.objet .icone { font-size: 36px; line-height: 1; }
+.objet .nom { font-weight: bold; font-size: 15px; }
+.objet .effet { font-size: 13px; color: var(--texte-doux); }
+.objet .niveau { font-size: 12px; color: var(--or); font-weight: bold; }
+.porteur { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: bold; }
+.porteur img { width: 28px; height: 28px; object-fit: contain; }
+.vide { color: #777; font-size: 14px; }
+#message { min-height: 1.2em; color: var(--or); text-align: center; margin: 14px 0 0; }
+
+/* ---------- Fiche d'un objet ---------- */
+.fond {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 30;
+}
+.fond[hidden] { display: none; }
+.detail {
+  position: relative;
+  width: min(360px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: #242424;
+  border: 1px solid #444;
+  border-radius: 16px;
+  padding: 22px 20px 20px;
+  text-align: center;
+}
+.detail .icone { font-size: 52px; line-height: 1; }
+.detail .nom { font-size: 20px; font-weight: bold; margin: 8px 0 4px; }
+.detail .effet { font-size: 15px; margin: 0 0 6px; }
+.detail .niveau { font-size: 13px; color: var(--or); font-weight: bold; margin: 0 0 14px; }
+.detail .porteur { justify-content: center; margin-bottom: 14px; }
+.detail .non-equipe { font-size: 13px; color: var(--texte-doux); margin: 0 0 14px; }
+.tiers { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+.tier { display: flex; gap: 10px; padding: 6px 10px; border-radius: 8px; background: #1c1c1c; font-size: 13px; color: #777; }
+.tier .num { width: 28px; font-weight: bold; flex-shrink: 0; }
+.tier.possede { color: var(--texte); }
+.tier.actuel { outline: 1px solid var(--accent); }
+.fermer {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--texte-doux);
+  font-size: 22px;
+  cursor: pointer;
+}
