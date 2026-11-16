@@ -444,7 +444,7 @@ test("Mythique : 1/1000 au tirage, même palier de 15 % au-dessus du légendaire
 test("Présage : tous les 3 tours, un critique ×2,5 perce-armure sur l'ennemi le plus bas en PV", () => {
   // Compétence active ; l'interrupteur "actif" à false la retire du combat
   const presage = competenceDe(getEspece("crystal_ball_monkey"));
-  assert.deepEqual(presage, { id: "presage", nom: "Présage", icone: "🔮", tousLes: 3, critMult: 2.5, percePct: 50 });
+  assert.deepEqual(presage, { id: "presage", nom: "Présage", icone: "🔮", tousLes: 3, critMult: 2.5, percePct: 35 });
   assert.equal(competenceDe(getEspece("crystal_ball_monkey"), { presage: { ...COMPETENCES.presage, actif: false } }), null);
   assert.equal(competenceDe(getEspece("sexy_monkey")), null);
 
@@ -458,7 +458,7 @@ test("Présage : tous les 3 tours, un critique ×2,5 perce-armure sur l'ennemi l
     [1, "rate", "Taunt", null], [2, "rate", "Taunt", null], [3, "degats", "Faible", true],
     [4, "rate", "Taunt", null], [5, "rate", "Taunt", null], [6, "degats", "Faible", true],
   ]);
-  assert.equal(coups[2].degats, Math.round(degatsDe(100, 50) * 2.5)); // DEF 100 réduite de moitié
+  assert.equal(coups[2].degats, Math.round(degatsDe(100, 65) * 2.5)); // DEF 100 réduite de 35 %
   assert.deepEqual(coups[2].competence, { nom: "Présage", icone: "🔮" });
 
   // Sans compétence (désactivée), jamais de Présage
