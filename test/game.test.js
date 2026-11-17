@@ -4,7 +4,7 @@ import { combat, degatsDe } from "../src/game/combat-engine.js";
 import { PALIER_RARETE, puissance, puissanceCible, statsAuNiveau } from "../src/game/puissance.js";
 import { RESONANCES, appliquerResonances, resonancesActives, resonancesAvecBonus } from "../src/game/resonances.js";
 import { SINGES } from "../src/game/monkeys.js";
-import { estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirerRarete } from "../src/game/monkeys.js";
+import { chancesRaretes, estNotable, estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirerRarete } from "../src/game/monkeys.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import { COMPETENCES, competenceDe, validerCompetences } from "../src/game/competences.js";
 import { EVEIL, ameliorationCompetence, bonusEveil, bonusEveilPct, coutEveil, paliersEveil, peutEveiller, validerEveil } from "../src/game/eveil.js";
@@ -96,6 +96,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /equipements",
     "GET /eveil",
     "GET /joueurs",
+    "GET /loterie",
     "GET /moi",
     "GET /monkeydex",
     "GET /perks",
@@ -417,6 +418,27 @@ test("Clé de donjon : un ticket de plus par jour dans chaque donjon", () => {
   // Stock d'un jour passé (ou jamais joué) : plein sans la clé (2), plus le cadeau
   assert.equal(ticketsApresCadeau({ jour: "2026-11-14", tickets: 0 }, "2026-11-15", 1, sansCle), 3);
   assert.equal(ticketsApresCadeau(null, "2026-11-15", 1, sansCle), 3);
+});
+
+test("chances affichées : part de chaque rareté, total 100 %, Flair compris", () => {
+  const base = Object.fromEntries(chancesRaretes().map((c) => [c.rarete, c.chance]));
+  assert.ok(Math.abs(Object.values(base).reduce((t, c) => t + c, 0) - 1) < 1e-12);
+  // Les taux affichés en bas de la page Tirage
+  assert.ok(Math.abs(base.common - 0.7746) < 0.0005);
+  assert.ok(Math.abs(base.rare - 0.0516) < 0.0005);
+  assert.ok(Math.abs(base.mythic - 0.00077) < 0.00005);
+  // Flair déplace la masse des communs vers les rares, sans changer le total
+  const flair = Object.fromEntries(chancesRaretes(agregerEffets(["farm.flair"])).map((c) => [c.rarete, c.chance]));
+  assert.ok(Math.abs(Object.values(flair).reduce((t, c) => t + c, 0) - 1) < 1e-12);
+  assert.ok(flair.common < base.common);
+  for (const r of ["rare", "epic", "legendary", "mythic"]) assert.ok(flair[r] > base[r]);
+});
+
+test("flux : seuls les légendaires et les mythiques sont annoncés à tout le monde", () => {
+  assert.deepEqual(
+    ["common", "uncommon", "rare", "epic", "legendary", "mythic"].filter(estNotable),
+    ["legendary", "mythic"]
+  );
 });
 
 test("Flair : rare, épique, légendaire et mythique 10 % plus lourds au tirage", () => {

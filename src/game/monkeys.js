@@ -21,6 +21,12 @@ export function estRare(rarete) {
   return RARES.includes(rarete);
 }
 
+// Raretés assez rares pour être annoncées à tout le monde dans le flux de la page Tirage.
+const NOTABLES = ["legendary", "mythic"];
+export function estNotable(rarete) {
+  return NOTABLES.includes(rarete);
+}
+
 // Poids des raretés pour un tirage, effets de l'arbre compris :
 // - Flair (`rarete_pct`) multiplie le poids des raretés rare, épique, légendaire et mythique ;
 // - `forcerRare` (Étincelle) ne garde que ces raretés, dans leurs proportions.
@@ -29,6 +35,14 @@ export function poidsRaretes(effets = null, { forcerRare = false } = {}) {
   return RARETES
     .filter((r) => !forcerRare || estRare(r.nom))
     .map((r) => ({ ...r, poids: estRare(r.nom) ? r.poids * mult : r.poids }));
+}
+
+// Chance de chaque rareté sur un tirage, en part de 1 (les poids rapportés à leur total).
+// Sert à afficher le tableau des probabilités : avec `effets`, Flair est déjà compris.
+export function chancesRaretes(effets = null) {
+  const poids = poidsRaretes(effets);
+  const total = poids.reduce((somme, r) => somme + r.poids, 0);
+  return poids.map((r) => ({ rarete: r.nom, chance: r.poids / total }));
 }
 
 // Rareté d'un tirage (`hasard` injectable pour les tests).

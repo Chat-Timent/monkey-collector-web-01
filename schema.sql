@@ -156,3 +156,13 @@ CREATE TABLE chat_global (
   CONSTRAINT chat_global_texte_max CHECK (char_length(texte) <= 200),
   CONSTRAINT chat_global_texte_non_vide CHECK (char_length(btrim(texte)) > 0)
 );
+
+-- Flux public des tirages notables (légendaires et mythiques), affiché sur la page Tirage.
+CREATE TABLE tirages_notables (
+  id         bigserial PRIMARY KEY,
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  espece     text NOT NULL,
+  rarete     text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX tirages_notables_recents_idx ON tirages_notables (created_at DESC, id DESC);
