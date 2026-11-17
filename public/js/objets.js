@@ -145,5 +145,8 @@
     afficherObjets();
   }
 
+  // Ressource ou objets gagnés par le cadeau ou les quêtes du footer
+  document.addEventListener("recompense-recue", charger);
+
   exigerConnexion().then((moi) => { if (moi) charger(); });
 })();

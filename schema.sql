@@ -105,6 +105,25 @@ CREATE TABLE aventure (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Série de connexion (cadeau du footer) : dernier jour de la série récupéré (1 à 7, 0 = jamais)
+-- et sa date, heure de Paris (voir src/game/quotidien.js).
+CREATE TABLE serie_connexion (
+  user_id      uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  jour         integer NOT NULL DEFAULT 0,
+  dernier_jour date
+);
+
+-- Quêtes du jour (parchemin du footer) : progression et récompense récupérée, par joueur,
+-- jour (heure de Paris) et quête de src/data/quotidien.json. La quête 'bonus' note le bonus des trois quêtes.
+CREATE TABLE quetes_jour (
+  user_id  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  jour     date NOT NULL,
+  quete    text NOT NULL,
+  progres  integer NOT NULL DEFAULT 0,
+  reclamee boolean NOT NULL DEFAULT false,
+  PRIMARY KEY (user_id, jour, quete)
+);
+
 CREATE TABLE equipe (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   slot    integer NOT NULL CHECK (slot >= 1 AND slot <= 9),

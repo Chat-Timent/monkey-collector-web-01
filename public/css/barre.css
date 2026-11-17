@@ -195,6 +195,7 @@ body.avec-barre { padding-top: var(--topbar-h); padding-bottom: var(--footer-h);
   font: inherit;
   font-size: 13px;
   font-weight: bold;
+  white-space: nowrap;
   cursor: pointer;
 }
 .onglet-footer:hover { color: var(--texte); }
@@ -247,8 +248,8 @@ body.avec-barre { padding-top: var(--topbar-h); padding-bottom: var(--footer-h);
   gap: 6px;
   padding-right: 4px;
 }
-/* Mailbox : juste avant le chat, son tiroir s'ouvre comme les autres */
-.onglet-footer.mailbox { font-size: 16px; padding: 4px 12px; }
+/* Parchemin, cadeau et mailbox : boutons à icône seule, avant le chat */
+.onglet-footer.icone-seule { font-size: 16px; padding: 4px 12px; }
 #formAnnonce { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; flex-shrink: 0; }
 #formAnnonce[hidden] { display: none; }
 #texteAnnonce {
@@ -283,6 +284,62 @@ body.avec-barre { padding-top: var(--topbar-h); padding-bottom: var(--footer-h);
 .tiroir .joueur .total { font-weight: bold; color: var(--or); }
 .tiroir .joueur.moi .total { color: var(--vert); }
 
+/* Cadeau et quêtes : une récompense = des pastilles « icône valeur » */
+.tiroir .lot {
+  display: inline-block; padding: 2px 6px; border-radius: 6px; background: #2e2e2e;
+  font-size: 12px; font-weight: bold; color: var(--or); white-space: nowrap;
+}
+.tiroir button.recuperer {
+  padding: 7px 14px; border-radius: 8px; border: none; cursor: pointer; font: inherit; font-size: 13px; font-weight: bold;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff;
+}
+.tiroir button.recuperer:disabled { background: #333; color: #888; cursor: default; }
+.tiroir .obtenus { margin-top: 8px; font-size: 13px; color: var(--vert); display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.tiroir .obtenus:empty { display: none; }
+.tiroir .obtenus.erreur { color: var(--accent-2); }
+.tiroir .obtenu { display: flex; align-items: center; gap: 6px; color: var(--texte); }
+.tiroir .obtenu img { width: 28px; height: 28px; object-fit: contain; }
+.tiroir .obtenu.rare { font-weight: bold; }
+
+/* Série de connexion : 7 cases sur 4 colonnes, le dernier jour (gros lot) sur deux colonnes */
+.serie-jours { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px; flex-shrink: 0; }
+.jour-serie {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 62px; padding: 6px 4px; border-radius: 8px; background: #262626; border: 1px solid #333; text-align: center;
+}
+.jour-serie.large { grid-column: span 2; }
+.jour-serie .num { font-size: 11px; font-weight: bold; color: var(--texte-doux); }
+.jour-serie.avenir { opacity: 0.45; filter: grayscale(1); }
+.jour-serie.recu { opacity: 0.55; }
+.jour-serie.recu .num { color: var(--vert); }
+.jour-serie.dispo { border-color: var(--accent); box-shadow: 0 0 10px rgba(255, 138, 61, 0.35); }
+.jour-serie.dispo .num { color: #fff; }
+#serie-recuperer { align-self: stretch; flex-shrink: 0; }
+
+/* Quêtes du jour : une ligne par quête, puis le bonus */
+.tiroir .quete {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px;
+  background: #262626; border: 1px solid transparent; flex-shrink: 0;
+}
+.tiroir .quete.terminee { border-color: var(--accent); }
+.tiroir .quete.reclamee { opacity: 0.55; }
+.tiroir .quete .icone { font-size: 20px; }
+.tiroir .quete .corps { flex: 1; min-width: 0; }
+.tiroir .quete .texte, .tiroir .quete-bonus .texte { font-size: 13px; font-weight: bold; }
+.tiroir .quete .jauge { height: 5px; margin: 5px 0 3px; border-radius: 3px; background: #3a3a3a; overflow: hidden; }
+.tiroir .quete .jauge div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.tiroir .quete .compte { font-size: 11px; color: #999; }
+.tiroir .quete .droite { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.tiroir .quete .droite .recuperer { padding: 5px 10px; font-size: 12px; }
+.tiroir .quete .fait { color: var(--vert); font-weight: bold; }
+.quete-bonus {
+  margin-top: 8px; padding: 10px; border-radius: 8px; background: #241f33; border: 1px dashed #4a4366;
+  display: flex; flex-direction: column; gap: 7px; flex-shrink: 0;
+}
+.quete-bonus.terminee { border: 1px solid var(--accent); }
+.quete-bonus.reclamee { opacity: 0.55; }
+.quete-bonus .lots { display: flex; flex-wrap: wrap; gap: 4px; }
+
 /* ---------- Petits écrans ---------- */
 
 @media (max-width: 760px) {
@@ -299,6 +356,10 @@ body.avec-barre { padding-top: var(--topbar-h); padding-bottom: var(--footer-h);
   #starter-xp { display: none; }
   #barre-onglets { padding: 0 6px; }
   #barre-onglets a { padding: 0 11px; font-size: 13px; }
-  #footer { padding: 0 8px; }
+  /* Cinq boutons sur une ligne : le classement garde seulement son icône */
+  #footer { padding: 0 8px; gap: 5px; }
+  .onglet-footer { padding: 6px 10px; }
+  .onglet-footer.icone-seule { padding: 4px 9px; }
+  .onglet-footer .libelle { display: none; }
   .tiroir { right: 8px; left: 8px; width: auto; }
 }

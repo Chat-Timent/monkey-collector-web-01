@@ -264,6 +264,8 @@
     fond.addEventListener("click", (e) => { if (e.target === fond) fermerDetail(); });
     fond.querySelector(".fermer").addEventListener("click", fermerDetail);
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") fermerDetail(); });
+    // Coins gagnés par le cadeau ou les quêtes du footer
+    document.addEventListener("recompense-recue", charger);
     exigerConnexion().then((moi) => { if (moi) charger(); });
   </script>
 </body>

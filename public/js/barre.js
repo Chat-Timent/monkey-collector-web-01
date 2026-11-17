@@ -1,14 +1,16 @@
 // Barre commune des pages de jeu, en deux étages, plus le footer :
 //   1. topbar  : le starter (clic → talents), les ressources possédées, la déconnexion
 //   2. onglets : les catégories du jeu (Tirage, Équipe, Combat, Objets, Monkeydex, Talents)
-//   3. footer  : annonces (mailbox), chat global et classement, rangés dans des tiroirs
+//   3. footer  : quêtes du jour (parchemin), série de connexion (cadeau), annonces (mailbox),
+//                chat global et classement, rangés dans des tiroirs
 // À charger après commun.js et arbre.js. Expose `Barre` :
 //   Barre.profil              promesse de la réponse /profil ({ ok, data })
 //   Barre.afficherStarter()   met à jour niveau, XP et coins (ex. après un tirage)
 //   Barre.afficherQuota()     met à jour le stock de tirages
 //   Barre.afficherPoints()    met à jour la pastille des points de talents
 //   Barre.afficherRessource() met à jour une ressource (acier, étoffe, essence)
-// Un déblocage dans l'arbre déclenche l'événement "arbre-change" sur document.
+// Un déblocage dans l'arbre déclenche l'événement "arbre-change" sur document,
+// une récompense du cadeau ou des quêtes l'événement "recompense-recue".
 
 const ONGLETS = [
   { titre: "Tirage", href: "/tirage.html", pages: ["/tirage.html"] },
@@ -104,14 +106,40 @@ const Barre = (() => {
       <div id="statutAnnonce"></div>
       <div id="annonces" class="liste"></div>
     </aside>
+    <aside class="tiroir" id="tiroir-serie" hidden>
+      <div class="entete">
+        <h2>Connexion quotidienne</h2>
+        <button type="button" data-fermer="serie" aria-label="Fermer">×</button>
+      </div>
+      <div id="serie-jours" class="serie-jours"></div>
+      <button id="serie-recuperer" class="recuperer" type="button" disabled>Récupérer</button>
+      <div id="serie-obtenus" class="obtenus"></div>
+    </aside>
+    <aside class="tiroir" id="tiroir-quetes" hidden>
+      <div class="entete">
+        <h2>Quêtes du jour</h2>
+        <button type="button" data-fermer="quetes" aria-label="Fermer">×</button>
+      </div>
+      <div id="quetes-liste" class="liste"></div>
+      <div id="quetes-bonus" class="quete-bonus"></div>
+      <div id="quetes-obtenus" class="obtenus"></div>
+    </aside>
     <footer id="footer">
-      <button class="onglet-footer mailbox" type="button" data-tiroir="annonces" title="Annonces" aria-label="Annonces">
+      <button class="onglet-footer icone-seule" type="button" data-tiroir="quetes" title="Quêtes du jour" aria-label="Quêtes du jour">
+        📜<span class="point" id="point-quetes"></span>
+      </button>
+      <button class="onglet-footer icone-seule" type="button" data-tiroir="serie" title="Connexion quotidienne" aria-label="Connexion quotidienne">
+        🎁<span class="point" id="point-serie"></span>
+      </button>
+      <button class="onglet-footer icone-seule mailbox" type="button" data-tiroir="annonces" title="Annonces" aria-label="Annonces">
         📬<span class="point" id="point-annonces"></span>
       </button>
       <button class="onglet-footer" type="button" data-tiroir="chat">
         💬 Chat <span class="en-ligne" id="compte-en-ligne"></span><span class="point" id="point-chat"></span>
       </button>
-      <button class="onglet-footer" type="button" data-tiroir="classement">🏆 Classement</button>
+      <button class="onglet-footer" type="button" data-tiroir="classement" title="Classement" aria-label="Classement">
+        🏆<span class="libelle">Classement</span>
+      </button>
     </footer>
     <div id="arbre" role="dialog" aria-label="Arbre de talents">
       <div class="arbre-fenetre">
@@ -297,8 +325,184 @@ const Barre = (() => {
       minuteurTiroir = setInterval(chargerClassement, INTERVALLE_CLASSEMENT_MS);
     } else if (tiroirOuvert === "annonces") {
       chargerAnnonces();
+    } else if (tiroirOuvert === "serie" || tiroirOuvert === "quetes") {
+      document.getElementById(`${tiroirOuvert}-obtenus`).innerHTML = "";
+      chargerQuotidien();
     }
   }
+
+  // ---------- Cadeau (série de connexion) et parchemin (quêtes du jour) ----------
+  // Relus toutes les minutes et à l'ouverture de leur tiroir : la pastille s'allume quand une récompense attend.
+  // Après une récupération, la barre est mise à jour et l'événement "recompense-recue" prévient la page
+  // (stock de tirages, d'acier… affichés par la page elle-même).
+
+  const INTERVALLE_QUOTIDIEN_MS = 60000;
+
+  // Une récompense en petites pastilles « icône valeur » (nom complet en info-bulle)
+  function lots(recompense) {
+    return recompense.map((r) => {
+      const lot = document.createElement("span");
+      lot.className = "lot";
+      lot.title = `${r.valeur} ${r.nom}`;
+      lot.textContent = `${r.icone} ${r.valeur}`;
+      return lot;
+    });
+  }
+
+  function afficherSerie(serie) {
+    const zone = document.getElementById("serie-jours");
+    zone.innerHTML = "";
+    for (const j of serie.jours) {
+      const tuile = document.createElement("div");
+      // Grille de 4 colonnes : le dernier jour (le gros lot) prend les deux cases restantes
+      tuile.className = `jour-serie ${j.etat}${j.jour === serie.jours.length ? " large" : ""}`;
+      const num = document.createElement("span");
+      num.className = "num";
+      num.textContent = j.etat === "recu" ? `J${j.jour} ✓` : `J${j.jour}`;
+      tuile.append(num, ...lots(j.recompense));
+      zone.appendChild(tuile);
+    }
+    const bouton = document.getElementById("serie-recuperer");
+    bouton.disabled = serie.recuperee;
+    bouton.textContent = serie.recuperee ? "Reviens demain" : `Récupérer J${serie.courant}`;
+  }
+
+  function afficherQuetes({ quetes, bonus }) {
+    const zone = document.getElementById("quetes-liste");
+    zone.innerHTML = "";
+    for (const q of quetes) {
+      const ligne = document.createElement("div");
+      ligne.className = "quete" + (q.reclamee ? " reclamee" : q.terminee ? " terminee" : "");
+      const icone = document.createElement("span");
+      icone.className = "icone";
+      icone.textContent = q.icone;
+      const corps = document.createElement("div");
+      corps.className = "corps";
+      const texte = document.createElement("div");
+      texte.className = "texte";
+      texte.textContent = q.texte;
+      const jauge = document.createElement("div");
+      jauge.className = "jauge";
+      const plein = document.createElement("div");
+      plein.style.width = `${Math.round((q.progres / q.objectif) * 100)}%`;
+      jauge.appendChild(plein);
+      const compte = document.createElement("div");
+      compte.className = "compte";
+      compte.textContent = `${q.progres.toLocaleString("fr-FR")} / ${q.objectif.toLocaleString("fr-FR")}`;
+      corps.append(texte, jauge, compte);
+      const droite = document.createElement("div");
+      droite.className = "droite";
+      droite.append(...lots(q.recompense));
+      if (q.reclamee) {
+        const fait = document.createElement("span");
+        fait.className = "fait";
+        fait.textContent = "✓";
+        droite.appendChild(fait);
+      } else if (q.terminee) {
+        const bouton = document.createElement("button");
+        bouton.type = "button";
+        bouton.className = "recuperer";
+        bouton.dataset.rang = q.rang;
+        bouton.textContent = "Récupérer";
+        droite.appendChild(bouton);
+      }
+      ligne.append(icone, corps, droite);
+      zone.appendChild(ligne);
+    }
+
+    const blocBonus = document.getElementById("quetes-bonus");
+    blocBonus.innerHTML = "";
+    blocBonus.className = "quete-bonus" + (bonus.reclame ? " reclamee" : bonus.disponible ? " terminee" : "");
+    const titre = document.createElement("div");
+    titre.className = "texte";
+    titre.textContent = "Bonus des 3 quêtes";
+    const contenu = document.createElement("div");
+    contenu.className = "lots";
+    contenu.append(...lots(bonus.recompense));
+    const bouton = document.createElement("button");
+    bouton.type = "button";
+    bouton.className = "recuperer";
+    bouton.id = "bonus-recuperer";
+    bouton.disabled = !bonus.disponible || bonus.reclame;
+    bouton.textContent = bonus.reclame ? "✓ Récupéré" : "Récupérer";
+    blocBonus.append(titre, contenu, bouton);
+  }
+
+  function afficherQuotidien(data) {
+    afficherSerie(data.serie);
+    afficherQuetes(data.quetes);
+    document.getElementById("point-serie").classList.toggle("visible", data.pastilles.serie);
+    document.getElementById("point-quetes").classList.toggle("visible", data.pastilles.quetes);
+  }
+
+  async function chargerQuotidien() {
+    try {
+      const { ok, data } = await api("/quotidien");
+      if (ok) afficherQuotidien(data);
+    } catch {
+      // Réseau indisponible : on réessaiera au prochain tour
+    }
+  }
+
+  // Ce qui a été obtenu (singe et objets offerts) sous le tiroir, ou l'erreur
+  function afficherObtenus(zoneId, ok, data) {
+    const zone = document.getElementById(zoneId);
+    zone.innerHTML = "";
+    zone.classList.toggle("erreur", !ok);
+    if (!ok) {
+      zone.textContent = data.erreur ?? "Erreur, réessaie.";
+      return;
+    }
+    const titre = document.createElement("div");
+    titre.textContent = "✓ Récupéré";
+    zone.appendChild(titre);
+    for (const o of data.obtenus) {
+      const ligne = document.createElement("div");
+      ligne.className = "obtenu" + (o.rarete ? " rare" : "");
+      if (o.rarete) ligne.style.color = RARETES_AFFICHAGE[o.rarete]?.couleur ?? "";
+      if (o.image) {
+        const img = document.createElement("img");
+        img.src = o.image;
+        img.alt = "";
+        ligne.appendChild(img);
+      } else {
+        ligne.append(`${o.icone} `);
+      }
+      ligne.append(o.texte);
+      zone.appendChild(ligne);
+    }
+  }
+
+  async function recuperer(bouton, chemin, corps, zoneId) {
+    bouton.disabled = true;
+    try {
+      const { ok, data } = await api(chemin, { corps: corps ?? {} });
+      afficherObtenus(zoneId, ok, data);
+      if (!ok) {
+        await chargerQuotidien();
+        return;
+      }
+      afficherQuotidien(data);
+      afficherStarter(data.starter);
+      afficherQuota(data.quota);
+      afficherRessources(data.ressources);
+      afficherPoints(data.pointsArbre);
+      document.dispatchEvent(new CustomEvent("recompense-recue"));
+    } catch {
+      afficherObtenus(zoneId, false, { erreur: "Erreur réseau, réessaie." });
+      bouton.disabled = false;
+    }
+  }
+
+  document.getElementById("serie-recuperer").addEventListener("click", (e) => {
+    recuperer(e.currentTarget, "/quotidien/serie", null, "serie-obtenus");
+  });
+  document.getElementById("tiroir-quetes").addEventListener("click", (e) => {
+    const bouton = e.target.closest("button.recuperer");
+    if (!bouton || bouton.disabled) return;
+    if (bouton.id === "bonus-recuperer") recuperer(bouton, "/quotidien/bonus", null, "quetes-obtenus");
+    else recuperer(bouton, "/quotidien/quetes", { rang: Number(bouton.dataset.rang) }, "quetes-obtenus");
+  });
 
   // ---------- Mailbox : annonces de l'admin ----------
   // Relue toutes les minutes. Une annonce non lue allume la pastille ; ouvrir le tiroir la marque lue.
@@ -416,6 +620,8 @@ const Barre = (() => {
   setInterval(rafraichirEnLigne, INTERVALLE_EN_LIGNE_MS);
   chargerAnnonces();
   setInterval(chargerAnnonces, INTERVALLE_ANNONCES_MS);
+  chargerQuotidien();
+  setInterval(chargerQuotidien, INTERVALLE_QUOTIDIEN_MS);
 
   // Profil chargé une seule fois ; la page peut l'attendre via Barre.profil.
   // Sans starter, le joueur est envoyé le choisir. Sans session, exigerConnexion() de la page redirige.
