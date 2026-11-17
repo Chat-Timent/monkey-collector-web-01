@@ -15,7 +15,7 @@
       "nom": "Taunt",
       "icone": "🎯",
       "tiers": null,
-      "valeurs": { "pvPct": 30 }
+      "valeurs": { "pvPct": 70 }
     },
     "blossoming": {
       "nom": "Floraison",

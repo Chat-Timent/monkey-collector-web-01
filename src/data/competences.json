@@ -3,7 +3,7 @@
     "nom": "Présage",
     "icone": "🔮",
     "actif": true,
-    "tousLes": 3,
+    "tousLes": 2,
     "critMult": 2.5,
     "percePct": 35,
     "eveil": {
@@ -16,9 +16,9 @@
     "icone": "👑",
     "actif": true,
     "tousLes": 2,
-    "atkPct": 7,
-    "hpPct": 7,
-    "defPct": 7,
+    "atkPct": 5,
+    "hpPct": 5,
+    "defPct": 5,
     "cumulMax": 5,
     "eveil": {
       "3": { "atkPct": 8, "hpPct": 8, "defPct": 8 },
