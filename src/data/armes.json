@@ -4,10 +4,6 @@
   "prix": 10,
   "ressource": "acier",
   "chancesTiers": [50, 27, 14, 7, 2],
-  "niveaux": {
-    "doublons": [1, 1, 2, 2],
-    "bonusParNiveauPct": 10
-  },
   "demantelement": [2, 3, 5, 8, 15],
   "objets": {
     "epee": {

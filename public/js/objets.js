@@ -1,28 +1,23 @@
 // Page d'un type d'objet tiré à la loterie (Armes, Équipements). Réglages lus sur <body> :
 //   data-api="/armes"  data-tirer="Tirer une arme"  data-vide="Aucune arme pour l'instant."
 //   data-non-equipe="Non équipée"
-// Les objets sont empilables : une carte par objet et par tier (avec le nombre d'exemplaires) ; la fiche liste
-// les exemplaires, que le joueur peut démanteler (doublon pour un autre exemplaire, sinon ressource rendue).
-// Script classique : utilise api, exigerConnexion, ROMAINS, nomObjet, texteEffetsObjet (commun.js).
+// Chaque objet tiré est un exemplaire unique, sans niveau : une tuile par exemplaire (émoji, tier dans le coin,
+// infobulle au survol). Un clic ouvre sa fiche, d'où le joueur peut le démanteler (ressource rendue selon le tier).
+// Script classique : utilise api, exigerConnexion, ROMAINS, nomObjet, texteEffetsObjet, tuileObjetHTML (commun.js).
 (() => {
   const reglages = document.body.dataset;
   const $ = (id) => document.getElementById(id);
   let donnees = null;       // réponse GET de l'API
   let singes = {};          // espece → singe possédé (image, nom), pour afficher le porteur
-  let dernierTire = null;   // "objet:tier" à mettre en valeur
-  let ouvert = null;        // "objet:tier" dont la fiche est ouverte
+  let dernierTire = null;   // id de l'exemplaire tiré à l'instant, mis en valeur
   let enCours = false;
 
-  const cle = (o) => `${o.objet}:${o.tier}`;
+  const porteurDe = (o) => (o.espece ? singes[o.espece] ?? null : null);
 
-  // Exemplaires regroupés par objet et par tier, dans l'ordre de l'API (meilleur niveau d'abord)
-  function groupes() {
-    const parCle = new Map();
-    for (const o of donnees.obtenus) {
-      if (!parCle.has(cle(o))) parCle.set(cle(o), []);
-      parCle.get(cle(o)).push(o);
-    }
-    return parCle;
+  // Exemplaires du meilleur tier au plus faible, puis par objet, puis du plus récent au plus ancien
+  function tries() {
+    const nom = (o) => donnees.catalogue[o.objet].nom;
+    return [...donnees.obtenus].sort((a, b) => b.tier - a.tier || nom(a).localeCompare(nom(b)) || b.id - a.id);
   }
 
   function majLoterie() {
@@ -32,152 +27,96 @@
     $("stock").textContent = `${r.icone} ${donnees.stock.toLocaleString("fr-FR")} ${r.nom}`;
   }
 
-  function texteNiveau(o) {
-    if (o.doublonsRequis === null) return `Niv. ${o.niveau} · max`;
-    return `Niv. ${o.niveau} · ${o.doublons}/${o.doublonsRequis} doublon${o.doublonsRequis > 1 ? "s" : ""}`;
-  }
-
-  function lignePorteur(espece) {
-    const s = singes[espece];
-    if (!s) return null;
-    const ligne = document.createElement("div");
-    ligne.className = "porteur";
-    ligne.innerHTML = `<img alt=""><span></span>`;
-    ligne.querySelector("img").src = s.image;
-    ligne.querySelector("span").textContent = s.espece.nom;
-    return ligne;
-  }
-
-  // Ce que rapporterait le démantèlement d'un exemplaire
-  function texteDemantelement(o) {
-    const d = o.demantelement;
-    return d.vers ? `+1 doublon au niv. ${d.niveauVers}` : `+${d.rembourse} ${donnees.ressource.icone}`;
-  }
-
-  function ouvrirDetail(k, message = "") {
-    const exemplaires = groupes().get(k);
-    if (!exemplaires) {
+  function ouvrirDetail(id, message = "") {
+    const o = donnees.obtenus.find((x) => x.id === id);
+    if (!o) {
       $("fond").hidden = true;
-      ouvert = null;
       return;
     }
-    ouvert = k;
-    const meilleur = exemplaires[0];
-    const c = donnees.catalogue[meilleur.objet];
+    const c = donnees.catalogue[o.objet];
+    const porteur = porteurDe(o);
     const zone = $("detail");
-    zone.innerHTML = `<div class="icone"></div><div class="nom"></div><p class="effet"></p><p class="niveau"></p>`;
-    zone.querySelector(".icone").textContent = c.icone;
-    zone.querySelector(".nom").textContent = nomObjet(donnees.catalogue, meilleur.objet, meilleur.tier)
-      + (exemplaires.length > 1 ? ` ×${exemplaires.length}` : "");
-    zone.querySelector(".effet").textContent = texteEffetsObjet(meilleur.valeurs);
-    zone.querySelector(".niveau").textContent = `+${donnees.bonusParNiveauPct} % par niveau (max ${donnees.niveauMax})`;
-
-    // Exemplaires : niveau, porteur, et bouton Démanteler (seulement s'il n'est pas équipé)
-    const liste = document.createElement("div");
-    liste.className = "exemplaires";
-    for (const o of exemplaires) {
-      const ligne = document.createElement("div");
-      ligne.className = "exemplaire";
-      ligne.innerHTML = `<div class="infos"><span class="niv"></span><span class="effet-ex"></span></div><button type="button"></button>`;
-      ligne.querySelector(".niv").textContent = texteNiveau(o);
-      ligne.querySelector(".effet-ex").textContent = texteEffetsObjet(o.valeurs);
-      const porteur = o.espece ? lignePorteur(o.espece) : null;
-      if (porteur) ligne.querySelector(".infos").appendChild(porteur);
-      else {
-        const note = document.createElement("span");
-        note.className = "non-equipe";
-        note.textContent = reglages.nonEquipe;
-        ligne.querySelector(".infos").appendChild(note);
-      }
-      const bouton = ligne.querySelector("button");
-      if (o.espece) {
-        bouton.textContent = "Équipé";
-        bouton.disabled = true;
-      } else {
-        bouton.textContent = `Démanteler · ${texteDemantelement(o)}`;
-        bouton.addEventListener("click", () => demanteler(o, bouton));
-      }
-      liste.appendChild(ligne);
+    zone.innerHTML = `
+      <div class="detail-tuile">${tuileObjetHTML(donnees.catalogue, o, { classe: "grande" })}</div>
+      <div class="nom"></div>
+      <p class="effet"></p>
+      <div class="ligne-porteur"></div>
+      <button type="button" class="demanteler"></button>
+      <p class="message-detail"></p>
+      <div class="tiers"></div>`;
+    zone.querySelector(".nom").textContent = nomObjet(donnees.catalogue, o.objet, o.tier);
+    zone.querySelector(".effet").textContent = texteEffetsObjet(o.valeurs);
+    const lignePorteur = zone.querySelector(".ligne-porteur");
+    if (porteur) {
+      lignePorteur.className = "porteur";
+      lignePorteur.innerHTML = `<img alt=""><span></span>`;
+      lignePorteur.querySelector("img").src = porteur.image;
+      lignePorteur.querySelector("span").textContent = `Porté par ${porteur.espece.nom}`;
+    } else {
+      lignePorteur.className = "non-equipe";
+      lignePorteur.textContent = `${reglages.nonEquipe} · à équiper depuis l'onglet Équipe`;
     }
-    zone.appendChild(liste);
-    const msg = document.createElement("p");
-    msg.className = "message-detail";
-    msg.textContent = message;
-    zone.appendChild(msg);
-    const note = document.createElement("p");
-    note.className = "non-equipe";
-    note.textContent = "Les objets s'équipent depuis l'onglet Équipe.";
-    zone.appendChild(note);
-
-    // Tous les tiers de l'objet (valeurs au niveau 1), ceux obtenus en clair
-    const possedes = new Set(donnees.obtenus.filter((x) => x.objet === meilleur.objet).map((x) => x.tier));
-    const tiers = document.createElement("div");
-    tiers.className = "tiers";
+    const bouton = zone.querySelector(".demanteler");
+    if (o.espece) {
+      bouton.textContent = "Équipé : retire-le d'abord depuis l'onglet Équipe";
+      bouton.disabled = true;
+    } else {
+      bouton.textContent = `Démanteler · +${o.rembourse} ${donnees.ressource.icone}`;
+      bouton.addEventListener("click", () => demanteler(o, bouton));
+    }
+    zone.querySelector(".message-detail").textContent = message;
+    // Tous les tiers de l'objet, celui-ci en évidence
+    const tiers = zone.querySelector(".tiers");
     c.tiers.forEach((valeurs, i) => {
       const t = i + 1;
       const ligne = document.createElement("div");
-      ligne.className = "tier" + (possedes.has(t) ? " possede" : "") + (t === meilleur.tier ? " actuel" : "");
+      ligne.className = "tier possede" + (t === o.tier ? " actuel" : "");
       ligne.innerHTML = `<span class="num"></span><span></span>`;
       ligne.querySelector(".num").textContent = ROMAINS[t];
       ligne.lastChild.textContent = texteEffetsObjet(valeurs);
       tiers.appendChild(ligne);
     });
-    zone.appendChild(tiers);
     $("fond").hidden = false;
   }
 
   async function demanteler(o, bouton) {
     if (enCours) return;
-    // Un exemplaire déjà monté perd ses niveaux : on demande confirmation
-    if ((o.niveau > 1 || o.doublons > 0)
-      && !window.confirm(`Cet exemplaire est au niveau ${o.niveau} : ses niveaux seront perdus. Le démanteler quand même ?`)) return;
     enCours = true;
     bouton.disabled = true;
-    let message = "";
     try {
       const { ok, data } = await api(`${reglages.api}/demanteler`, { corps: { id: o.id } });
       if (ok) {
         const { demantelement: d, ...etat } = data;
         donnees = etat;
-        if (d.vers) message = d.monte ? `Un exemplaire passe au niveau ${d.niveau} !` : "+1 doublon";
-        else message = `+${d.rembourse} ${donnees.ressource.nom}`;
+        $("fond").hidden = true;
+        $("resultat").className = "nouveau";
+        $("resultat").textContent = `${nomObjet(donnees.catalogue, d.objet, d.tier)} démantelé : +${d.rembourse} ${donnees.ressource.nom}`;
         afficherObjets();
-        majLoterie();
       } else {
-        message = data.erreur;
+        ouvrirDetail(o.id, data.erreur);
       }
     } catch {
-      message = "Erreur réseau, réessaie.";
+      ouvrirDetail(o.id, "Erreur réseau, réessaie.");
     }
     enCours = false;
-    ouvrirDetail(cle(o), message);
+    majLoterie(); // après enCours = false : sinon le bouton de tirage resterait grisé
   }
 
   function afficherObjets() {
     const zone = $("objets");
+    zone.className = "tuiles";
     zone.innerHTML = "";
     if (donnees.obtenus.length === 0) {
+      zone.className = "";
       zone.innerHTML = `<p class="vide"></p>`;
       zone.firstChild.textContent = reglages.vide;
       return;
     }
-    for (const [k, exemplaires] of groupes()) {
-      const meilleur = exemplaires[0];
-      const c = donnees.catalogue[meilleur.objet];
-      const carte = document.createElement("button");
-      carte.type = "button";
-      carte.className = "objet" + (dernierTire === k ? " flash" : "");
-      carte.innerHTML = `<span class="icone"></span><span class="nom"></span><span class="effet"></span><span class="niveau"></span><span class="portes"></span>`;
-      carte.querySelector(".icone").textContent = c.icone;
-      carte.querySelector(".nom").textContent = nomObjet(donnees.catalogue, meilleur.objet, meilleur.tier)
-        + (exemplaires.length > 1 ? ` ×${exemplaires.length}` : "");
-      carte.querySelector(".effet").textContent = texteEffetsObjet(meilleur.valeurs);
-      carte.querySelector(".niveau").textContent = texteNiveau(meilleur);
-      const portes = exemplaires.filter((o) => o.espece).length;
-      carte.querySelector(".portes").textContent = portes ? `${portes} équipé${portes > 1 ? "s" : ""}` : "";
-      carte.addEventListener("click", () => ouvrirDetail(k));
-      zone.appendChild(carte);
-    }
+    zone.innerHTML = tries().map((o) => tuileObjetHTML(donnees.catalogue, o, {
+      porteur: porteurDe(o),
+      classe: o.id === dernierTire ? "flash" : "",
+    })).join("");
+    zone.querySelectorAll(".tuile-objet").forEach((t) => t.addEventListener("click", () => ouvrirDetail(Number(t.dataset.id))));
   }
 
   $("tirer").addEventListener("click", async () => {
@@ -193,7 +132,7 @@
         const c = donnees.catalogue[tirage.objet];
         $("resultat").className = "nouveau";
         $("resultat").textContent = `${c.icone} ${nomObjet(donnees.catalogue, tirage.objet, tirage.tier)} !`;
-        dernierTire = cle(tirage);
+        dernierTire = tirage.id;
         afficherObjets();
       } else {
         $("message").textContent = data.erreur;
@@ -205,7 +144,7 @@
     majLoterie();
   });
 
-  const fermer = () => { $("fond").hidden = true; ouvert = null; };
+  const fermer = () => { $("fond").hidden = true; };
   $("fond").addEventListener("click", (e) => { if (e.target === $("fond")) fermer(); });
   document.querySelector(".fermer").addEventListener("click", fermer);
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") fermer(); });
@@ -220,7 +159,6 @@
     donnees = res.data;
     majLoterie();
     afficherObjets();
-    if (ouvert) ouvrirDetail(ouvert);
   }
 
   // Ressource ou objets gagnés par le cadeau ou les quêtes du footer

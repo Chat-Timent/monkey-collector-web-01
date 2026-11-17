@@ -192,6 +192,20 @@ function texteEffetsObjet(valeurs, stats = null) {
     .join(" · ");
 }
 
+// Tuile d'un objet (arme, équipement) : l'émoji en grand, le tier en chiffres romains dans le coin en haut à droite (.rang),
+// la tête du singe qui le porte dans le coin en bas, et au survol une infobulle (nom, effets, `details`).
+// `stats` : stats de base d'un singe, pour chiffrer les pourcentages ; `porteur` : singe du Monkeydex qui le porte.
+function tuileObjetHTML(catalogue, o, { stats = null, porteur = null, details = [], classe = "" } = {}) {
+  const c = catalogue[o.objet];
+  const nom = nomObjet(catalogue, o.objet, o.tier);
+  const effets = texteEffetsObjet(o.valeurs, stats);
+  const lignes = [effets, ...(porteur ? [`Porté par ${porteur.espece.nom}`] : []), ...details];
+  return `<button type="button" class="tuile-objet ${classe}" data-tier="${o.tier}" data-id="${o.id}" aria-label="${nom} : ${effets}">`
+    + `<span class="emoji">${c.icone}</span><span class="rang">${ROMAINS[o.tier] ?? o.tier}</span>`
+    + (porteur ? `<img class="porteur-mini" src="${porteur.image}" alt="">` : "")
+    + `<span class="infobulle"><b>${nom}</b>${lignes.map((l) => `<span>${l}</span>`).join("")}</span></button>`;
+}
+
 // Nom d'un objet avec son tier en chiffres romains (« Épée III »).
 function nomObjet(catalogue, objet, tier) {
   return `${catalogue[objet]?.nom ?? objet} ${ROMAINS[tier] ?? tier}`;

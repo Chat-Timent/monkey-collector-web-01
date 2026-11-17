@@ -52,16 +52,16 @@ CREATE TABLE perks_obtenus (
   UNIQUE (user_id, espece)
 );
 
--- Objets obtenus (src/data/armes.json, src/data/equipements.json) : un exemplaire par ligne (empilables),
--- niveau d'objet (monté en démantelant d'autres exemplaires) et singe qui le porte.
+-- Objets obtenus (src/data/armes.json, src/data/equipements.json) : un exemplaire unique par ligne, sans niveau
+-- (valeurs de son tier), et singe qui le porte. Un même objet peut être porté plusieurs fois.
 CREATE TABLE objets_obtenus (
   id        bigserial PRIMARY KEY,
   user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type      text NOT NULL CHECK (type IN ('arme', 'equipement')),
   objet     text NOT NULL,
   tier      integer NOT NULL,
-  niveau    integer NOT NULL DEFAULT 1,    -- niveau d'objet, monté par les exemplaires démantelés
-  doublons  integer NOT NULL DEFAULT 0,    -- exemplaires démantelés accumulés vers le niveau suivant
+  niveau    integer NOT NULL DEFAULT 1,    -- inutilisé (anciens niveaux d'objet, ignorés depuis le 2026-11-18)
+  doublons  integer NOT NULL DEFAULT 0,    -- inutilisé (anciens doublons, ignorés depuis le 2026-11-18)
   espece    text,                          -- singe qui le porte (null = non équipé)
   slot      integer,                       -- emplacement sur ce singe (1 pour une arme, 1 à 3 pour un équipement)
   obtenu_at timestamptz NOT NULL DEFAULT now(),
