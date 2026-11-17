@@ -98,6 +98,26 @@
     .emplacement .objet b { display: block; font-size: 14px; }
     .emplacement .objet small { display: block; font-size: 12px; color: var(--texte-doux); }
     .emplacement.sans { border-style: dashed; color: #888; }
+    /* Arme et équipements de la fiche : une tuile par emplacement */
+    .cases-emplacements { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+    .case-emplacement { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .case-emplacement .libelle { font-size: 11px; color: var(--texte-doux); }
+    /* Fenêtre de choix : grille de tuiles et aperçu de l'objet choisi */
+    .choix-tuiles { padding: 6px; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+    .choix-tuiles .tuile-objet .emoji { font-size: 30px; }
+    .sans-infobulle .infobulle { display: none !important; }
+    .apercu-objet {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      margin: 4px 6px 6px; padding: 10px; border-radius: 10px; background: #1c1c1c; border: 1px solid #333;
+    }
+    .apercu-objet .infos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .apercu-objet b { font-size: 14px; }
+    .apercu-objet .effet, .apercu-objet .porteur-texte { font-size: 12px; color: var(--texte-doux); }
+    .apercu-objet button {
+      flex-shrink: 0; padding: 9px 16px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font: inherit; font-weight: bold; cursor: pointer;
+    }
+    .apercu-objet .vide { padding: 0; }
 
     /* ---------- Fenêtre de choix ---------- */
     .fond {
@@ -364,16 +384,16 @@
       const p = perkPorte(id);
       emplacements += emplacementHTML("perk", "Perk", p && `${perks.catalogue[p.perk].icone} ${nomPerk(perks.catalogue, p.perk, p.tier)}`,
         p && effetPerkSur(perks.catalogue, p.perk, p.tier, base), "perk");
-      const armes = OBJETS.arme.donnees;
-      const a = objetPorte("arme", id);
-      emplacements += emplacementHTML("arme", "Arme", a && `${armes.catalogue[a.objet].icone} ${nomObjet(armes.catalogue, a.objet, a.tier)} · Niv. ${a.niveau}`,
-        a && texteEffetsObjet(a.valeurs, base), "arme:1");
-      const eq = OBJETS.equipement.donnees;
-      for (let n = 1; n <= (eq.slots ?? 3); n++) {
-        const o = objetPorte("equipement", id, n);
-        emplacements += emplacementHTML("equipement", `Équipement ${n}`, o && `${eq.catalogue[o.objet].icone} ${nomObjet(eq.catalogue, o.objet, o.tier)} · Niv. ${o.niveau}`,
-          o && texteEffetsObjet(o.valeurs, base), `equipement:${n}`);
-      }
+      // Arme et équipements : une tuile par emplacement (émoji, tier, infobulle), « + » si vide
+      const caseObjet = (type, n, libelle) => {
+        const d = OBJETS[type].donnees;
+        const o = objetPorte(type, id, n);
+        const tuile = o ? tuileObjetHTML(d.catalogue, o, { stats: base }) : `<button type="button" class="tuile-objet vide" aria-label="${libelle} : vide">+</button>`;
+        return `<div class="case-emplacement" data-cle="${type}:${n}">${tuile}<span class="libelle">${libelle}</span></div>`;
+      };
+      let cases = caseObjet("arme", 1, "Arme");
+      for (let n = 1; n <= (OBJETS.equipement.donnees.slots ?? 3); n++) cases += caseObjet("equipement", n, `Équip. ${n}`);
+      emplacements += `<div class="cases-emplacements">${cases}</div>`;
 
       fiche.hidden = false;
       fiche.innerHTML = `
@@ -401,10 +421,10 @@
       fiche.querySelector(".retour").addEventListener("click", fermerFiche);
       fiche.querySelector('[data-action="changer"]').addEventListener("click", () => ouvrirChoixSinge(selection));
       fiche.querySelector('[data-action="retirer"]').addEventListener("click", () => choisirSinge(selection, null));
-      fiche.querySelectorAll(".emplacement").forEach((b) => b.addEventListener("click", () => {
-        const [type, n] = b.dataset.cle.split(":");
-        if (type === "perk") ouvrirChoixPerk(id);
-        else ouvrirChoixObjet(type, id, Number(n));
+      fiche.querySelector('.emplacement[data-cle="perk"]').addEventListener("click", () => ouvrirChoixPerk(id));
+      fiche.querySelectorAll(".case-emplacement").forEach((caseEl) => caseEl.querySelector("button").addEventListener("click", () => {
+        const [type, n] = caseEl.dataset.cle.split(":");
+        ouvrirChoixObjet(type, id, Number(n));
       }));
     }
 
@@ -508,38 +528,46 @@
       ouvrirChoix(`Perk de ${cible?.espece.nom ?? ""}`, options);
     }
 
+    // Objets : l'objet porté en tête (avec Retirer), puis tous les exemplaires en tuiles (libres d'abord).
+    // Un clic sur une tuile l'affiche en dessous (nom, effet chiffré sur ce singe, porteur) avec le bouton Équiper :
+    // l'infobulle de survol n'existe pas sur téléphone.
     function ouvrirChoixObjet(type, espece, emplacement) {
       const { donnees: d, retirer, vide, nom } = OBJETS[type];
       const cible = trouverSinge(espece);
+      const base = statsBase(cible);
       const actuel = objetPorte(type, espece, emplacement);
-      // Une sorte par singe : les sortes qu'il porte déjà ailleurs sont grisées (sauf l'objet lui-même, qui change d'emplacement)
-      const sortesPrises = new Set(d.uneSorteParSinge
-        ? d.obtenus.filter((o) => o.espece === espece && o.slot !== emplacement).map((o) => o.objet) : []);
-      const bloque = (o) => sortesPrises.has(o.objet) && o.espece !== espece;
-      const rang = (o) => (bloque(o) ? 2 : o.espece ? 1 : 0);
       const options = [];
       if (actuel) {
-        const c = d.catalogue[actuel.objet];
         options.push(ligneActuelle({
-          icone: c.icone,
-          nom: `${nomObjet(d.catalogue, actuel.objet, actuel.tier)} · Niv. ${actuel.niveau}`,
-          sous: texteEffetsObjet(actuel.valeurs, statsBase(cible)),
+          icone: d.catalogue[actuel.objet].icone,
+          nom: nomObjet(d.catalogue, actuel.objet, actuel.tier),
+          sous: texteEffetsObjet(actuel.valeurs, base),
         }));
         options.push(option({ retirer: true, nom: retirer, action: () => equiperObjet(type, actuel, null, emplacement) }));
       }
-      for (const o of d.obtenus.filter((x) => d.catalogue[x.objet] && x !== actuel).sort((a, b) => rang(a) - rang(b))) {
-        const c = d.catalogue[o.objet];
-        const porteur = o.espece ? trouverSinge(o.espece) : null;
-        let sous = texteEffetsObjet(o.valeurs, statsBase(cible));
-        if (bloque(o)) sous += ` · ce singe porte déjà : ${c.nom}`;
-        else if (porteur) sous += ` · sur ${porteur.espece.nom}`;
-        options.push(option({
-          icone: c.icone,
-          nom: `${nomObjet(d.catalogue, o.objet, o.tier)} · Niv. ${o.niveau}`,
-          sous,
-          desactive: bloque(o),
-          action: () => equiperObjet(type, o, espece, emplacement),
+      const exemplaires = d.obtenus.filter((x) => d.catalogue[x.objet] && x !== actuel)
+        .sort((a, b) => Boolean(a.espece) - Boolean(b.espece) || b.tier - a.tier || b.id - a.id);
+      if (exemplaires.length > 0) {
+        const grille = document.createElement("div");
+        grille.className = "tuiles choix-tuiles";
+        grille.innerHTML = exemplaires.map((o) => tuileObjetHTML(d.catalogue, o, {
+          stats: base, porteur: o.espece ? trouverSinge(o.espece) : null, classe: "sans-infobulle",
+        })).join("");
+        const apercu = document.createElement("div");
+        apercu.className = "apercu-objet";
+        apercu.innerHTML = `<p class="vide">Choisis un objet.</p>`;
+        grille.querySelectorAll(".tuile-objet").forEach((t) => t.addEventListener("click", () => {
+          grille.querySelectorAll(".choisie").forEach((x) => x.classList.remove("choisie"));
+          t.classList.add("choisie");
+          const o = exemplaires.find((x) => x.id === Number(t.dataset.id));
+          const porteur = o.espece ? trouverSinge(o.espece) : null;
+          apercu.innerHTML = `<div class="infos"><b></b><span class="effet"></span><span class="porteur-texte"></span></div><button type="button">Équiper</button>`;
+          apercu.querySelector("b").textContent = nomObjet(d.catalogue, o.objet, o.tier);
+          apercu.querySelector(".effet").textContent = texteEffetsObjet(o.valeurs, base);
+          apercu.querySelector(".porteur-texte").textContent = porteur ? `Porté par ${porteur.espece.nom} : il le perdra` : "Libre";
+          apercu.querySelector("button").addEventListener("click", () => { fermerChoix(); equiperObjet(type, o, espece, emplacement); });
         }));
+        options.push(grille, apercu);
       }
       if (d.obtenus.length === 0) options.push(messageVide(vide));
       const titre = type === "arme" ? `Arme de ${cible?.espece.nom ?? ""}` : `${nom} ${emplacement} de ${cible?.espece.nom ?? ""}`;

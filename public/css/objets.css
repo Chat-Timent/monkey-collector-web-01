@@ -102,19 +102,17 @@ h2 { font-size: 13px; color: var(--texte-doux); text-transform: uppercase; lette
   cursor: pointer;
 }
 
-/* ---------- Exemplaires (objets empilables) ---------- */
-.objet .portes { font-size: 12px; color: var(--texte-doux); }
-.objet .portes:empty { display: none; }
-.exemplaires { display: flex; flex-direction: column; gap: 6px; text-align: left; margin-bottom: 10px; }
-.exemplaire { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 10px; background: #1c1c1c; }
-.exemplaire .infos { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.exemplaire .niv { font-size: 13px; font-weight: bold; color: var(--or); }
-.exemplaire .effet-ex { font-size: 12px; color: var(--texte-doux); }
-.exemplaire .porteur { justify-content: flex-start; margin: 0; }
-.exemplaire .non-equipe { margin: 0; font-size: 12px; }
-.exemplaire button {
-  flex-shrink: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid #6b3a3a; background: #3a2626;
-  color: #ffb3b3; font: inherit; font-size: 12px; font-weight: bold; cursor: pointer;
+/* ---------- Tuiles des exemplaires et fiche (objets uniques) ---------- */
+.tuile-objet.flash { box-shadow: 0 0 16px rgba(127, 220, 154, 0.6); border-color: var(--vert); }
+.detail-tuile { width: 96px; margin: 0 auto 4px; }
+.detail-tuile .tuile-objet { cursor: default; }
+.detail-tuile .tuile-objet .emoji { font-size: 52px; }
+.detail-tuile .tuile-objet .rang { font-size: 15px; }
+.detail-tuile .tuile-objet .infobulle { display: none !important; }
+.detail .ligne-porteur { margin: 0 0 14px; }
+.detail .demanteler {
+  width: 100%; padding: 10px; margin-bottom: 6px; border-radius: 10px; border: 1px solid #6b3a3a;
+  background: #3a2626; color: #ffb3b3; font: inherit; font-size: 14px; font-weight: bold; cursor: pointer;
 }
-.exemplaire button:disabled { border-color: #333; background: #2a2a2a; color: #777; cursor: default; }
+.detail .demanteler:disabled { border-color: #333; background: #2a2a2a; color: #777; cursor: default; }
 .message-detail { min-height: 1.2em; margin: 0 0 8px; color: var(--or); font-size: 13px; }

@@ -25,7 +25,7 @@ export function dureeReplayMs(journal) {
 }
 
 // Singe d'un joueur prêt pour le moteur de combat (fonction pure) : stats de son niveau, bonus de l'arbre (`effets`),
-// perk porté (`perk`, effet brut), niveau d'éveil (`eveil`) et objets portés (`objets`, effets à leur niveau).
+// perk porté (`perk`, effet brut), niveau d'éveil (`eveil`) et objets portés (`objets`, effets de leur tier).
 // Les bonus du perk, de l'éveil et des objets sont des pourcentages des stats de base (sans l'arbre) ;
 // ils s'ajoutent sans se multiplier entre eux. Crit et dégâts crit des objets : en points.
 export function singeDeCombat(espece, e, niveau, { effets, perk = null, eveil = 1, objets = [] }) {

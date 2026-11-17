@@ -1,15 +1,14 @@
 // Objets portés par les singes (armes, équipements) : fonctions pures, sans base de données.
 // Un catalogue par type (src/data/armes.json…), de même forme : prix et ressource de la loterie, chances des tiers,
-// règle des niveaux d'objet, et valeurs de chaque tier.
-// "uneSorteParSinge": true : un singe ne porte qu'un objet de chaque sorte (pas deux casques), quel que soit le tier.
+// ressource rendue au démantèlement selon le tier, et valeurs de chaque tier.
+// Chaque objet tiré est un exemplaire unique, sans niveau : ses valeurs sont celles de son tier.
+// Un même objet peut être porté plusieurs fois (par plusieurs singes, ou plusieurs fois par un singe pour les équipements).
 // Effets possibles : hpPct, atkPct, defPct (pourcentage des stats de base, comme les perks)
 // et crit, critdmg (points, ces stats étant déjà des pourcentages).
 import fs from "node:fs";
 import { estRessourceJoueur } from "./ressources.js";
 
 export const EFFETS_OBJETS = ["hpPct", "atkPct", "defPct", "crit", "critdmg"];
-// Effets en points (les autres sont des pourcentages des stats de base)
-const POINTS = ["crit", "critdmg"];
 const TYPES = ["arme", "equipement"];
 
 // Vérifie un catalogue au chargement (le serveur refuse de démarrer sur des données incohérentes).
@@ -17,13 +16,9 @@ export function validerCatalogue(c, nom = "catalogue") {
   if (!TYPES.includes(c.type)) throw new Error(`type d'objet inconnu "${c.type}" (${nom})`);
   if (!Number.isInteger(c.slots) || c.slots < 1) throw new Error(`nombre d'emplacements invalide (${nom})`);
   if (!Number.isInteger(c.prix) || c.prix < 1) throw new Error(`prix invalide (${nom})`);
-  if (c.uneSorteParSinge !== undefined && typeof c.uneSorteParSinge !== "boolean") throw new Error(`uneSorteParSinge invalide (${nom})`);
   if (!estRessourceJoueur(c.ressource)) throw new Error(`ressource inconnue "${c.ressource}" (${nom})`);
   const nbTiers = c.chancesTiers?.length ?? 0;
   if (nbTiers === 0 || !c.chancesTiers.every((p) => typeof p === "number" && p > 0)) throw new Error(`chances des tiers invalides (${nom})`);
-  const n = c.niveaux ?? {};
-  if (!Array.isArray(n.doublons) || !n.doublons.every((d) => Number.isInteger(d) && d >= 1)) throw new Error(`doublons par niveau invalides (${nom})`);
-  if (!(typeof n.bonusParNiveauPct === "number" && n.bonusParNiveauPct >= 0)) throw new Error(`bonus par niveau invalide (${nom})`);
   if (!Array.isArray(c.demantelement) || c.demantelement.length !== nbTiers || !c.demantelement.every((v) => Number.isInteger(v) && v >= 0)) {
     throw new Error(`il faut ${nbTiers} valeurs de démantèlement entières (${nom})`);
   }
@@ -60,10 +55,6 @@ export function nbTiersObjet(c) {
   return c.chancesTiers.length;
 }
 
-export function niveauMaxObjet(c) {
-  return c.niveaux.doublons.length + 1;
-}
-
 export function objetExiste(c, objet, tier) {
   return typeof objet === "string" && Object.hasOwn(c.objets, objet)
     && Number.isInteger(tier) && tier >= 1 && tier <= nbTiersObjet(c);
@@ -87,51 +78,21 @@ export function tirerObjet(c, hasard = Math.random) {
   return { objet, tier: tirerPondere(c.chancesTiers, hasard) + 1 };
 }
 
-// Doublons à réunir pour passer du niveau `niveau` au suivant (null au niveau maximal).
-export function doublonsRequis(c, niveau) {
-  return niveau >= niveauMaxObjet(c) ? null : c.niveaux.doublons[niveau - 1];
+// Ressource rendue en démantelant un exemplaire de ce tier.
+export function remboursementDemantelement(c, tier) {
+  return c.demantelement[tier - 1] ?? 0;
 }
 
-// Effet d'un doublon sur un objet possédé ({ niveau, doublons }) : un doublon de plus, et le niveau monte
-// dès que le compte est atteint. Au niveau maximal, rien ne change (un exemplaire au maximum n'en reçoit plus).
-export function apresDoublon(c, { niveau, doublons }) {
-  const requis = doublonsRequis(c, niveau);
-  if (requis === null) return { niveau, doublons, monte: false };
-  if (doublons + 1 >= requis) return { niveau: niveau + 1, doublons: 0, monte: true };
-  return { niveau, doublons: doublons + 1, monte: false };
+// Valeurs d'un objet : celles de son tier.
+export function valeursObjet(c, objet, tier) {
+  return { ...c.objets[objet].tiers[tier - 1] };
 }
 
-// Démantèlement d'un exemplaire `source` ({ id, objet, tier }) parmi les exemplaires du joueur (`exemplaires`) :
-// il donne un doublon à un autre exemplaire du même objet et du même tier qui n'est pas au niveau maximal
-// (celui du niveau le plus élevé, puis le plus avancé, puis le plus ancien), sinon il rend de la ressource
-// selon son tier (`demantelement`). Renvoie { cible, ...apresDoublon } ou { cible: null, rembourse }.
-export function resultatDemantelement(c, source, exemplaires) {
-  const max = niveauMaxObjet(c);
-  const candidats = exemplaires
-    .filter((e) => e.id !== source.id && e.objet === source.objet && e.tier === source.tier && e.niveau < max)
-    .sort((a, b) => b.niveau - a.niveau || b.doublons - a.doublons || Number(a.id) - Number(b.id));
-  const cible = candidats[0];
-  if (!cible) return { cible: null, rembourse: c.demantelement[source.tier - 1] };
-  return { cible, ...apresDoublon(c, cible) };
-}
-
-// Valeurs d'un objet à son niveau : celles du tier, augmentées de `bonusParNiveauPct` % par niveau au-dessus de 1,
-// arrondies au dixième pour les pourcentages et à l'unité pour les points (crit, critdmg).
-export function valeursObjet(c, objet, tier, niveau = 1) {
-  const mult = 1 + (c.niveaux.bonusParNiveauPct * (Math.min(niveau, niveauMaxObjet(c)) - 1)) / 100;
-  const valeurs = {};
-  // (+1e-9 : arrondi au dixième supérieur malgré les flottants)
-  for (const [cle, v] of Object.entries(c.objets[objet].tiers[tier - 1])) {
-    valeurs[cle] = POINTS.includes(cle) ? Math.round(v * mult + 1e-9) : Math.round(v * mult * 10 + 1e-9) / 10;
-  }
-  return valeurs;
-}
-
-// Objet tel qu'il est porté en combat : identité, affichage et valeurs à son niveau.
-export function effetObjet(c, objet, tier, niveau = 1) {
+// Objet tel qu'il est porté en combat : identité, affichage et valeurs de son tier.
+export function effetObjet(c, objet, tier) {
   const o = c.objets[objet];
   if (!o || !objetExiste(c, objet, tier)) return null;
-  return { type: c.type, id: objet, tier, niveau, nom: o.nom, icone: o.icone, ...valeursObjet(c, objet, tier, niveau) };
+  return { type: c.type, id: objet, tier, nom: o.nom, icone: o.icone, ...valeursObjet(c, objet, tier) };
 }
 
 // Stats ajoutées par les objets portés par un singe, à partir de ses stats de base `s` (sans l'arbre) :

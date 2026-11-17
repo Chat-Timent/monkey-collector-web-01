@@ -27,7 +27,7 @@ import {
   ticketsApresCadeau, ticketsDisponibles, ticketsParJour, validerDonjons, validerRessourcesJoueur,
 } from "../src/game/ressources.js";
 import {
-  ARMES, CATALOGUES, EQUIPEMENTS, apresDoublon, bonusObjets, doublonsRequis, resultatDemantelement, effetObjet, nbTiersObjet, niveauMaxObjet, objetExiste, tirerObjet,
+  ARMES, CATALOGUES, EQUIPEMENTS, bonusObjets, remboursementDemantelement, effetObjet, nbTiersObjet, objetExiste, tirerObjet,
   validerCatalogue, valeursObjet,
 } from "../src/game/objets.js";
 import { calculerElo, limiteCombatsElo } from "../src/game/elo.js";
@@ -1228,7 +1228,6 @@ test("donjon de l'armement : 15 acier + 1 par palier, balayage permis ; pas de b
 test("armes : catalogue vérifié, 4 armes à 5 tiers, loterie pondérée par tier", () => {
   assert.deepEqual(Object.keys(ARMES.objets), ["epee", "dague", "hache", "masse"]);
   assert.equal(nbTiersObjet(ARMES), 5);
-  assert.equal(niveauMaxObjet(ARMES), 5);
   assert.ok(objetExiste(ARMES, "epee", 5) && !objetExiste(ARMES, "epee", 6) && !objetExiste(ARMES, "arc", 1) && !objetExiste(ARMES, "toString", 1));
   // Hasard injecté : l'arme se choisit sur le premier nombre, le tier sur le second
   const suite = (...v) => { let i = 0; return () => v[i++]; };
@@ -1247,67 +1246,60 @@ test("armes : catalogue vérifié, 4 armes à 5 tiers, loterie pondérée par ti
   assert.throws(() => validerCatalogue(casse({ chancesTiers: [50, 50] })), /il faut 2/);
   assert.throws(() => validerCatalogue(casse({ demantelement: [2, 3, 5, 8, -1] })), /démantèlement/);
   assert.throws(() => validerCatalogue(casse({ objets: { x: { nom: "X", icone: "x", tiers: [{ vol: 1 }, {}, {}, {}, {}] } } })), /effet inconnu/);
-  assert.throws(() => validerCatalogue(casse({ niveaux: { ...ARMES.niveaux, doublons: [1, 0] } })), /doublons/);
 });
 
-test("armes : doublons 1, 1, 2, 2 jusqu'au niveau 5 ; +10 % par niveau", () => {
-  let etat = { niveau: 1, doublons: 0 };
-  const suite = [];
-  for (let i = 0; i < 7; i++) {
-    const r = apresDoublon(ARMES, etat);
-    suite.push([r.niveau, r.doublons, r.monte]);
-    etat = r;
-  }
-  assert.deepEqual(suite, [
-    [2, 0, true], [3, 0, true], [3, 1, false], [4, 0, true], [4, 1, false], [5, 0, true], [5, 0, false],
-  ]);
-  assert.deepEqual([1, 2, 3, 4, 5].map((n) => doublonsRequis(ARMES, n)), [1, 1, 2, 2, null]);
-  assert.deepEqual(valeursObjet(ARMES, "epee", 5, 1), { atkPct: 12 });
-  assert.deepEqual(valeursObjet(ARMES, "epee", 5, 5), { atkPct: 16.8 });
-  assert.deepEqual(valeursObjet(ARMES, "dague", 3, 2), { atkPct: 5.5, crit: 8 }); // points arrondis à l'unité
-  assert.deepEqual(effetObjet(ARMES, "hache", 1, 1), { type: "arme", id: "hache", tier: 1, niveau: 1, nom: "Hache", icone: "🪓", atkPct: 3, critdmg: 15 });
-  assert.equal(effetObjet(ARMES, "hache", 9, 1), null);
+test("objets uniques : pas de niveau, chaque exemplaire a les valeurs de son tier", () => {
+  assert.equal(ARMES.niveaux, undefined);
+  assert.equal(EQUIPEMENTS.niveaux, undefined);
+  assert.deepEqual(valeursObjet(ARMES, "epee", 5), ARMES.objets.epee.tiers[4]);
+  assert.deepEqual(valeursObjet(ARMES, "dague", 3), ARMES.objets.dague.tiers[2]);
+  // Copie : modifier les valeurs renvoyées ne touche pas le catalogue
+  valeursObjet(ARMES, "epee", 1).atkPct = 999;
+  assert.notEqual(ARMES.objets.epee.tiers[0].atkPct, 999);
+  assert.deepEqual(effetObjet(ARMES, "hache", 1),
+    { type: "arme", id: "hache", tier: 1, nom: "Hache", icone: "🪓", ...ARMES.objets.hache.tiers[0] });
+  assert.equal(effetObjet(ARMES, "hache", 9), null);
 });
 
 test("armes en combat : % des stats de base, crit en points, cumulés avec l'éveil et le perk sans s'y multiplier", () => {
   const s = { hp: 1000, atk: 500, def: 300, crit: 10, critdmg: 150 };
-  assert.deepEqual(bonusObjets([effetObjet(ARMES, "masse", 5, 1)], s), { hp: 0, atk: 40, def: 24, crit: 0, critdmg: 0 });
-  assert.deepEqual(bonusObjets([effetObjet(ARMES, "dague", 5, 5)], s), { hp: 0, atk: 56, def: 0, crit: 17, critdmg: 0 });
+  const masse = ARMES.objets.masse.tiers[4], dague = ARMES.objets.dague.tiers[4];
+  assert.deepEqual(bonusObjets([effetObjet(ARMES, "masse", 5)], s),
+    { hp: 0, atk: Math.round(5 * masse.atkPct), def: Math.round(3 * masse.defPct), crit: 0, critdmg: 0 });
+  assert.deepEqual(bonusObjets([effetObjet(ARMES, "dague", 5)], s),
+    { hp: 0, atk: Math.round(5 * dague.atkPct), def: 0, crit: dague.crit, critdmg: 0 });
   assert.deepEqual(bonusObjets([], s), { hp: 0, atk: 0, def: 0, crit: 0, critdmg: 0 });
 
   const crystal = getEspece("crystal_ball_monkey");
   const effets = agregerEffets([]);
   const base = statsFinales(crystal, 5);
-  const epee = effetObjet(ARMES, "epee", 5, 5);
-  const hache = effetObjet(ARMES, "hache", 3, 1);
+  const epee = effetObjet(ARMES, "epee", 5);
+  const hache = effetObjet(ARMES, "hache", 3);
   const armee = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets, eveil: 6, objets: [epee] });
-  assert.equal(armee.atk, base.atk + bonusEveil(base.atk, 15) + Math.round(base.atk * 0.168));
+  assert.equal(armee.atk, base.atk + bonusEveil(base.atk, 15) + Math.round((base.atk * epee.atkPct) / 100));
   assert.equal(armee.def, base.def + bonusEveil(base.def, 15));
   const crit = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets, objets: [hache] });
-  assert.deepEqual([crit.crit, crit.critdmg], [base.crit, base.critdmg + 35]);
+  assert.deepEqual([crit.crit, crit.critdmg], [base.crit, base.critdmg + hache.critdmg]);
 });
 
-test("équipements : 6 sortes à 5 tiers, 3 emplacements, une sorte par singe, payés en étoffe", () => {
+test("équipements : 6 sortes à 5 tiers, 3 emplacements, payés en étoffe", () => {
   assert.deepEqual(Object.keys(EQUIPEMENTS.objets), ["casque", "armure", "bottes", "gants", "anneau", "amulette"]);
-  assert.deepEqual([EQUIPEMENTS.type, EQUIPEMENTS.slots, EQUIPEMENTS.uneSorteParSinge, EQUIPEMENTS.prix, EQUIPEMENTS.ressource],
-    ["equipement", 3, true, 10, "etoffe"]);
+  assert.deepEqual([EQUIPEMENTS.type, EQUIPEMENTS.slots, EQUIPEMENTS.prix, EQUIPEMENTS.ressource], ["equipement", 3, 10, "etoffe"]);
+  assert.equal(EQUIPEMENTS.uneSorteParSinge, undefined);
   assert.deepEqual(Object.keys(CATALOGUES), ["arme", "equipement"]);
-  // 30 objets distincts : assez pour équiper 9 singes de 3 objets de sortes différentes
-  assert.ok(Object.keys(EQUIPEMENTS.objets).length * nbTiersObjet(EQUIPEMENTS) >= 27);
   assert.deepEqual(infoRecompense("etoffe"), { id: "etoffe", nom: "étoffe", icone: "🧵" });
   assert.deepEqual([1, 2, 10].map((p) => gainDonjon("equipement", p)), [15, 16, 24]);
   assert.equal(RESSOURCES.donjons.equipement.balayage, true);
   const ids = (l) => l.filter(Boolean).map((s) => s.id).join();
   assert.notEqual(ids(ennemisDonjon("equipement", 25)), ids(ennemisDonjon("armement", 25)));
-  assert.deepEqual(valeursObjet(EQUIPEMENTS, "bottes", 5, 5), { hpPct: 11.2, defPct: 11.2 });
-  assert.throws(() => validerCatalogue({ ...EQUIPEMENTS, uneSorteParSinge: "oui" }), /uneSorteParSinge/);
+  assert.deepEqual(valeursObjet(EQUIPEMENTS, "bottes", 5), EQUIPEMENTS.objets.bottes.tiers[4]);
 });
 
 test("équipements en combat : les 3 objets et l'arme s'additionnent en % des stats de base", () => {
   const s = { hp: 1000, atk: 500, def: 300, crit: 10, critdmg: 150 };
   const portes = [
-    effetObjet(EQUIPEMENTS, "armure", 5, 1), effetObjet(EQUIPEMENTS, "casque", 5, 1), effetObjet(EQUIPEMENTS, "bottes", 5, 1),
-    effetObjet(ARMES, "epee", 5, 1),
+    effetObjet(EQUIPEMENTS, "armure", 5), effetObjet(EQUIPEMENTS, "casque", 5), effetObjet(EQUIPEMENTS, "bottes", 5),
+    effetObjet(ARMES, "epee", 5),
   ];
   // PV : 12 + 8 = 20 % ; DEF : 12 + 8 = 20 % ; ATK : 12 %
   assert.deepEqual(bonusObjets(portes, s), { hp: 200, atk: 60, def: 60, crit: 0, critdmg: 0 });
@@ -1316,6 +1308,9 @@ test("équipements en combat : les 3 objets et l'arme s'additionnent en % des st
   const singe = singeDeCombat("crystal_ball_monkey", crystal, 5, { effets: agregerEffets([]), objets: portes });
   assert.deepEqual([singe.hp, singe.atk, singe.def],
     [base.hp + Math.round(base.hp * 0.2), base.atk + Math.round(base.atk * 0.12), base.def + Math.round(base.def * 0.2)]);
+  // Le même équipement trois fois sur un singe : ses pourcentages s'additionnent
+  const casque = effetObjet(EQUIPEMENTS, "casque", 3);
+  assert.equal(bonusObjets([casque, casque, casque], s).def, Math.round((300 * 3 * casque.defPct) / 100));
 });
 
 test("éveil : détail des 6 niveaux pour la fiche du Monkeydex (bonus, coût, compétence)", () => {
@@ -1429,23 +1424,9 @@ test("singe offert : rareté minimale respectée, dans les proportions des raret
   assert.throws(() => poidsRaretes(null, { rareteMin: "divin" }), /rareté inconnue/);
 });
 
-test("objets empilables : démanteler donne un doublon au meilleur exemplaire, sinon de la ressource selon le tier", () => {
+test("objets uniques : démanteler rend de la ressource selon le tier", () => {
   assert.deepEqual(ARMES.demantelement, [2, 3, 5, 8, 15]);
   assert.deepEqual(EQUIPEMENTS.demantelement, [2, 3, 5, 8, 15]);
-  const ex = (id, objet, tier, niveau, doublons = 0) => ({ id, objet, tier, niveau, doublons });
-  // Seul exemplaire : ressource rendue selon le tier
-  assert.deepEqual(resultatDemantelement(ARMES, ex(1, "epee", 3, 1), [ex(1, "epee", 3, 1)]), { cible: null, rembourse: 5 });
-  // Un autre exemplaire du même objet et du même tier : il reçoit le doublon (niveau 1 → 2)
-  const deux = [ex(1, "epee", 3, 1), ex(2, "epee", 3, 1)];
-  const r = resultatDemantelement(ARMES, deux[0], deux);
-  assert.deepEqual([r.cible.id, r.niveau, r.doublons, r.monte], [2, 2, 0, true]);
-  // Le doublon va au niveau le plus élevé ; un autre tier ou un autre objet ne compte pas
-  const plusieurs = [ex(1, "epee", 3, 1), ex(2, "epee", 3, 2), ex(3, "epee", 3, 3, 1), ex(4, "epee", 4, 4), ex(5, "dague", 3, 4)];
-  const r2 = resultatDemantelement(ARMES, plusieurs[0], plusieurs);
-  assert.deepEqual([r2.cible.id, r2.niveau, r2.doublons, r2.monte], [3, 4, 0, true]);
-  // Les exemplaires au niveau maximal sont ignorés ; s'il n'y a qu'eux, ressource rendue
-  const auMax = [ex(1, "masse", 5, 1), ex(2, "masse", 5, 5)];
-  assert.deepEqual(resultatDemantelement(ARMES, auMax[0], auMax), { cible: null, rembourse: 15 });
-  const r3 = resultatDemantelement(ARMES, auMax[0], [...auMax, ex(3, "masse", 5, 2)]);
-  assert.deepEqual([r3.cible.id, r3.niveau, r3.doublons], [3, 3, 0]); // niveau 2 → 3 : un doublon suffit
+  assert.deepEqual([1, 2, 3, 4, 5].map((t) => remboursementDemantelement(ARMES, t)), [2, 3, 5, 8, 15]);
+  assert.equal(remboursementDemantelement(EQUIPEMENTS, 9), 0);
 });
