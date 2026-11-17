@@ -1,11 +1,10 @@
 import { pool, transaction } from "../config/database.js";
-import { DELAI_INITIAL_MS, PAS_MS } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { combat } from "../game/combat-engine.js";
 import { ennemisEtage, recompensesAvecBonus, recompensesEtage, singeBonus } from "../game/aventure.js";
 import { effetsDuJoueur } from "./arbre-service.js";
 import { ajouterCopie } from "./collection-service.js";
-import { combatEnCours, preparerEquipe } from "./combat-service.js";
+import { combatEnCours, dureeReplayMs, preparerEquipe } from "./combat-service.js";
 import { ajouterTirages } from "./tirage-service.js";
 import { gagnerRecompense, getStarter } from "./starter-service.js";
 
@@ -53,7 +52,7 @@ export async function lancerCombatAventure(userId) {
     const resultat = combat(equipe, ennemis);
     resultat.equipeA = equipe;
     resultat.equipeB = ennemis;
-    resultat.dureeMs = DELAI_INITIAL_MS + resultat.journal.length * PAS_MS;
+    resultat.dureeMs = dureeReplayMs(resultat.journal);
 
     let gains = null;
     if (resultat.vainqueur === "A") {

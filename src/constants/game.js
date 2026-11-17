@@ -34,6 +34,8 @@ export const DUREE_DEFI_SEC = 60;
 export const SEUIL_EN_LIGNE_SEC = 45;
 export const DELAI_INITIAL_MS = 1000;
 export const PAS_MS = 700;
+// Pas de replay occupés par un Second souffle : le combat marque une pause pendant l'animation de relève
+export const PAS_SOUFFLE = 3;
 // Vitesse de replay la plus rapide proposée en PVE (sélecteur x0.5 à x4 du combat)
 export const VITESSE_REPLAY_MAX = 4;
 
