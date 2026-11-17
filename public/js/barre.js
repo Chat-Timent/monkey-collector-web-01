@@ -92,7 +92,7 @@ const Barre = (() => {
            trouvé dans le document gagnerait sur le leur -->
       <div id="classement-global" class="liste"></div>
     </aside>
-    <aside class="tiroir gauche" id="tiroir-annonces" hidden>
+    <aside class="tiroir" id="tiroir-annonces" hidden>
       <div class="entete">
         <h2>Annonces</h2>
         <button type="button" data-fermer="annonces" aria-label="Fermer">×</button>

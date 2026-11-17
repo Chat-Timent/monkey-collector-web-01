@@ -247,9 +247,8 @@ body.avec-barre { padding-top: var(--topbar-h); padding-bottom: var(--footer-h);
   gap: 6px;
   padding-right: 4px;
 }
-/* Mailbox : à gauche du footer, son tiroir s'ouvre au-dessus d'elle */
-.onglet-footer.mailbox { margin-right: auto; font-size: 16px; padding: 4px 12px; }
-.tiroir.gauche { right: auto; left: 14px; }
+/* Mailbox : juste avant le chat, son tiroir s'ouvre comme les autres */
+.onglet-footer.mailbox { font-size: 16px; padding: 4px 12px; }
 #formAnnonce { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; flex-shrink: 0; }
 #formAnnonce[hidden] { display: none; }
 #texteAnnonce {
@@ -301,5 +300,5 @@ body.avec-barre { padding-top: var(--topbar-h); padding-bottom: var(--footer-h);
   #barre-onglets { padding: 0 6px; }
   #barre-onglets a { padding: 0 11px; font-size: 13px; }
   #footer { padding: 0 8px; }
-  .tiroir, .tiroir.gauche { right: 8px; left: 8px; width: auto; }
+  .tiroir { right: 8px; left: 8px; width: auto; }
 }
