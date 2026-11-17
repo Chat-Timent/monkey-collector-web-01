@@ -76,7 +76,9 @@ export async function getQuota(userId) {
 // dans une seule transaction.
 // La ligne du starter est verrouillée : deux tirages simultanés du même joueur
 // s'exécutent l'un après l'autre, aucun gain n'est perdu et le quota ne peut pas être dépassé.
-export async function effectuerTirage(userId) {
+// `maintenant` : instant du tirage pour la recharge. L'auto-tirage rattrape ses tirages à leur
+// heure prévue, pour ne pas compter la recharge arrivée après l'épuisement du stock.
+export async function effectuerTirage(userId, { maintenant = Date.now() } = {}) {
   return transaction(async (db) => {
     const starterAvant = await getStarter(userId, db, { verrouiller: true });
     if (!starterAvant) throw new ErreurJeu("aucun starter, choisis-en un d'abord");
@@ -84,7 +86,7 @@ export async function effectuerTirage(userId) {
     const pris = await lireNoeudsPris(userId, db);
     const effets = agregerEffets(pris);
     const ligne = await lireLigneVerrouillee(userId, db);
-    const quota = etatQuota(ligne, Date.now(), parametresQuota(effets));
+    const quota = etatQuota(ligne, maintenant, parametresQuota(effets));
     if (!consommerTirage(quota)) {
       throw new ErreurJeu("plus de tirages disponibles, attends la recharge", 429, {
         quota: quotaPublic(quota),

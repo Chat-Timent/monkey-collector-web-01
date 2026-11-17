@@ -20,6 +20,7 @@ import {
 } from "../src/game/starter-arbre.js";
 import { nbSlots } from "../src/services/arbre-service.js";
 import { compteurSansRare, etincelleDeclenchee } from "../src/services/tirage-service.js";
+import { LOT_AUTO_MAX, RARETES_AUTO, RYTHMES_AUTO, instantsDus, passeFiltre, reglageAutoValide } from "../src/game/tirage-auto.js";
 import { ajouterAuQuota, consommerTirage, etatQuota, parametresQuota, quotaPublic } from "../src/game/quota.js";
 import { ennemisEtage, recompensesAvecBonus, recompensesEtage, singeBonus } from "../src/game/aventure.js";
 import {
@@ -109,6 +110,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /profil",
     "GET /quotidien",
     "GET /ressources",
+    "GET /tirage/auto",
     "POST /annonces",
     "POST /annonces/lues",
     "POST /arbre/noeuds",
@@ -141,6 +143,8 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /ressources/combat",
     "POST /starter",
     "POST /tirage",
+    "POST /tirage/auto",
+    "POST /tirage/auto/arreter",
   ]);
 });
 
@@ -1429,4 +1433,41 @@ test("objets uniques : démanteler rend de la ressource selon le tier", () => {
   assert.deepEqual(EQUIPEMENTS.demantelement, [2, 3, 5, 8, 15]);
   assert.deepEqual([1, 2, 3, 4, 5].map((t) => remboursementDemantelement(ARMES, t)), [2, 3, 5, 8, 15]);
   assert.equal(remboursementDemantelement(EQUIPEMENTS, 9), 0);
+});
+
+test("auto-tirage : réglages, filtre « cette rareté ou mieux » et tirages dus", () => {
+  assert.deepEqual(RYTHMES_AUTO, [1, 2, 5]);
+  assert.deepEqual(RARETES_AUTO, ["uncommon", "rare", "epic", "legendary", "mythic"]);
+  assert.ok(reglageAutoValide(5, "epic"));
+  assert.ok(!reglageAutoValide(3, "epic"));
+  assert.ok(!reglageAutoValide(10, "epic"));
+  assert.ok(!reglageAutoValide(1, "common"));
+  assert.ok(!reglageAutoValide(1, "<script>"));
+
+  assert.ok(passeFiltre("epic", "epic"));
+  assert.ok(passeFiltre("mythic", "epic"));
+  assert.ok(!passeFiltre("rare", "epic"));
+  assert.ok(passeFiltre("legendary", "legendary") && !passeFiltre("epic", "legendary"));
+
+  const t = Date.UTC(2026, 10, 17, 12, 0, 0);
+  // 2,5 s à 2 par seconde : 5 tirages, aux instants prévus
+  assert.deepEqual(instantsDus(t, t + 2500, 2), [t + 500, t + 1000, t + 1500, t + 2000, t + 2500]);
+  // Moins d'un intervalle : rien
+  assert.deepEqual(instantsDus(t, t + 199, 5), []);
+  // Longue absence : plafonné par passage, le reste viendra aux passages suivants
+  const lot = instantsDus(t, t + 3600 * 1000, 5);
+  assert.equal(lot.length, LOT_AUTO_MAX);
+  assert.equal(lot.at(-1), t + LOT_AUTO_MAX * 200);
+  // Horloge en arrière : rien
+  assert.deepEqual(instantsDus(t, t - 5000, 1), []);
+});
+
+test("un tirage daté dans le passé ne compte la recharge que jusqu'à cet instant", () => {
+  const t = Date.UTC(2026, 10, 17, 12, 0, 0);
+  // Stock à 1 il y a 10 min : à l'heure du tirage (t - 10 min + 1 s), pas encore de recharge
+  const ligne = { tirages_restants: 1, dernier_reset: new Date(t - 600 * 1000) };
+  const passe = etatQuota(ligne, t - 599 * 1000);
+  assert.ok(consommerTirage(passe));
+  assert.equal(passe.stock, 0);
+  assert.equal(consommerTirage(etatQuota({ tirages_restants: 0, dernier_reset: new Date(passe.debutRecharge) }, t - 598 * 1000)), false);
 });

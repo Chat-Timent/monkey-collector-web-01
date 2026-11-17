@@ -96,6 +96,29 @@
     #tirer:disabled { background: #332f42; color: #777; cursor: default; transform: none; box-shadow: none; }
     #message { min-height: 20px; margin: 10px 0 0; color: var(--or); font-size: 13px; text-align: center; }
 
+    /* ---------- Auto-tirage (bas du cadre de tirage) ---------- */
+
+    .auto { margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--carte-bord); text-align: left; }
+    .auto .titre { margin: 0 0 8px; font-size: 12px; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 1px; }
+    .auto .reglages { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 8px; }
+    .auto select {
+      width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #3a3555;
+      background: #1e1b2e; color: var(--texte); font: inherit; font-size: 13px;
+    }
+    .auto select:disabled { opacity: 0.6; }
+    #auto-bouton {
+      width: 100%; margin-top: 8px; padding: 10px; border-radius: 10px; cursor: pointer;
+      border: 1px solid var(--accent); background: transparent; color: var(--texte);
+      font: inherit; font-size: 14px; font-weight: bold;
+    }
+    #auto-bouton.actif { background: #3a1f2e; }
+    #auto-bouton:disabled { border-color: #332f42; color: #777; cursor: default; }
+    #auto-etat { min-height: 18px; margin: 8px 0 0; font-size: 12px; color: var(--texte-doux); text-align: center; }
+
+    /* Singe qui a arrêté l'auto-tirage : la fiche prend la couleur de sa rareté */
+    .carte.trouve { border-color: var(--rarete); box-shadow: 0 0 0 1px var(--rarete), 0 0 24px color-mix(in srgb, var(--rarete) 35%, transparent); }
+    .carte.trouve #titre-singe { color: color-mix(in srgb, var(--rarete) 55%, #ffffff); }
+
     /* ---------- Fiche du dernier singe tiré ---------- */
 
     #fiche-singe { flex: 1; }
@@ -216,9 +239,22 @@
         </div>
         <button id="tirer" type="button" disabled>Tirer un singe</button>
         <p id="message"></p>
+        <div class="auto">
+          <p class="titre">Auto-tirage</p>
+          <div class="reglages">
+            <select id="auto-rythme" aria-label="Rythme de l'auto-tirage">
+              <option value="1">1 / s</option>
+              <option value="2">2 / s</option>
+              <option value="5">5 / s</option>
+            </select>
+            <select id="auto-rarete" aria-label="Rareté qui arrête l'auto-tirage"></select>
+          </div>
+          <button id="auto-bouton" type="button" disabled>Lancer l'auto-tirage</button>
+          <p id="auto-etat"></p>
+        </div>
       </section>
 
-      <section class="carte">
+      <section class="carte" id="carte-singe">
         <h2 id="titre-singe">Dernier tirage</h2>
         <div id="fiche-singe"></div>
       </section>
@@ -341,8 +377,12 @@
 
     // `singe` a la forme d'une entrée de /monkeydex. `gains` (facultatif) : bonus du tirage qui vient
     // d'avoir lieu. `titre` dit si c'est vraiment le dernier tirage ou le singe montré par défaut.
-    function afficherSinge(singe, { gains = null, titre = "Dernier tirage" } = {}) {
+    // `trouve` : singe qui a arrêté l'auto-tirage, la fiche prend la couleur de sa rareté.
+    function afficherSinge(singe, { gains = null, titre = "Dernier tirage", trouve = false } = {}) {
       $("titre-singe").textContent = titre;
+      const carte = $("carte-singe");
+      carte.classList.toggle("trouve", Boolean(trouve && singe));
+      if (trouve && singe) carte.style.setProperty("--rarete", infoRarete(singe.espece.rarete).couleur);
       const zone = $("fiche-singe");
       if (!singe) {
         zone.innerHTML = `<p class="description">Fais ton premier tirage pour voir un singe ici.</p>`;
@@ -512,6 +552,25 @@
 
     // ---------- Tirage ----------
 
+    // La fiche du Monkeydex garde la compétence et l'éveil ; le tirage apporte les
+    // valeurs fraîches (copies, niveau, stats). On fusionne les deux, et le tirage entre
+    // en tête de l'historique (à enregistrer ensuite avec ecrireHistorique).
+    function fusionnerTirage(data) {
+      const singe = {
+        ...(parEspece[data.id] ?? {}),
+        id: data.id,
+        espece: data.espece,
+        image: data.image,
+        amount: data.amount,
+        niveau: data.niveau,
+        stats: data.stats,
+        statsBase: data.stats,
+      };
+      parEspece[data.id] = singe;
+      historique = [data.id, ...historique].slice(0, MAX_HISTORIQUE);
+      return singe;
+    }
+
     $("tirer").addEventListener("click", async () => {
       if ($("tirer").disabled || tirageEnCours) return;
       tirageEnCours = true;
@@ -526,22 +585,7 @@
           return;
         }
 
-        // La fiche du Monkeydex garde la compétence et l'éveil ; le tirage apporte les
-        // valeurs fraîches (copies, niveau, stats). On fusionne les deux.
-        const avant = parEspece[data.id] ?? {};
-        const singe = {
-          ...avant,
-          id: data.id,
-          espece: data.espece,
-          image: data.image,
-          amount: data.amount,
-          niveau: data.niveau,
-          stats: data.stats,
-          statsBase: data.stats,
-        };
-        parEspece[data.id] = singe;
-
-        historique = [data.id, ...historique].slice(0, MAX_HISTORIQUE);
+        const singe = fusionnerTirage(data);
         ecrireHistorique();
 
         await prechargerImages([data.image, infoRarete(data.espece.rarete).icone]);
@@ -557,6 +601,165 @@
       } finally {
         tirageEnCours = false;
         dessinerQuota();
+      }
+    });
+
+    // ---------- Auto-tirage ----------
+
+    // Le serveur fait les tirages : la page l'appelle toutes les secondes pendant que ça tourne,
+    // et les autres pages font avancer l'auto-tirage via /profil. Au retour, le singe qui a
+    // arrêté l'auto-tirage est montré une fois (son instant d'arrêt est retenu dans le navigateur).
+    const RARETES_AUTO = ["uncommon", "rare", "epic", "legendary", "mythic"];
+    const CLE_ARRET_VU = "monkey-auto-arret-vu";
+    const INTERVALLE_AUTO_MS = 1000;
+    let autoEtat = null;
+    let autoMinuteur = null;
+    let autoRequete = false;
+
+    $("auto-rarete").innerHTML = RARETES_AUTO.map((r) => {
+      const label = infoRarete(r).label;
+      return `<option value="${r}">${label} ou mieux</option>`;
+    }).join("");
+    $("auto-rarete").value = "rare";
+
+    function lireArretVu() {
+      try { return localStorage.getItem(CLE_ARRET_VU); } catch { return null; }
+    }
+    function ecrireArretVu(valeur) {
+      try { localStorage.setItem(CLE_ARRET_VU, valeur); } catch { /* stockage indisponible */ }
+    }
+
+    function pluriel(n) {
+      return `${n} tirage${n > 1 ? "s" : ""}`;
+    }
+
+    function afficherAuto(auto) {
+      // Premier affichage ou auto-tirage en cours : les listes montrent le réglage enregistré
+      const reprendreReglage = auto.actif || autoEtat === null;
+      autoEtat = auto;
+      const bouton = $("auto-bouton");
+      bouton.disabled = false;
+      bouton.classList.toggle("actif", auto.actif);
+      bouton.textContent = auto.actif ? "Arrêter l'auto-tirage" : "Lancer l'auto-tirage";
+      $("auto-rythme").disabled = auto.actif;
+      $("auto-rarete").disabled = auto.actif;
+      if (reprendreReglage) {
+        $("auto-rythme").value = String(auto.rythme);
+        $("auto-rarete").value = auto.rareteMin;
+      }
+
+      let texte = "";
+      if (auto.actif) {
+        texte = `En cours · ${pluriel(auto.nbFaits)}`;
+      } else if (auto.arret) {
+        const nom = auto.arret.espece ? parEspece[auto.arret.espece]?.espece.nom : null;
+        const pourquoi = {
+          filtre: nom ? `${nom} trouvé !` : "singe trouvé !",
+          stock: "stock épuisé.",
+          manuel: "arrêté.",
+        }[auto.arret.raison] ?? "";
+        texte = `${pluriel(auto.nbFaits)} · ${pourquoi}`;
+      }
+      $("auto-etat").textContent = texte;
+
+      if (auto.actif && !autoMinuteur) autoMinuteur = setInterval(passageAuto, INTERVALLE_AUTO_MS);
+      if (!auto.actif && autoMinuteur) {
+        clearInterval(autoMinuteur);
+        autoMinuteur = null;
+      }
+    }
+
+    // Singe qui a arrêté l'auto-tirage sur le filtre : affiché en grand une seule fois.
+    async function montrerArret(auto, gains = null) {
+      const arret = auto.arret;
+      if (!arret || arret.raison !== "filtre" || !arret.espece) return;
+      const cle = `${arret.espece}|${arret.date}`;
+      if (lireArretVu() === cle) return;
+      // Espèce obtenue pendant l'absence (tirée via /profil) : pas encore dans le Monkeydex chargé
+      if (!parEspece[arret.espece]) {
+        const dex = await api("/monkeydex").catch(() => null);
+        if (dex?.ok) parEspece = Object.fromEntries(dex.data.singes.map((s) => [s.id, s]));
+      }
+      const singe = parEspece[arret.espece];
+      if (!singe) return;
+      ecrireArretVu(cle);
+      if (historique[0] !== arret.espece) {
+        historique = [arret.espece, ...historique].slice(0, MAX_HISTORIQUE);
+        ecrireHistorique();
+        afficherHistorique();
+      }
+      await prechargerImages([singe.image, infoRarete(singe.espece.rarete).icone]);
+      afficherSinge(singe, { gains, titre: "Auto-tirage : trouvé !", trouve: true });
+      afficherAuto(auto); // le nom du singe est maintenant connu
+      // Sur mobile la fiche est sous le cadre de tirage : on la fait venir à l'écran,
+      // juste sous la barre du haut (collée en haut, elle cacherait le titre)
+      const sousBarre = ($("barre-haut")?.getBoundingClientRect().bottom ?? 0) + 8;
+      const haut = $("carte-singe").getBoundingClientRect().top;
+      if (haut < sousBarre || haut > window.innerHeight * 0.6) {
+        window.scrollBy({ top: haut - sousBarre, behavior: "smooth" });
+      }
+    }
+
+    async function traiterPassage(data) {
+      const tirages = data.tirages ?? [];
+      if (tirages.length > 0) {
+        let singe = null;
+        for (const t of tirages) singe = fusionnerTirage(t);
+        ecrireHistorique();
+        afficherHistorique();
+        const dernier = tirages.at(-1);
+        const finFiltre = data.auto.arret?.raison === "filtre" && data.auto.arret.espece === dernier.id;
+        if (finFiltre) {
+          await montrerArret(data.auto, dernier.gains);
+        } else {
+          await prechargerImages([dernier.image, infoRarete(dernier.espece.rarete).icone]);
+          afficherSinge(singe, { gains: dernier.gains, titre: "Auto-tirage" });
+        }
+        if (tirages.some((t) => ["legendary", "mythic"].includes(t.espece.rarete))) rafraichirLoterie();
+      }
+      afficherQuota(data.quota);
+      if (data.starter) Barre.afficherStarter(data.starter);
+      if (data.pointsArbre !== null && data.pointsArbre !== undefined) Barre.afficherPoints(data.pointsArbre);
+      afficherAuto(data.auto);
+      await montrerArret(data.auto);
+    }
+
+    async function passageAuto() {
+      if (autoRequete) return;
+      autoRequete = true;
+      try {
+        const { ok, data } = await api("/tirage/auto");
+        if (ok) await traiterPassage(data);
+      } catch {
+        // Réseau coupé : on réessaie au prochain passage, le serveur rattrapera
+      } finally {
+        autoRequete = false;
+      }
+    }
+
+    $("auto-bouton").addEventListener("click", async () => {
+      const bouton = $("auto-bouton");
+      if (bouton.disabled) return;
+      bouton.disabled = true;
+      $("message").textContent = "";
+      try {
+        const lancer = !autoEtat?.actif;
+        const { ok, data } = lancer
+          ? await api("/tirage/auto", {
+            methode: "POST",
+            corps: { rythme: Number($("auto-rythme").value), rarete: $("auto-rarete").value },
+          })
+          : await api("/tirage/auto/arreter", { methode: "POST" });
+        if (!ok) {
+          $("message").textContent = data.quota ? "Plus de tirages disponibles." : `Erreur : ${data.erreur}`;
+          if (data.quota) afficherQuota(data.quota);
+          return;
+        }
+        afficherAuto(data.auto);
+      } catch {
+        $("message").textContent = "Erreur réseau, réessaie.";
+      } finally {
+        bouton.disabled = false;
       }
     });
 
@@ -600,6 +803,8 @@
           afficherSinge(dex.data.singes[0], { titre: "Ton plus beau singe" });
         }
       }
+      // État de l'auto-tirage (et singe qui l'a arrêté pendant l'absence)
+      passageAuto();
     })();
   </script>
 

@@ -198,3 +198,16 @@ CREATE TABLE annonces (
   CONSTRAINT annonces_texte_max CHECK (char_length(texte) <= 500),
   CONSTRAINT annonces_texte_non_vide CHECK (char_length(btrim(texte)) > 0)
 );
+
+-- Auto-tirage de la page Tirage (voir src/services/tirage-auto-service.js).
+CREATE TABLE tirage_auto (
+  user_id         uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  actif           boolean NOT NULL DEFAULT false,
+  rythme          integer NOT NULL DEFAULT 1,      -- tirages par seconde
+  rarete_min      text NOT NULL DEFAULT 'rare',    -- s'arrête sur cette rareté ou mieux
+  dernier_passage timestamptz NOT NULL DEFAULT now(), -- instant du dernier tirage auto effectué
+  nb_faits        integer NOT NULL DEFAULT 0,      -- tirages faits depuis le lancement
+  raison_arret    text,                            -- 'filtre', 'stock' ou 'manuel'
+  espece_arret    text,                            -- singe qui a déclenché l'arrêt (raison 'filtre')
+  arret_at        timestamptz
+);
