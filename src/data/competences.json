@@ -16,9 +16,9 @@
     "icone": "👑",
     "actif": true,
     "tousLes": 2,
-    "atkPct": 4,
-    "hpPct": 4,
-    "defPct": 4,
+    "atkPct": 5,
+    "hpPct": 5,
+    "defPct": 5,
     "cumulMax": 5,
     "eveil": {
       "3": { "atkPct": 8, "hpPct": 8, "defPct": 8 },
