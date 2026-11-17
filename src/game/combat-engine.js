@@ -96,6 +96,19 @@ function decretRoyal(camp, tour, journal) {
   }
 }
 
+// Effets qui se déclenchent entre les tours, avant les attaques, toujours dans le même ordre :
+// 1. buffs des singes (passifs des mythiques, ex. Décret royal), camp A puis camp B ;
+// 2. perks (Floraison, tous les 2 tours), camp A puis camp B.
+// Chaque effet écrit son propre événement dans le journal : aucun n'en masque un autre.
+function effetsEntreTours(A, B, tour, journal) {
+  decretRoyal(A, tour, journal);
+  decretRoyal(B, tour, journal);
+  if (tour % 2 === 0) {
+    floraison(A, tour, journal);
+    floraison(B, tour, journal);
+  }
+}
+
 // Perk Étendard : au début du combat, chaque groupe de 3 slots reçoit +`atkGroupePct` % d'ATK par porteur
 // du groupe (porteur compris), cumul plafonné à `plafondPct`. Le bonus reste acquis même si le porteur tombe.
 function etendards(camp) {
@@ -160,12 +173,7 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
     if (tousVivants(A).length === 0 || tousVivants(B).length === 0) break;
 
     journal.push({ type: "tour", numero: tour });
-    if (tour % 2 === 0) {
-      floraison(A, tour, journal);
-      floraison(B, tour, journal);
-    }
-    decretRoyal(A, tour, journal);
-    decretRoyal(B, tour, journal);
+    effetsEntreTours(A, B, tour, journal);
 
     // Ordre fixe : slot 1 A, slot 1 B, slot 2 A, slot 2 B, etc.
     for (let i = 0; i < Math.max(A.length, B.length); i++) {
