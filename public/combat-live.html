@@ -96,7 +96,24 @@
     .bulle.rate { color: #bbb; }
     .bulle.ko { color: #ff3b3b; font-size: 20px; }
     .bulle.soin { color: #7fdc9a; }
-    .carte .perk { position: absolute; top: 6px; left: 8px; font-size: 16px; }
+    .carte .perk { position: absolute; top: 6px; left: 8px; font-size: 16px; transition: filter calc(0.4s / var(--vitesse)), opacity calc(0.4s / var(--vitesse)); }
+    /* Perk à usage unique déjà consommé (Second souffle) */
+    .carte .perk.utilise { filter: grayscale(1); opacity: 0.4; }
+
+    /* Second souffle : le singe se relève, le combat marque une pause le temps de l'animation */
+    .carte.releve {
+      z-index: 2;
+      border-color: #7fd8ff;
+      animation: releve calc(1.8s / var(--vitesse)) ease-out;
+    }
+    .carte.releve img { animation: releve-image calc(1.8s / var(--vitesse)) ease-out; }
+    .carte.releve .perk.utilise { animation: perk-consomme calc(1.8s / var(--vitesse)) ease-out; }
+    .bulle.souffle {
+      color: #7fd8ff;
+      font-size: 18px;
+      text-shadow: 0 0 8px #2a9fd6;
+      animation: monte-fort calc(1.8s / var(--vitesse)) forwards;
+    }
 
     /* Compétence Présage : le lanceur s'illumine, la cible encaisse un coup lourd */
     .carte.presage-lanceur {
@@ -124,6 +141,22 @@
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
       75% { transform: translateX(6px); }
+    }
+    @keyframes releve {
+      0% { filter: grayscale(1) brightness(0.6); transform: scale(0.94); box-shadow: 0 0 0 rgba(127, 216, 255, 0); }
+      30% { filter: grayscale(0) brightness(1.6); transform: scale(1.1); box-shadow: 0 0 36px 10px rgba(127, 216, 255, 0.9); }
+      60% { filter: none; transform: scale(1.04); box-shadow: 0 0 22px 4px rgba(127, 216, 255, 0.6); }
+      100% { filter: none; transform: scale(1); box-shadow: 0 0 0 rgba(127, 216, 255, 0); }
+    }
+    @keyframes releve-image {
+      0% { transform: translateY(14px) rotate(-12deg); opacity: 0.5; }
+      35% { transform: translateY(-10px) rotate(4deg); opacity: 1; }
+      100% { transform: translateY(0) rotate(0); }
+    }
+    /* L'icône du perk brille pendant la relève, puis s'éteint (grisée) */
+    @keyframes perk-consomme {
+      0%, 45% { filter: none; opacity: 1; transform: scale(1.6); }
+      100% { filter: grayscale(1); opacity: 0.4; transform: scale(1); }
     }
     @keyframes monte {
       from { opacity: 1; top: -10px; }
@@ -304,6 +337,10 @@
 
     // Rythme du replay, fourni par le serveur avec le combat
     let pasMs = 0;
+    // Pas occupés par un Second souffle (pause de la relève), fourni par le serveur
+    let pasSouffle = 1;
+    let tourCourant = 0;
+    const pasDe = (e) => (e?.type === "souffle" ? pasSouffle : 1);
 
     // Vitesse d'affichage du replay (PVE uniquement), retenue pour les combats suivants
     const VITESSES = [0.5, 1, 2, 4];
@@ -343,6 +380,7 @@
       if (estActif) classes.push(actif.presage ? "presage-lanceur" : actif.decret ? "decret-lanceur" : "attaque");
       if (estCible && fx.type === "degats") classes.push("touche");
       if (estCible && fx.type === "presage") classes.push("touche-fort");
+      if (estCible && fx.type === "souffle") classes.push("releve");
 
       const bulle = estCible ? `<div class="bulle ${fx.type}">${fx.texte}</div>` : "";
       const pct = Math.max(0, Math.round((m.pv / m.max) * 100));
@@ -352,7 +390,7 @@
       return `
         <div class="${classes.join(" ")}" ${bordure}>
           ${bulle}
-          ${m.perk ? `<span class="perk" title="${m.perk.nom}">${m.perk.icone}</span>` : ""}
+          ${m.perk ? `<span class="perk${m.perkUtilise ? " utilise" : ""}" title="${m.perk.nom}${m.perkUtilise ? " (utilisé)" : ""}">${m.perk.icone}</span>` : ""}
           <img src="${m.image}" alt="">
           <span class="nom">${m.nom}</span>
           <div class="barre"><div style="width:${pct}%"></div></div>
@@ -386,7 +424,10 @@
     }
 
     function appliquer(e) {
+      // Après la pause d'un Second souffle, le bandeau revient au tour en cours
+      if (e.type !== "souffle" && tourCourant) $("banniere").textContent = `Tour ${tourCourant}`;
       if (e.type === "tour") {
+        tourCourant = e.numero;
         $("banniere").textContent = `Tour ${e.numero}`;
       } else if (e.type === "degats" && e.competence) {
         actif = { camp: e.deCamp, slot: e.deSlot, presage: true };
@@ -412,7 +453,9 @@
         fx = { camp: e.surCamp, slot: e.surSlot, type: "soin", texte: `+${e.soin}` };
       } else if (e.type === "souffle") {
         etat[e.camp][e.slot].pv = e.pvRestants;
-        fx = { camp: e.camp, slot: e.slot, type: "soin", texte: `${e.perk.icone} ${e.pvRestants}` };
+        etat[e.camp][e.slot].perkUtilise = true;
+        $("banniere").textContent = `${e.perk.icone} ${e.perk.nom} : ${e.nom} se relève !`;
+        fx = { camp: e.camp, slot: e.slot, type: "souffle", texte: `${e.perk.icone} +${e.pvRestants} PV` };
       }
       ajouterLog(e);
     }
@@ -493,7 +536,8 @@
       if (e.type !== "KO") { actif = null; fx = null; }
       appliquer(e);
       dessiner();
-      timer = setTimeout(pas, pasMs / vitesse);
+      // Second souffle : le combat reste en pause le temps de l'animation
+      timer = setTimeout(pas, (pasMs * pasDe(e)) / vitesse);
     }
 
     // ---------- Vitesse ----------
@@ -589,6 +633,7 @@
       if (!ok) { $("banniere").textContent = "Combat introuvable."; return; }
 
       pasMs = data.pasMs;
+      pasSouffle = data.pasSouffle ?? 1;
       resultat = data.resultat;
       eloDelta = data.eloDelta;
       mode = data.mode ?? "pvp";
@@ -608,8 +653,12 @@
 
       const ecoule = Math.max(0, data.ecouleMs - data.delaiInitialMs);
       const fini = resultat.dureeMs !== undefined && data.ecouleMs >= resultat.dureeMs;
-      const cible = fini ? journal.length : Math.min(journal.length, Math.floor(ecoule / pasMs));
-      for (index = 0; index < cible; index++) appliquerSansAnimation(journal[index]);
+      // Événements déjà joués : on avance tant que leurs pas tiennent dans le temps écoulé (une relève en compte plusieurs)
+      let pasEcoules = Math.floor(ecoule / pasMs);
+      for (index = 0; index < journal.length && (fini || pasEcoules >= pasDe(journal[index])); index++) {
+        pasEcoules -= pasDe(journal[index]);
+        appliquerSansAnimation(journal[index]);
+      }
 
       dessiner();
 

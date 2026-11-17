@@ -1,5 +1,5 @@
 import { pool, transaction } from "../config/database.js";
-import { DELAI_INITIAL_MS, PAS_MS, VITESSE_REPLAY_MAX } from "../constants/game.js";
+import { DELAI_INITIAL_MS, PAS_MS, PAS_SOUFFLE, VITESSE_REPLAY_MAX } from "../constants/game.js";
 import { ErreurJeu } from "../erreurs.js";
 import { combat } from "../game/combat-engine.js";
 import { SINGES, getImageUrl, getNiveau, statsFinales } from "../game/monkeys.js";
@@ -16,6 +16,13 @@ import { bonusEveil, bonusEveilPct } from "../game/eveil.js";
 import { bonusObjets } from "../game/objets.js";
 import { objetsDesSinges } from "./objets-service.js";
 import { progresserQuete } from "./quetes-service.js";
+
+// Durée du replay d'un journal : un pas par événement, PAS_SOUFFLE pas pour un Second souffle (pause de la relève).
+// Le client (combat-live.html) suit le même rythme pour se caler sur le direct.
+export function dureeReplayMs(journal) {
+  const pas = journal.reduce((t, e) => t + (e.type === "souffle" ? PAS_SOUFFLE : 1), 0);
+  return DELAI_INITIAL_MS + pas * PAS_MS;
+}
 
 // Singe d'un joueur prêt pour le moteur de combat (fonction pure) : stats de son niveau, bonus de l'arbre (`effets`),
 // perk porté (`perk`, effet brut), niveau d'éveil (`eveil`) et objets portés (`objets`, effets à leur niveau).
@@ -79,7 +86,7 @@ async function enregistrerCombat(db, defi, equipeA, equipeB) {
   const resultat = combat(equipeA, equipeB);
   resultat.equipeA = equipeA;
   resultat.equipeB = equipeB;
-  resultat.dureeMs = DELAI_INITIAL_MS + resultat.journal.length * PAS_MS;
+  resultat.dureeMs = dureeReplayMs(resultat.journal);
   resultat.elo = await eloDuCombat(db, defi.de_user, defi.vers_user, resultat.vainqueur);
 
   const { rows } = await db.query(
@@ -175,6 +182,7 @@ export async function getCombat(userId, combatId) {
     // Rythme du replay : le client s'en sert pour se caler sur le direct.
     delaiInitialMs: DELAI_INITIAL_MS,
     pasMs: PAS_MS,
+    pasSouffle: PAS_SOUFFLE,
   };
 }
 
