@@ -6,6 +6,8 @@ import { definirEquipe, getEquipe, nbSlotsDuJoueur } from "../services/team-serv
 import { effetsDuJoueur, getArbre, getPointsArbre, prendreNoeud } from "../services/arbre-service.js";
 import { getElo } from "../services/elo-service.js";
 import { effectuerTirage, getQuota } from "../services/tirage-service.js";
+import { lireRessources } from "../services/ressources-joueur-service.js";
+import { etatLoterie } from "../services/loterie-service.js";
 import { ErreurJeu } from "../erreurs.js";
 import { resonancesAvecBonus } from "../game/resonances.js";
 import { preparerEquipe } from "../services/combat-service.js";
@@ -21,10 +23,22 @@ gameRoutes.get("/monkeydex", authentifie, async (req, res) => {
   res.json(await getResumeMonkeydex(req.userId));
 });
 
+// Bas de la page Tirage : probabilités par rareté et flux des légendaires/mythiques.
+// Endpoint à part plutôt que dans /profil : seule cette page s'en sert, inutile de le
+// payer sur toutes les autres.
+gameRoutes.get("/loterie", authentifie, async (req, res) => {
+  res.json(await etatLoterie(req.userId));
+});
+
+// Tout ce que la barre du haut affiche : starter, stock de tirages, elo, points de talents
+// et ressources (acier, étoffe, essence). Les ressources sont servies ici plutôt que par
+// /armes, /equipements et /eveil : une requête de plus au lieu de trois appels par page.
 gameRoutes.get("/profil", authentifie, async (req, res) => {
-  const [starter, quota, elo] = await Promise.all([getStarter(req.userId), getQuota(req.userId), getElo(req.userId)]);
+  const [starter, quota, elo, ressources] = await Promise.all([
+    getStarter(req.userId), getQuota(req.userId), getElo(req.userId), lireRessources(req.userId),
+  ]);
   const pointsArbre = starter ? await getPointsArbre(req.userId, starter.niveau) : 0;
-  res.json({ starter, quota, pointsArbre, elo });
+  res.json({ starter, quota, pointsArbre, elo, ressources });
 });
 
 // Arbre du starter : état complet, et déblocage d'un nœud (renvoie l'état mis à jour)

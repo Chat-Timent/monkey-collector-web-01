@@ -15,264 +15,278 @@
       background: var(--fond);
       color: var(--texte);
       margin: 0;
-      padding: var(--topbar-h) 0 0;
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
     }
 
-    /* ---------- Mise en page ---------- */
-
+    /* Les cadres gardent leur hauteur naturelle : on ne les étire pas jusqu'au bas de
+       l'écran, ça créait de grandes zones vides. */
     .page {
-      width: 100%;
-      height: 100%;
-      display: grid;
-      grid-template-columns: 260px minmax(0, 1fr) 320px;
-      gap: 0;
-      min-height: 0;
-    }
-
-    .panneau {
-      background: var(--panneau);
-      padding: 16px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px;
       display: flex;
       flex-direction: column;
-      min-height: 0;
-      height: 100%;
+      gap: 16px;
     }
-    .classement-panneau { border-right: 1px solid var(--panneau-bord); }
-    .chat-panneau { border-left: 1px solid var(--panneau-bord); }
 
-    .panneau h2 {
-      font-size: 14px;
+    /* Haut : le tirage à gauche, le dernier singe tiré à droite. `stretch` aligne le bas
+       du cadre de tirage sur celui de la fiche, donc sur le haut de l'historique. */
+    .haut {
+      display: grid;
+      grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .carte {
+      display: flex;
+      flex-direction: column;
+      background: var(--carte);
+      border: 1px solid var(--carte-bord);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    .carte h2 {
+      margin: 0 0 12px;
+      font-size: 13px;
       color: var(--texte-doux);
       text-transform: uppercase;
       letter-spacing: 1px;
-      margin: 0 0 12px;
-      flex-shrink: 0;
     }
 
-    .liste {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding-right: 4px;
-    }
+    /* ---------- Bloc de tirage ---------- */
 
-    .joueur {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      background: #242424;
-      font-size: 14px;
-      border: 1px solid transparent;
-      flex-shrink: 0;
+    .stock { text-align: center; }
+    /* Le compteur se centre dans la hauteur restante, le bouton reste collé en bas */
+    .stock .corps { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .stock .nombre { font-size: 38px; font-weight: bold; line-height: 1.1; }
+    .stock .nombre small { font-size: 16px; color: var(--texte-doux); font-weight: normal; }
+    .jauge {
+      height: 10px;
+      margin: 10px 0 6px;
+      background: #161616;
+      border: 1px solid #3a3555;
+      border-radius: 999px;
+      overflow: hidden;
     }
-    .joueur.moi { border-color: #2e6b3a; }
-    .joueur .rang { width: 22px; color: #888; font-size: 12px; font-weight: bold; }
-    .joueur .pseudo { flex: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .joueur .total { font-weight: bold; color: var(--or); }
-    .joueur.moi .total { color: var(--vert); }
-    .vide { color: #777; font-size: 13px; }
-
-    /* Zone centrale */
-    .gacha {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 0;
-      min-height: 0;
+    .jauge > i {
+      display: block;
       height: 100%;
-      overflow-y: auto;
-      padding: 24px;
+      width: 0;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width 0.3s ease;
     }
-    .gacha h1 { margin: 0 0 20px; font-size: 26px; }
-
-    .controles { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
-    .bouton {
-      padding: 14px 24px;
-      border-radius: 10px;
-      border: 1px solid var(--carte-bord);
-      background: var(--carte);
-      color: var(--texte);
+    .recharge { min-height: 18px; font-size: 13px; color: var(--texte-doux); }
+    #tirer {
+      width: 100%;
+      margin-top: 14px;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff;
+      font: inherit;
       font-size: 18px;
       font-weight: bold;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
       cursor: pointer;
-    }
-    #tirer {
-      border: none;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
       transition: transform 0.1s, box-shadow 0.2s;
     }
-    #tirer:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(229, 68, 122, 0.4);
-    }
+    #tirer:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(229, 68, 122, 0.4); }
     #tirer:active { transform: translateY(0); }
-    #tirer:disabled { opacity: 0.5; cursor: default; transform: none; box-shadow: none; }
+    #tirer:disabled { background: #332f42; color: #777; cursor: default; transform: none; box-shadow: none; }
+    #message { min-height: 20px; margin: 10px 0 0; color: var(--or); font-size: 13px; text-align: center; }
 
-    #quota { margin: -12px 0 16px; font-size: 15px; color: var(--texte-doux); min-height: 1.2em; }
-    #quota strong { color: var(--texte); }
-    #quota.epuise { color: var(--or); font-weight: bold; }
+    /* ---------- Fiche du dernier singe tiré ---------- */
 
-    #carte {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      background: var(--carte);
-      border-radius: 16px;
-      padding: 30px;
-      width: 340px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    }
-    #nom { font-size: 32px; font-weight: bold; margin: 0 0 10px; }
+    #fiche-singe { flex: 1; }
+    .singe { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 18px; }
+    /* Carte haute : le portrait se centre sur la hauteur plutôt que de rester collé en haut */
+    .singe .portrait { display: flex; align-items: center; justify-content: center; }
+    .singe .portrait img { width: 150px; height: 150px; object-fit: contain; }
+    .singe .nom { font-size: 24px; font-weight: bold; margin: 0 0 8px; }
+    .singe .badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+    /* Bordure à la couleur exacte de la rareté, texte éclairci : le bleu du commun (#060ee4)
+       est illisible tel quel sur fond sombre. */
     .rarete {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 14px 4px 6px;
-      border-radius: 999px;
-      font-size: 14px;
-      font-weight: bold;
-      color: #fff;
-      background: var(--carte);
-      border: 2px solid;
-      margin-bottom: 14px;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 12px 3px 4px; border-radius: 999px;
+      font-size: 12px; font-weight: bold; border: 2px solid; background: #161616;
+      color: color-mix(in srgb, var(--rarete) 55%, #ffffff);
     }
-    .rarete img { width: 24px; height: 24px; object-fit: contain; }
-    #famille-tiree:not(:empty) { margin-bottom: 14px; }
-    #description { font-size: 15px; font-style: italic; color: var(--texte-doux); margin: 0 0 16px; }
-    #niveau { color: var(--or); margin-bottom: 16px; }
-    #image { width: 200px; height: 200px; object-fit: contain; }
-    #stats {
-      width: 100%;
+    .rarete img { width: 20px; height: 20px; object-fit: contain; }
+    .singe .description { font-size: 14px; font-style: italic; color: var(--texte-doux); margin: 0 0 10px; }
+    .singe .niveau { font-size: 13px; color: var(--or); margin-bottom: 12px; }
+    .singe .competence {
+      font-size: 12px; color: var(--texte-doux); margin-bottom: 12px;
+      padding: 8px 10px; background: #1e1b2e; border-radius: 8px; border-left: 3px solid var(--accent);
+    }
+    #stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .stat { background: #1e1b2e; border-radius: 8px; padding: 6px 9px; }
+    .stat span { display: block; font-size: 11px; color: #999; }
+    .stat strong { display: block; font-size: 16px; }
+    .stat small { color: var(--vert); font-size: 11px; }
+    .gains { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .gains span {
+      padding: 3px 10px; border-radius: 999px; background: #1e1b2e;
+      border: 1px solid #3a3555; font-size: 12px; color: var(--vert);
+    }
+
+    /* ---------- Historique ---------- */
+
+    /* Une seule ligne : les colonnes s'étirent pour toucher les deux bords du cadre, et le
+       script n'affiche que le nombre de vignettes qui tiennent sur cette ligne. */
+    .vignettes {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+      /* Filet de sécurité : la première ligne est la seule à avoir une hauteur, tout ce qui
+         déborderait en dessous est coupé. */
+      grid-template-rows: auto;
+      grid-auto-rows: 0;
+      overflow: hidden;
       gap: 8px;
-      border-top: 1px solid var(--carte-bord);
-      margin-top: 20px;
-      padding-top: 16px;
     }
-    .stat span { display: block; font-size: 12px; color: #999; }
-    .stat strong { display: block; font-size: 18px; }
-    .stat small { color: var(--vert); font-size: 12px; }
-    #message { color: var(--or); }
-
-    /* Chat */
-    .chat-texte {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      padding-right: 4px;
+    .vignette {
+      width: 100%; aspect-ratio: 1; max-height: 72px;
+      border-radius: 10px; border: 2px solid var(--rarete, var(--carte-bord));
+      background: #1e1b2e; object-fit: contain; padding: 3px;
     }
+    .historique .vide { grid-column: 1 / -1; color: #777; font-size: 13px; margin: 0; }
 
-    /* ---------- Adaptation petits écrans ---------- */
+    /* ---------- Bas : probabilités et flux des tirages notables ---------- */
 
-    @media (max-width: 1100px) {
-      body { height: auto; min-height: 100vh; overflow: auto; }
-      .page { grid-template-columns: 240px minmax(0, 1fr); height: auto; }
-      .gacha { height: auto; overflow: visible; }
-      .classement-panneau { height: auto; max-height: 70vh; }
-      .chat-panneau {
-        grid-column: 1 / -1;
-        height: 360px;
-        border-left: none;
-        border-top: 1px solid var(--panneau-bord);
-      }
+    .bas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+    .vide { color: #777; font-size: 13px; margin: 0; }
+
+    /* Chances : une ligne par rareté, la barre est proportionnelle à la chance réelle
+       (le commun écrase tout, c'est le propos) avec une largeur minimale pour rester visible. */
+    .chance {
+      display: grid;
+      grid-template-columns: 22px minmax(0, 1fr) 2fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 3px 0;
+      font-size: 13px;
     }
-    @media (max-width: 800px) {
-      .page { grid-template-columns: 1fr; }
-      .classement-panneau {
-        grid-column: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--panneau-bord);
-        max-height: none;
-      }
-      .classement-panneau .liste { max-height: 260px; flex: none; }
-      .chat-panneau { height: 340px; border-top: none; border-bottom: 1px solid var(--panneau-bord); }
+    .chance img { width: 20px; height: 20px; object-fit: contain; }
+    .chance .nom { color: var(--texte-doux); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chance .piste { height: 8px; background: #161616; border: 1px solid #3a3555; border-radius: 999px; overflow: hidden; }
+    .chance .piste > i { display: block; height: 100%; min-width: 4px; background: var(--rarete); }
+    .chance .pct { font-weight: bold; font-variant-numeric: tabular-nums; }
+    /* Bonus de l'arbre (Flair) : le taux de base reste affiché, barré */
+    .chance .base { color: #6d6a80; font-weight: normal; text-decoration: line-through; margin-right: 6px; font-size: 12px; }
+
+    /* Flux : les derniers légendaires et mythiques tirés par tout le monde */
+    .flux { display: flex; flex-direction: column; gap: 6px; max-height: 232px; overflow-y: auto; padding-right: 4px; }
+    .notable {
+      display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+      padding: 5px 9px; border-radius: 10px; background: #1e1b2e;
+      border: 1px solid transparent; border-left: 3px solid var(--rarete);
+    }
+    .notable.moi { border-color: var(--accent); border-left-color: var(--rarete); }
+    .notable img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+    .notable .texte { min-width: 0; flex: 1; }
+    .notable .qui { font-size: 13px; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .notable .quoi { font-size: 12px; color: color-mix(in srgb, var(--rarete) 55%, #ffffff); }
+    .notable .quand { font-size: 11px; color: #777; white-space: nowrap; flex-shrink: 0; }
+
+    @media (max-width: 860px) {
+      .haut { grid-template-columns: minmax(0, 1fr); }
+      .bas { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .page { padding: 14px 10px; }
+      .singe { grid-template-columns: minmax(0, 1fr); }
+      .singe .portrait img { width: 120px; height: 120px; }
+      #stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      /* Le nom de rareté passe en entier (« Non-commun »), c'est la barre qui rétrécit */
+      .chance { grid-template-columns: 22px auto minmax(0, 1fr) auto; gap: 8px; }
     }
   </style>
 </head>
 <body>
 
   <div class="page">
-    <aside class="panneau classement-panneau">
-      <h2>Classement</h2>
-      <div id="classement" class="liste"></div>
-    </aside>
-
-    <main class="gacha">
-      <div class="controles">
-        <button id="tirer" class="bouton">Tirer un singe</button>
-      </div>
-
-      <p id="quota"></p>
-
-      <p id="message"></p>
-
-      <div id="carte">
-        <h2 id="nom"></h2>
-        <div id="rarete" class="rarete"></div>
-        <div id="famille-tiree"></div>
-        <p id="description"></p>
-        <div id="niveau"></div>
-        <img id="image" alt="">
-        <div id="stats">
-          <div class="stat"><span>HP</span><strong id="hp"></strong><small id="hp-croissance"></small></div>
-          <div class="stat"><span>ATK</span><strong id="atk"></strong><small id="atk-croissance"></small></div>
-          <div class="stat"><span>DEF</span><strong id="def"></strong><small id="def-croissance"></small></div>
-          <div class="stat"><span>SPD</span><strong id="spd"></strong></div>
-          <div class="stat"><span>PRE</span><strong id="prec"></strong></div>
-          <div class="stat"><span>ESQ</span><strong id="esq"></strong></div>
-          <div class="stat"><span>CRIT</span><strong id="crit"></strong></div>
-          <div class="stat"><span>CRIT DMG</span><strong id="critdmg"></strong></div>
+    <div class="haut">
+      <section class="carte stock">
+        <h2>Tirages disponibles</h2>
+        <div class="corps">
+          <div class="nombre" id="stock-nombre">…</div>
+          <div class="jauge"><i id="stock-jauge"></i></div>
+          <div class="recharge" id="stock-recharge"></div>
         </div>
-      </div>
-    </main>
+        <button id="tirer" type="button" disabled>Tirer un singe</button>
+        <p id="message"></p>
+      </section>
 
-    <aside class="panneau chat-panneau">
-      <h2>Chat global</h2>
-      <div id="messages" class="chat-texte"></div>
-      <form id="formChat">
-        <input id="texteChat" maxlength="200" placeholder="Parle à tout le monde…" autocomplete="off">
-        <button id="envoyerChat" type="submit">Envoyer</button>
-      </form>
-      <div id="statutChat"></div>
-    </aside>
+      <section class="carte">
+        <h2 id="titre-singe">Dernier tirage</h2>
+        <div id="fiche-singe"></div>
+      </section>
+    </div>
+
+    <section class="carte historique">
+      <h2>Historique des tirages</h2>
+      <div class="vignettes" id="historique"></div>
+    </section>
+
+    <div class="bas">
+      <section class="carte">
+        <h2>Chances de tirage</h2>
+        <div id="chances"></div>
+      </section>
+
+      <section class="carte">
+        <h2>Légendaires et mythiques récents</h2>
+        <div class="flux" id="flux"></div>
+      </section>
+    </div>
   </div>
 
   <script src="/js/commun.js"></script>
   <script src="/js/arbre.js"></script>
   <script src="/js/barre.js"></script>
   <script>
-    const INTERVALLE_CHAT_MS = 2000;
-    const INTERVALLE_CLASSEMENT_MS = 10000;
+    const $ = (id) => document.getElementById(id);
+    // Historique gardé dans le navigateur : la liste des espèces tirées, la plus récente d'abord.
+    // Le serveur ne garde pas l'historique des tirages ; ici seules les espèces sont stockées,
+    // les détails sont relus dans /monkeydex à chaque chargement.
+    const CLE_HISTORIQUE = "monkey-historique-tirages";
+    // Assez de tirages gardés pour remplir des lignes entières de vignettes, quelle que soit la largeur
+    const MAX_HISTORIQUE = 24;
 
-    // ---------- Quota de tirages ----------
+    let parEspece = {};        // espece → fiche complète (réponse /monkeydex)
+    let historique = [];       // espèces tirées, la plus récente d'abord
+
+    function lireHistorique() {
+      try {
+        const brut = JSON.parse(localStorage.getItem(CLE_HISTORIQUE) ?? "[]");
+        return Array.isArray(brut) ? brut.filter((e) => typeof e === "string") : [];
+      } catch {
+        return []; // stockage indisponible ou contenu abîmé : on repart d'une liste vide
+      }
+    }
+    function ecrireHistorique() {
+      try {
+        localStorage.setItem(CLE_HISTORIQUE, JSON.stringify(historique));
+      } catch {
+        // Navigation privée ou stockage plein : l'historique vit alors le temps de la page
+      }
+    }
+
+    // ---------- Stock de tirages ----------
 
     // Dernier quota reçu du serveur et instant de réception : la recharge (+1 toutes les
     // `intervalleMs` sous le plafond) est ensuite simulée ici, seconde par seconde.
     let quotaRecu = null;
     let recuA = 0;
     let quotaEpuise = false;
+    let tirageEnCours = false;
 
     function formaterDuree(ms) {
       const sec = Math.max(0, Math.ceil(ms / 1000));
       return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
     }
 
-    // Stock actuel et délai avant le prochain tirage (null quand la recharge est arrêtée)
     function quotaActuel() {
       let { restants, max, intervalleMs, msAvantProchain } = quotaRecu;
       if (msAvantProchain !== null) {
@@ -296,21 +310,15 @@
     function dessinerQuota() {
       if (!quotaRecu) return;
       const { restants, max, msAvantProchain } = quotaActuel();
-      const zone = document.getElementById("quota");
+      $("stock-nombre").innerHTML = `${restants} <small>/ ${max}</small>`;
+      $("stock-jauge").style.width = Math.min(100, Math.round((restants / max) * 100)) + "%";
+      $("stock-recharge").textContent = msAvantProchain === null
+        ? "Stock plein"
+        : `+1 tirage dans ${formaterDuree(msAvantProchain)}`;
       quotaEpuise = restants <= 0;
       // Pendant un tirage, le bouton reste bloqué : il sera réactivé à la fin
-      if (!tirageEnCours) boutonTirer.disabled = quotaEpuise;
-      zone.classList.toggle("epuise", quotaEpuise);
-
-      if (quotaEpuise) {
-        zone.textContent = `Prochain tirage dans ${formaterDuree(msAvantProchain)}`;
-        return;
-      }
-      zone.innerHTML = "";
-      const nombre = document.createElement("strong");
-      nombre.textContent = `${restants} / ${max}`;
-      zone.append("Tirages : ", nombre);
-      if (msAvantProchain !== null) zone.append(` · +1 dans ${formaterDuree(msAvantProchain)}`);
+      if (!tirageEnCours) $("tirer").disabled = quotaEpuise;
+      Barre.afficherQuota({ restants, max });
     }
 
     setInterval(dessinerQuota, 250);
@@ -322,187 +330,272 @@
       } catch { /* on garde le quota simulé */ }
     }
 
-    const boutonTirer = document.getElementById("tirer");
-    let tirageEnCours = false;
+    // ---------- Fiche du singe ----------
 
-    boutonTirer.addEventListener("click", async () => {
-      // Un seul tirage à la fois : évite les doubles clics
-      if (boutonTirer.disabled) return;
-      boutonTirer.disabled = true;
-      tirageEnCours = true;
+    const STATS = [
+      ["hp", "PV"], ["atk", "ATK"], ["def", "DEF"], ["spd", "Vitesse"],
+      ["prec", "Précision"], ["esq", "Esquive"], ["crit", "Critique"], ["critdmg", "Dégâts crit"],
+    ];
+    const POURCENTAGE = new Set(["crit", "critdmg"]);
+    const CROISSANCE = new Set(["hp", "atk", "def"]);
+
+    // `singe` a la forme d'une entrée de /monkeydex. `gains` (facultatif) : bonus du tirage qui vient
+    // d'avoir lieu. `titre` dit si c'est vraiment le dernier tirage ou le singe montré par défaut.
+    function afficherSinge(singe, { gains = null, titre = "Dernier tirage" } = {}) {
+      $("titre-singe").textContent = titre;
+      const zone = $("fiche-singe");
+      if (!singe) {
+        zone.innerHTML = `<p class="description">Fais ton premier tirage pour voir un singe ici.</p>`;
+        return;
+      }
+      const r = infoRarete(singe.espece.rarete);
+      zone.className = "singe";
+      zone.innerHTML = `
+        <div class="portrait"><img alt=""></div>
+        <div>
+          <h3 class="nom"></h3>
+          <div class="badges">
+            <span class="rarete"><img alt=""><span class="label"></span></span>
+            <span class="fam"></span>
+          </div>
+          <p class="description"></p>
+          <div class="niveau"></div>
+          <div class="competence" hidden></div>
+          <div id="stats"></div>
+          <div class="gains"></div>
+        </div>`;
+
+      const img = zone.querySelector(".portrait img");
+      img.src = singe.image;
+      img.alt = singe.espece.nom;
+      zone.querySelector(".nom").textContent = singe.espece.nom;
+      const badge = zone.querySelector(".rarete");
+      badge.style.setProperty("--rarete", r.couleur);
+      badge.style.borderColor = r.couleur;
+      badge.querySelector("img").src = r.icone;
+      badge.querySelector(".label").textContent = r.label;
+      zone.querySelector(".fam").innerHTML = badgeFamilleHTML(singe.espece.categorie);
+      zone.querySelector(".description").textContent = singe.espece.description ?? "";
+      zone.querySelector(".niveau").innerHTML =
+        `Niveau ${singe.niveau.niveau} · ${singe.niveau.progression} / ${singe.niveau.prochain} vers le suivant`
+        + (singe.eveil ? ` · ${etoilesEveilHTML(singe.eveil.niveau, singe.eveil.max)}` : "");
+
+      const texteCompetence = descriptionCompetence(singe.competence);
+      if (texteCompetence) {
+        const bloc = zone.querySelector(".competence");
+        bloc.hidden = false;
+        bloc.textContent = `${singe.competence.icone} ${singe.competence.nom} : ${texteCompetence}`;
+      }
+
+      zone.querySelector("#stats").innerHTML = STATS.map(([cle, libelle]) => {
+        const valeur = singe.stats[cle] + (POURCENTAGE.has(cle) ? " %" : "");
+        const croissance = CROISSANCE.has(cle) ? `<small>+${singe.espece.croissance[cle]} / niv.</small>` : "";
+        return `<div class="stat"><span>${libelle}</span><strong>${valeur}</strong>${croissance}</div>`;
+      }).join("");
+
+      const lignes = [];
+      if (gains?.xp) lignes.push(`+${gains.xp} XP`);
+      if (gains?.coins) lignes.push(`💰 +${gains.coins} coins`);
+      if (gains?.copieBonus) lignes.push("Doublon chanceux : une copie en plus");
+      if (gains?.etincelle) lignes.push("Étincelle : rare garanti");
+      if (gains?.niveauxGagnes) lignes.push("Niveau supérieur : +1 point de talent");
+      zone.querySelector(".gains").innerHTML = lignes.map((t) => `<span>${t}</span>`).join("");
+    }
+
+    // ---------- Historique ----------
+
+    // Nombre de colonnes que la grille a créées pour la largeur actuelle : c'est exactement
+    // le nombre de vignettes qui remplit la ligne d'un bord à l'autre.
+    function colonnesHistorique() {
+      const colonnes = getComputedStyle($("historique")).gridTemplateColumns.split(" ").filter(Boolean);
+      return Math.max(1, colonnes.length);
+    }
+
+    function afficherHistorique() {
+      const zone = $("historique");
+      zone.innerHTML = "";
+      // Une seule ligne : au-delà, les plus anciens tirages sortent du cadre.
+      const connus = historique.map((e) => parEspece[e]).filter(Boolean).slice(0, colonnesHistorique());
+      if (connus.length === 0) {
+        zone.innerHTML = `<p class="vide">Aucun tirage pour l'instant.</p>`;
+        return;
+      }
+      for (const s of connus) {
+        const img = document.createElement("img");
+        img.className = "vignette";
+        img.src = s.image;
+        img.alt = s.espece.nom;
+        img.title = `${s.espece.nom} · ${infoRarete(s.espece.rarete).label}`;
+        img.style.setProperty("--rarete", infoRarete(s.espece.rarete).couleur);
+        zone.appendChild(img);
+      }
+    }
+
+    // ---------- Chances et flux des tirages notables ----------
+
+    // Les chances vont de 77 % à moins de 0,1 % : une décimale pour les grandes,
+    // trois pour les miettes, sinon le mythique s'afficherait « 0 % ».
+    function pctChance(part) {
+      const pct = part * 100;
+      return pct.toLocaleString("fr-FR", { maximumFractionDigits: pct >= 1 ? 1 : 3 }) + " %";
+    }
+
+    function afficherChances({ chances, chancesBase }) {
+      const base = Object.fromEntries(chancesBase.map((c) => [c.rarete, c.chance]));
+      const maxi = Math.max(...chances.map((c) => c.chance));
+      $("chances").innerHTML = chances.map(({ rarete, chance }) => {
+        const r = infoRarete(rarete);
+        // Flair ne change que les raretés rares : ailleurs il n'y a rien à comparer
+        const avant = Math.abs(base[rarete] - chance) > 1e-9
+          ? `<span class="base">${pctChance(base[rarete])}</span>` : "";
+        return `
+          <div class="chance" style="--rarete: ${r.couleur}">
+            <img src="${r.icone}" alt="">
+            <span class="nom">${r.label}</span>
+            <span class="piste"><i style="width: ${(chance / maxi) * 100}%"></i></span>
+            <span class="pct">${avant}${pctChance(chance)}</span>
+          </div>`;
+      }).join("");
+    }
+
+    function ilYa(iso) {
+      const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+      if (minutes < 1) return "à l'instant";
+      if (minutes < 60) return `il y a ${minutes} min`;
+      const heures = Math.round(minutes / 60);
+      if (heures < 24) return `il y a ${heures} h`;
+      return `il y a ${Math.round(heures / 24)} j`;
+    }
+
+    function afficherFlux(notables) {
+      const zone = $("flux");
+      if (notables.length === 0) {
+        zone.innerHTML = `<p class="vide">Personne n'a encore tiré de légendaire. À toi de jouer.</p>`;
+        return;
+      }
+      // Construit avec textContent : un pseudo n'est jamais interprété en HTML.
+      zone.innerHTML = "";
+      for (const n of notables) {
+        const r = infoRarete(n.rarete);
+        const ligne = document.createElement("div");
+        ligne.className = "notable" + (n.moi ? " moi" : "");
+        ligne.style.setProperty("--rarete", r.couleur);
+        ligne.innerHTML = `<img alt=""><div class="texte"><div class="qui"></div><div class="quoi"></div></div><div class="quand"></div>`;
+        ligne.querySelector("img").src = n.image;
+        ligne.querySelector(".qui").textContent = n.moi ? "Toi" : n.pseudo;
+        ligne.querySelector(".quoi").textContent = `${n.nom} · ${r.label}`;
+        ligne.querySelector(".quand").textContent = ilYa(n.date);
+        zone.appendChild(ligne);
+      }
+    }
+
+    async function rafraichirLoterie() {
       try {
-        await tirer();
+        const { ok, data } = await api("/loterie");
+        if (!ok) return;
+        afficherChances(data);
+        afficherFlux(data.notables);
       } catch {
-        document.getElementById("message").textContent = "Erreur réseau, réessaie.";
+        // Réseau indisponible : les deux cadres gardent leur contenu précédent
+      }
+    }
+
+    // La largeur du cadre change le nombre de colonnes : on redessine la ligne. L'observateur
+    // réagit à la mise en page elle-même, donc aussi aux changements sans `resize` de fenêtre.
+    let largeurHistorique = 0;
+    new ResizeObserver(([entree]) => {
+      const largeur = Math.round(entree.contentRect.width);
+      if (largeur === largeurHistorique) return;
+      largeurHistorique = largeur;
+      afficherHistorique();
+    }).observe($("historique"));
+
+    // ---------- Tirage ----------
+
+    $("tirer").addEventListener("click", async () => {
+      if ($("tirer").disabled || tirageEnCours) return;
+      tirageEnCours = true;
+      $("tirer").disabled = true;
+      $("message").textContent = "";
+      try {
+        const { ok, data } = await api("/tirage", { methode: "POST" });
+        if (!ok) {
+          // Quota épuisé : le décompte sous la jauge suffit comme explication
+          $("message").textContent = data.quota ? "" : `Erreur : ${data.erreur}`;
+          if (data.quota) afficherQuota(data.quota);
+          return;
+        }
+
+        // La fiche du Monkeydex garde la compétence et l'éveil ; le tirage apporte les
+        // valeurs fraîches (copies, niveau, stats). On fusionne les deux.
+        const avant = parEspece[data.id] ?? {};
+        const singe = {
+          ...avant,
+          id: data.id,
+          espece: data.espece,
+          image: data.image,
+          amount: data.amount,
+          niveau: data.niveau,
+          stats: data.stats,
+          statsBase: data.stats,
+        };
+        parEspece[data.id] = singe;
+
+        historique = [data.id, ...historique].slice(0, MAX_HISTORIQUE);
+        ecrireHistorique();
+
+        await prechargerImages([data.image, infoRarete(data.espece.rarete).icone]);
+        afficherSinge(singe, { gains: { ...data.gains, niveauxGagnes: data.starter?.niveauxGagnes } });
+        afficherHistorique();
+        afficherQuota(data.quota);
+        Barre.afficherStarter(data.starter);
+        Barre.afficherPoints(data.pointsArbre);
+        // Un légendaire ou un mythique vient d'entrer dans le flux : on le remonte tout de suite
+        if (["legendary", "mythic"].includes(data.espece.rarete)) rafraichirLoterie();
+      } catch {
+        $("message").textContent = "Erreur réseau, réessaie.";
       } finally {
         tirageEnCours = false;
-        boutonTirer.disabled = quotaEpuise;
+        dessinerQuota();
       }
-    });
-
-    async function tirer() {
-      const { ok, data } = await api("/tirage", { methode: "POST" });
-      if (!ok) {
-        if (data.quota) {
-          // Quota épuisé : le message du quota suffit
-          document.getElementById("message").textContent = "";
-          afficherQuota(data.quota);
-        } else {
-          document.getElementById("message").textContent = "Erreur : " + data.erreur;
-        }
-        return;
-      }
-      // Bonus de l'arbre tombés sur ce tirage
-      const bonus = [];
-      if (data.gains?.coins > 0) bonus.push(`💰 +${data.gains.coins} coins !`);
-      if (data.gains?.copieBonus) bonus.push("Doublon chanceux : une copie en plus !");
-      if (data.gains?.etincelle) bonus.push("Étincelle : rare garanti !");
-      if (data.starter?.niveauxGagnes > 0) bonus.push("Niveau supérieur : +1 point d'arbre !");
-      document.getElementById("message").textContent = bonus.join(" · ");
-      afficherQuota(data.quota);
-      Barre.afficherPoints(data.pointsArbre);
-      const { espece, niveau, image, stats } = data;
-
-      const rarete = infoRarete(espece.rarete);
-
-      await prechargerImages([image, rarete.icone]);
-      await new Promise(requestAnimationFrame);
-
-      const elRarete = document.getElementById("rarete");
-      elRarete.innerHTML = "";
-      elRarete.style.borderColor = rarete.couleur;
-      elRarete.style.color = rarete.couleur;
-      const icone = document.createElement("img");
-      icone.src = rarete.icone;
-      icone.alt = "";
-      elRarete.appendChild(icone);
-      elRarete.appendChild(document.createTextNode(rarete.label));
-      document.getElementById("famille-tiree").innerHTML = badgeFamilleHTML(espece.categorie, true);
-
-      document.getElementById("nom").textContent = espece.nom;
-      document.getElementById("description").textContent = espece.description ?? "";
-      document.getElementById("niveau").textContent =
-        `Niveau ${niveau.niveau} — ${niveau.progression}/${niveau.prochain} vers le suivant`;
-      document.getElementById("image").src = image;
-
-      for (const cle of ["hp", "atk", "def"]) {
-        document.getElementById(cle).textContent = stats[cle];
-        document.getElementById(cle + "-croissance").textContent = `+${espece.croissance[cle]} / niv.`;
-      }
-      for (const cle of ["spd", "prec", "esq"]) {
-        document.getElementById(cle).textContent = stats[cle];
-      }
-      document.getElementById("crit").textContent = stats.crit + "%";
-      document.getElementById("critdmg").textContent = stats.critdmg + "%";
-
-      document.getElementById("carte").style.display = "flex";
-      Barre.afficherStarter(data.starter);
-      chargerClassement();
-    }
-
-    // ---------- Classement ----------
-
-    async function chargerClassement() {
-      const { ok, data } = await api("/classement");
-      if (!ok) return;
-      const { joueurs } = data;
-      const zone = document.getElementById("classement");
-      zone.innerHTML = "";
-
-      if (joueurs.length === 0) {
-        zone.innerHTML = `<p class="vide">Aucun joueur pour l'instant.</p>`;
-        return;
-      }
-
-      joueurs.forEach((j, i) => {
-        const ligne = document.createElement("div");
-        ligne.className = "joueur" + (j.moi ? " moi" : "");
-
-        const rang = document.createElement("span");
-        rang.className = "rang";
-        rang.textContent = i + 1;
-
-        const pseudo = document.createElement("span");
-        pseudo.className = "pseudo";
-        pseudo.textContent = j.pseudo;
-
-        const total = document.createElement("span");
-        total.className = "total";
-        total.textContent = j.total;
-
-        ligne.append(rang, pseudo, total);
-        zone.appendChild(ligne);
-      });
-    }
-
-    // ---------- Chat global ----------
-
-    let dernierIdMessage = 0;
-    let rafraichissementChat = null;
-
-    function retirerAnciens(plusAncienId) {
-      if (!plusAncienId) return;
-      const zone = document.getElementById("messages");
-      for (const bulle of [...zone.children]) {
-        if (Number(bulle.dataset.id) < plusAncienId) bulle.remove();
-      }
-    }
-
-    // Une seule actualisation à la fois : si une tourne déjà, on attend celle-ci
-    function rafraichirChat() {
-      if (rafraichissementChat) return rafraichissementChat;
-
-      rafraichissementChat = (async () => {
-        try {
-          const { ok, data } = await api(`/chat?apres=${dernierIdMessage}`);
-          if (!ok) return;
-
-          const zone = document.getElementById("messages");
-          for (const m of data.messages) {
-            if (zone.querySelector(`[data-id="${m.id}"]`)) continue;
-            ajouterBulleChat(zone, m);
-            dernierIdMessage = Math.max(dernierIdMessage, m.id);
-          }
-          retirerAnciens(data.plusAncienId);
-        } catch {
-          // Une perte réseau ne doit pas bloquer le reste de la page.
-        } finally {
-          rafraichissementChat = null;
-        }
-      })();
-
-      return rafraichissementChat;
-    }
-
-    document.getElementById("formChat").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const input = document.getElementById("texteChat");
-      const texte = input.value.trim();
-      if (!texte) return;
-
-      const { ok, data } = await api("/chat", { corps: { texte } });
-      if (!ok) {
-        document.getElementById("statutChat").textContent = data.erreur;
-        return;
-      }
-      input.value = "";
-      document.getElementById("statutChat").textContent = "";
-      await rafraichirChat();
     });
 
     // ---------- Chargement ----------
 
-    // Un déblocage dans l'arbre peut changer le plafond et la recharge (Ressourcement)
-    document.addEventListener("arbre-change", () => rafraichirQuota());
-
-    Promise.all([exigerConnexion(), Barre.profil]).then(([moi, profil]) => {
-      if (!moi) return;
-      if (profil.ok) afficherQuota(profil.data.quota);
-      rafraichirChat();
-      chargerClassement();
-      setInterval(rafraichirChat, INTERVALLE_CHAT_MS);
-      setInterval(chargerClassement, INTERVALLE_CLASSEMENT_MS);
+    // Un déblocage dans l'arbre peut changer le plafond et la recharge (Ressourcement),
+    // et Flair change les probabilités affichées.
+    document.addEventListener("arbre-change", () => {
+      rafraichirQuota();
+      rafraichirLoterie();
     });
+
+    // Les légendaires des autres joueurs arrivent sans qu'on recharge la page
+    const INTERVALLE_FLUX_MS = 60000;
+    setInterval(rafraichirLoterie, INTERVALLE_FLUX_MS);
+
+    (async () => {
+      if (!(await exigerConnexion())) return;
+      rafraichirLoterie();
+      const [profil, dex] = await Promise.all([Barre.profil, api("/monkeydex")]);
+      if (profil.ok) afficherQuota(profil.data.quota);
+
+      if (dex.ok) {
+        parEspece = Object.fromEntries(dex.data.singes.map((s) => [s.id, s]));
+        // Espèces disparues du jeu ou pas encore possédées : retirées de l'historique
+        historique = lireHistorique().filter((e) => parEspece[e]);
+        ecrireHistorique();
+        afficherHistorique();
+
+        // La fiche ne doit jamais être vide : sans historique dans ce navigateur, on montre
+        // le plus beau singe de la collection (les singes sont triés par rareté).
+        const dernier = historique[0];
+        if (dernier) {
+          afficherSinge(parEspece[dernier]);
+        } else {
+          afficherSinge(dex.data.singes[0], { titre: "Ton plus beau singe" });
+        }
+      }
+    })();
   </script>
 
   <script src="/js/session.js"></script>
