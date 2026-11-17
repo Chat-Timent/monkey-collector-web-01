@@ -88,7 +88,9 @@ const Barre = (() => {
         <h2>Classement</h2>
         <button type="button" data-fermer="classement" aria-label="Fermer">×</button>
       </div>
-      <div id="classement" class="liste"></div>
+      <!-- id préfixé : les pages Aventure et PVP ont leur propre #classement, et le premier
+           trouvé dans le document gagnerait sur le leur -->
+      <div id="classement-global" class="liste"></div>
     </aside>
     <footer id="footer">
       <button class="onglet-footer" type="button" data-tiroir="chat">
@@ -235,7 +237,7 @@ const Barre = (() => {
   async function chargerClassement() {
     const { ok, data } = await api("/classement");
     if (!ok) return;
-    const zone = document.getElementById("classement");
+    const zone = document.getElementById("classement-global");
     zone.innerHTML = "";
     if (data.joueurs.length === 0) {
       zone.innerHTML = `<p class="vide">Aucun joueur pour l'instant.</p>`;
