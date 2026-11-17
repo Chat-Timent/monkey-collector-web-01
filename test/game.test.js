@@ -558,11 +558,18 @@ test("Harmonie et Chœur : bonus de résonance augmentés de 10 % puis 25 %", ()
   assert.deepEqual([equipe[0].hp, equipe[0].atk, equipe[0].def], [1110, 102, 104]);
 });
 
-test("Maître des perks : Peau de fer, Taunt et Floraison 15 % plus forts", () => {
+test("Maître des perks : valeurs des perks 15 % plus fortes, plafonds et cumuls inchangés", () => {
   const pct = agregerEffets(["strat.maitre_perks"]).perk_pct;
-  assert.deepEqual(renforcerPerk(effetPerk("ironskin", 4), pct).defensePct, 28.8);
-  assert.deepEqual(renforcerPerk(effetPerk("blossoming", 5), pct).soinPct, 34.5);
-  assert.equal(renforcerPerk(effetPerk("taunt", 1), pct).pvPct, 11.5);
+  assert.deepEqual(renforcerPerk(effetPerk("ironskin", 4), pct).defensePct, 230);
+  assert.deepEqual(renforcerPerk(effetPerk("blossoming", 5), pct).soinPct, 17.3);
+  assert.equal(renforcerPerk(effetPerk("taunt", 1), pct).pvPct, 34.5);
+  const frenesie = renforcerPerk(effetPerk("frenesie", 2), pct);
+  assert.deepEqual([frenesie.atkParCoupPct, frenesie.cumulMax], [6.9, 5]);
+  const etendard = renforcerPerk(effetPerk("etendard", 5), pct);
+  assert.deepEqual([etendard.atkGroupePct, etendard.plafondPct], [23, 30]);
+  // Au-delà de 100 %, le moteur borne Second souffle et Perforant
+  assert.equal(renforcerPerk(effetPerk("second_souffle", 5), pct).retourPvPct, 115);
+  assert.equal(renforcerPerk(effetPerk("perforant", 5), pct).ignoreDefPct, 103.5);
   // Sans le nœud, rien ne change
   assert.deepEqual(renforcerPerk(effetPerk("ironskin", 1), 0), effetPerk("ironskin", 1));
   assert.equal(renforcerPerk(null, pct), null);
@@ -703,18 +710,19 @@ test("les tickets de donjon reviennent à minuit, heure de Paris", () => {
 test("loterie des perks : perk au hasard, tiers élevés plus rares, doublons convertis en XP", () => {
   // Suite de nombres imposée : [choix du perk, choix du tier]
   const suite = (...v) => () => v.shift();
-  // 3 perks à chances égales (ordre : ironskin, taunt, blossoming)
+  // 7 perks à chances égales (ordre de perks.json : ironskin, taunt, blossoming, frenesie, etendard, second_souffle, perforant)
   assert.deepEqual(tirerPerk(suite(0.1, 0)), { perk: "ironskin", tier: 1 });
-  assert.deepEqual(tirerPerk(suite(0.5)), { perk: "taunt", tier: 1 });
-  assert.equal(tirerPerk(suite(0.9, 0)).perk, "blossoming");
+  assert.deepEqual(tirerPerk(suite(0.2)), { perk: "taunt", tier: 1 });
+  assert.equal(tirerPerk(suite(0.3, 0)).perk, "blossoming");
+  assert.deepEqual([0.5, 0.6, 0.8, 0.95].map((h) => tirerPerk(suite(h, 0)).perk), ["frenesie", "etendard", "second_souffle", "perforant"]);
   // Peau de fer : 55 / 28 / 13 / 4 %
   assert.equal(tirerPerk(suite(0.1, 0.54)).tier, 1);
   assert.equal(tirerPerk(suite(0.1, 0.56)).tier, 2);
   assert.equal(tirerPerk(suite(0.1, 0.84)).tier, 3);
   assert.equal(tirerPerk(suite(0.1, 0.97)).tier, 4);
   // Floraison : le tier V (2 %) n'arrive qu'en toute fin
-  assert.equal(tirerPerk(suite(0.9, 0.97)).tier, 4);
-  assert.equal(tirerPerk(suite(0.9, 0.99)).tier, 5);
+  assert.equal(tirerPerk(suite(0.3, 0.97)).tier, 4);
+  assert.equal(tirerPerk(suite(0.3, 0.99)).tier, 5);
   // Sur beaucoup de tirages, les tiers bas dominent
   const tiers = Array.from({ length: 4000 }, () => tirerPerk()).filter((t) => t.perk === "ironskin").map((t) => t.tier);
   const part = (t) => tiers.filter((x) => x === t).length / tiers.length;
@@ -728,8 +736,14 @@ test("loterie des perks : perk au hasard, tiers élevés plus rares, doublons co
   // Validité et valeurs des tiers
   assert.ok(perkExiste("taunt", 1) && perkExiste("ironskin", 4) && perkExiste("blossoming", 5));
   assert.ok(!perkExiste("taunt", 2) && !perkExiste("ironskin", 5) && !perkExiste("constructor", 1) && !perkExiste("ironskin", "1"));
-  assert.deepEqual([1, 2, 3, 4].map((tier) => effetPerk("ironskin", tier).defensePct), [10, 15, 20, 25]);
-  assert.deepEqual([1, 2, 3, 4, 5].map((tier) => effetPerk("blossoming", tier).soinPct), [10, 15, 20, 25, 30]);
+  assert.deepEqual([1, 2, 3, 4].map((tier) => effetPerk("ironskin", tier).defensePct), [50, 100, 150, 200]);
+  assert.deepEqual([1, 2, 3, 4, 5].map((tier) => effetPerk("blossoming", tier).soinPct), [3, 6, 9, 12, 15]);
+  const t = (perk, cle) => [1, 2, 3, 4, 5].map((tier) => effetPerk(perk, tier)[cle]);
+  assert.deepEqual(t("frenesie", "atkParCoupPct"), [3, 6, 9, 12, 15]);
+  assert.deepEqual(t("etendard", "atkGroupePct"), [4, 8, 12, 16, 20]);
+  assert.deepEqual(t("second_souffle", "retourPvPct"), [15, 35, 55, 75, 100]);
+  assert.deepEqual(t("perforant", "ignoreDefPct"), [30, 50, 65, 80, 90]);
+  assert.ok(["frenesie", "etendard", "second_souffle", "perforant"].every((p) => nbTiers(p) === 5 && perkExiste(p, 5) && !perkExiste(p, 6)));
   assert.equal(effetPerk("taunt", 1).icone, "🎯");
 });
 
@@ -751,7 +765,7 @@ test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 t
     assert.ok(r.journal.slice(ko).some((e) => e.type === "degats" && e.deCamp === "B" && e.sur !== "A2"));
   }
 
-  // Floraison I (10 %) : aux tours 2, 4… le porteur soigne le singe le plus bas de son équipe
+  // Floraison I (3 %) : aux tours 2, 4… le porteur soigne le singe le plus bas de son équipe
   const r = combat(
     [singe("Soigneur", 1000, 1, 0, effetPerk("blossoming", 1)), singe("Blessé", 1000, 1, 0)],
     [singe("Brute", 100000, 300, 0)],
@@ -760,8 +774,8 @@ test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 t
   const soins = r.journal.filter((e) => e.type === "soin");
   assert.ok(soins.length > 0);
   assert.ok(soins.every((e) => r.journal.find((t) => t.type === "tour" && t.numero === e.tour).numero % 2 === 0));
-  assert.ok(soins.every((e) => e.de === "Soigneur" && e.soin <= 100));
-  assert.equal(soins[0].soin, 100);
+  assert.ok(soins.every((e) => e.de === "Soigneur" && e.soin <= 30));
+  assert.equal(soins[0].soin, 30);
   // Le soin vise le plus bas en PV : la Brute frappe au hasard 0, donc toujours le slot 1 (Soigneur)
   assert.equal(soins[0].sur, "Soigneur");
   // Personne n'est blessé (toutes les attaques ratent) : pas de soin
@@ -776,6 +790,53 @@ test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 t
   const koBlesse = reserve.journal.findIndex((e) => e.type === "KO" && e.nom === "Blessé");
   assert.ok(koBlesse > 0 && reserve.journal.slice(0, koBlesse).every((e) => e.type !== "soin"));
   assert.ok(reserve.journal.slice(koBlesse).some((e) => e.type === "soin" && e.de === "Soigneur"));
+});
+
+test("perks en combat : Frénésie, Étendard, Second souffle et Perforant", () => {
+  const singe = (nom, extra = {}) => ({ nom, hp: 1e6, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 100, perk: null, ...extra });
+  const coups = (r, de) => r.journal.filter((e) => e.type === "degats" && e.de === de).map((e) => e.degats);
+
+  // Frénésie I : +3 % d'ATK par coup porté, 5 cumuls au plus ; un coup raté ne compte pas
+  const fr = combat([singe("Furie", { perk: effetPerk("frenesie", 1) })], [singe("Sac")], () => 0);
+  assert.deepEqual(coups(fr, "Furie").slice(0, 7), [0, 1, 2, 3, 4, 5, 5].map((n) => degatsDe(Math.round(100 * (1 + 0.03 * n)), 100)));
+  const rate = combat([singe("Furie", { perk: effetPerk("frenesie", 5) })], [singe("Sac")], () => 0.99); // toujours raté
+  assert.equal(coups(rate, "Furie").length, 0);
+
+  // Étendard II (+8 %) : tout le groupe 1, porteur compris ; pas le groupe 2 ; plafond 30 % à plusieurs
+  const et = combat(
+    [singe("Porte", { perk: effetPerk("etendard", 2) }), singe("Allié"), null, singe("Réserve"), null, null],
+    [singe("Sac", { atk: 1 })], () => 0
+  );
+  assert.equal(coups(et, "Porte")[0], degatsDe(108, 100));
+  assert.equal(coups(et, "Allié")[0], degatsDe(108, 100));
+  const trois = combat([1, 2, 3].map((i) => singe(`E${i}`, { perk: effetPerk("etendard", 5) })), [singe("Sac", { atk: 1 })], () => 0);
+  assert.equal(coups(trois, "E1")[0], degatsDe(130, 100)); // 3 × 20 % plafonné à 30 %
+  // L'ATK de l'Étendard sert de base au Décret royal
+  const decret = competenceDe(getEspece("king_monkey"));
+  const roi = combat([singe("Roi", { competence: decret, perk: effetPerk("etendard", 1) })], [singe("Sac", { atk: 1 })], () => 0);
+  assert.equal(coups(roi, "Roi")[1], degatsDe(Math.round(104 * 1.07), 100));
+
+  // Second souffle I : une seule fois, le porteur revient à 15 % de ses PV au lieu d'être K.O.
+  const fragile = (perk) => singe("Fragile", { hp: 1000, atk: 1, perk });
+  const ss = combat([fragile(effetPerk("second_souffle", 1))], [singe("Brute", { atk: 2000 })], () => 0);
+  const souffles = ss.journal.filter((e) => e.type === "souffle");
+  assert.equal(souffles.length, 1);
+  assert.deepEqual([souffles[0].pvRestants, souffles[0].perk.icone], [150, "💨"]);
+  assert.equal(ss.journal.filter((e) => e.type === "KO" && e.nom === "Fragile").length, 1);
+  const sansSouffle = combat([fragile(null)], [singe("Brute", { atk: 2000 })], () => 0);
+  assert.ok(ss.tours > sansSouffle.tours);
+  // Renforcé au-delà de 100 % : jamais plus que les PV max
+  const fort = combat([fragile({ ...effetPerk("second_souffle", 5), retourPvPct: 115 })], [singe("Brute", { atk: 2000 })], () => 0);
+  assert.equal(fort.journal.find((e) => e.type === "souffle").pvRestants, 1000);
+
+  // Perforant II : ignore 50 % de la DEF ; cumulé avec Présage (35 %) : 32,5 % de la DEF restent
+  const pf = combat([singe("Pique", { perk: effetPerk("perforant", 2) })], [singe("Mur", { atk: 1 })], () => 0.5);
+  assert.equal(coups(pf, "Pique")[0], degatsDe(100, 50));
+  const presage = competenceDe(getEspece("crystal_ball_monkey"));
+  const devin = combat([singe("Devin", { competence: presage, perk: effetPerk("perforant", 2) })], [singe("Mur", { atk: 1 })], () => 0.5);
+  assert.equal(coups(devin, "Devin")[2], Math.round(degatsDe(100, 32.5) * 2.5));
+  const total = combat([singe("Pique", { perk: { ...effetPerk("perforant", 5), ignoreDefPct: 103.5 } })], [singe("Mur", { atk: 1 })], () => 0.5);
+  assert.equal(coups(total, "Pique")[0], degatsDe(100, 0)); // jamais plus de 100 % de la DEF ignorée
 });
 
 test("défense : les dégâts diminuent sans jamais s'annuler", () => {
@@ -854,17 +915,18 @@ test("les ennemis de l'aventure ne profitent pas des résonances", () => {
 });
 
 test("Peau de fer : la défense du porteur augmente du pourcentage de son tier", () => {
-  assert.equal(bonusDefense(effetPerk("ironskin", 1), 300), 30);  // +10 %
-  assert.equal(bonusDefense(effetPerk("ironskin", 4), 281), 70);  // +25 %, arrondi
+  assert.equal(bonusDefense(effetPerk("ironskin", 1), 300), 150);  // +50 %
+  assert.equal(bonusDefense(effetPerk("ironskin", 4), 281), 562);  // +200 %
+  assert.equal(bonusDefense(effetPerk("ironskin", 1), 283), 142);  // 141,5 arrondi
   assert.equal(bonusDefense(effetPerk("taunt", 1), 300), 0);
   assert.equal(bonusDefense(null, 300), 0);
 });
 
-test("Taunt : le porteur gagne 10 % de PV et le perk reste sans tier", () => {
+test("Taunt : le porteur gagne 30 % de PV et le perk reste sans tier", () => {
   const taunt = effetPerk("taunt", 1);
-  assert.equal(taunt.pvPct, 10);
-  assert.equal(bonusPv(taunt, 1900), 190);
-  assert.equal(bonusPv(taunt, 1625), 163);  // arrondi
+  assert.equal(taunt.pvPct, 30);
+  assert.equal(bonusPv(taunt, 1900), 570);
+  assert.equal(bonusPv(taunt, 1625), 488);  // 487,5 arrondi
   assert.equal(bonusPv(effetPerk("ironskin", 4), 1900), 0);
   assert.equal(bonusPv(null, 1900), 0);
   // Toujours un perk unique : pas de tiers, doublon payé au tarif « unique »

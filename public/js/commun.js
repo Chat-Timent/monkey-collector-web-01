@@ -217,6 +217,10 @@ function effetPerk(catalogue, perk, tier) {
   if (perk === "ironskin") return `+${v.defensePct} % DEF`;
   if (perk === "taunt") return `Attire les attaques · +${v.pvPct} % PV`;
   if (perk === "blossoming") return `Soin ${v.soinPct} % / 2 tours`;
+  if (perk === "frenesie") return `+${v.atkParCoupPct} % ATK par coup (×${v.cumulMax})`;
+  if (perk === "etendard") return `+${v.atkGroupePct} % ATK au groupe`;
+  if (perk === "second_souffle") return `Revient à ${v.retourPvPct} % PV`;
+  if (perk === "perforant") return `Ignore ${v.ignoreDefPct} % DEF`;
   return "";
 }
 
@@ -277,5 +281,9 @@ function descriptionPerk(catalogue, perk, tier) {
   if (perk === "ironskin") return `Le singe qui le porte gagne +${v.defensePct} % de DEF.`;
   if (perk === "taunt") return `Les ennemis attaquent en priorité le singe qui le porte, tant qu'il est en vie. Il gagne +${v.pvPct} % de PV.`;
   if (perk === "blossoming") return `Tous les 2 tours, soigne l'allié qui a le moins de PV de ${v.soinPct} % de ses PV max.`;
+  if (perk === "frenesie") return `Chaque coup porté donne +${v.atkParCoupPct} % d'ATK au singe qui le porte, jusqu'à ${v.cumulMax} fois.`;
+  if (perk === "etendard") return `Les singes de son groupe (lui compris) gagnent +${v.atkGroupePct} % d'ATK. Plusieurs Étendards dans un groupe : +${v.plafondPct} % au plus.`;
+  if (perk === "second_souffle") return `Une fois par combat, le singe qui le porte revient à ${v.retourPvPct} % de ses PV au lieu d'être K.O.`;
+  if (perk === "perforant") return `Les attaques du singe qui le porte ignorent ${v.ignoreDefPct} % de la DEF de la cible.`;
   return "";
 }
