@@ -9,7 +9,7 @@
     "ironskin": {
       "nom": "Peau de fer",
       "icone": "🛡️",
-      "tiers": [{ "defensePct": 50 }, { "defensePct": 100 }, { "defensePct": 150 }, { "defensePct": 200 }]
+      "tiers": [{ "defensePct": 25 }, { "defensePct": 75 }, { "defensePct": 125 }, { "defensePct": 175 }]
     },
     "taunt": {
       "nom": "Taunt",
@@ -46,7 +46,7 @@
     "perforant": {
       "nom": "Perforant",
       "icone": "📌",
-      "tiers": [{ "ignoreDefPct": 30 }, { "ignoreDefPct": 50 }, { "ignoreDefPct": 65 }, { "ignoreDefPct": 80 }, { "ignoreDefPct": 90 }]
+      "tiers": [{ "ignoreDefPct": 15 }, { "ignoreDefPct": 30 }, { "ignoreDefPct": 45 }, { "ignoreDefPct": 60 }, { "ignoreDefPct": 75 }]
     }
   }
 }
