@@ -82,6 +82,8 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     .sort();
 
   assert.deepEqual(routes, [
+    "DELETE /annonces/:annonce",
+    "GET /annonces",
     "GET /arbre",
     "GET /armes",
     "GET /aventure",
@@ -102,6 +104,8 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /perks",
     "GET /profil",
     "GET /ressources",
+    "POST /annonces",
+    "POST /annonces/lues",
     "POST /arbre/noeuds",
     "POST /armes/equiper",
     "POST /armes/loterie",

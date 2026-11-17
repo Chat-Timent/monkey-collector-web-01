@@ -1,7 +1,7 @@
 // Barre commune des pages de jeu, en deux étages, plus le footer :
 //   1. topbar  : le starter (clic → talents), les ressources possédées, la déconnexion
 //   2. onglets : les catégories du jeu (Tirage, Équipe, Combat, Objets, Monkeydex, Talents)
-//   3. footer  : chat global et classement, rangés dans des tiroirs
+//   3. footer  : annonces (mailbox), chat global et classement, rangés dans des tiroirs
 // À charger après commun.js et arbre.js. Expose `Barre` :
 //   Barre.profil              promesse de la réponse /profil ({ ok, data })
 //   Barre.afficherStarter()   met à jour niveau, XP et coins (ex. après un tirage)
@@ -92,7 +92,22 @@ const Barre = (() => {
            trouvé dans le document gagnerait sur le leur -->
       <div id="classement-global" class="liste"></div>
     </aside>
+    <aside class="tiroir gauche" id="tiroir-annonces" hidden>
+      <div class="entete">
+        <h2>Annonces</h2>
+        <button type="button" data-fermer="annonces" aria-label="Fermer">×</button>
+      </div>
+      <form id="formAnnonce" hidden>
+        <textarea id="texteAnnonce" maxlength="500" rows="3" placeholder="Annonce pour tous les joueurs…"></textarea>
+        <button type="submit">Publier</button>
+      </form>
+      <div id="statutAnnonce"></div>
+      <div id="annonces" class="liste"></div>
+    </aside>
     <footer id="footer">
+      <button class="onglet-footer mailbox" type="button" data-tiroir="annonces" title="Annonces" aria-label="Annonces">
+        📬<span class="point" id="point-annonces"></span>
+      </button>
       <button class="onglet-footer" type="button" data-tiroir="chat">
         💬 Chat <span class="en-ligne" id="compte-en-ligne"></span><span class="point" id="point-chat"></span>
       </button>
@@ -188,6 +203,7 @@ const Barre = (() => {
   const INTERVALLE_CHAT_FERME_MS = 15000;
   const INTERVALLE_CLASSEMENT_MS = 10000;
   const INTERVALLE_EN_LIGNE_MS = 20000;
+  const INTERVALLE_ANNONCES_MS = 60000;
 
   let tiroirOuvert = null;
   let minuteurTiroir = null;
@@ -279,8 +295,86 @@ const Barre = (() => {
     } else if (tiroirOuvert === "classement") {
       chargerClassement();
       minuteurTiroir = setInterval(chargerClassement, INTERVALLE_CLASSEMENT_MS);
+    } else if (tiroirOuvert === "annonces") {
+      chargerAnnonces();
     }
   }
+
+  // ---------- Mailbox : annonces de l'admin ----------
+  // Relue toutes les minutes. Une annonce non lue allume la pastille ; ouvrir le tiroir la marque lue.
+  // L'admin voit en plus le formulaire de publication et une croix pour supprimer chaque annonce.
+
+  let admin = false;
+
+  function formaterDate(iso) {
+    return new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  }
+
+  function afficherAnnonces(annonces) {
+    const zone = document.getElementById("annonces");
+    zone.innerHTML = "";
+    if (annonces.length === 0) {
+      zone.innerHTML = `<p class="vide">Aucune annonce pour l'instant.</p>`;
+      return;
+    }
+    for (const a of annonces) {
+      const bloc = document.createElement("div");
+      bloc.className = "annonce";
+      const entete = document.createElement("div");
+      entete.className = "date";
+      entete.textContent = formaterDate(a.created_at);
+      if (admin) {
+        const supprimer = document.createElement("button");
+        supprimer.type = "button";
+        supprimer.className = "supprimer";
+        supprimer.dataset.supprimer = a.id;
+        supprimer.title = "Supprimer";
+        supprimer.textContent = "×";
+        entete.appendChild(supprimer);
+      }
+      const texte = document.createElement("div");
+      texte.className = "texte";
+      texte.textContent = a.texte;
+      bloc.append(entete, texte);
+      zone.appendChild(bloc);
+    }
+  }
+
+  async function chargerAnnonces() {
+    try {
+      const { ok, data } = await api("/annonces");
+      if (!ok) return;
+      admin = data.admin;
+      document.getElementById("formAnnonce").hidden = !admin;
+      afficherAnnonces(data.annonces);
+      const ouvert = tiroirOuvert === "annonces";
+      document.getElementById("point-annonces").classList.toggle("visible", data.nonLues > 0 && !ouvert);
+      if (ouvert && data.nonLues > 0) await api("/annonces/lues", { methode: "POST" });
+    } catch {
+      // Réseau indisponible : on réessaiera au prochain tour
+    }
+  }
+
+  document.getElementById("formAnnonce").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const champ = document.getElementById("texteAnnonce");
+    const texte = champ.value.trim();
+    if (!texte) return;
+    const { ok, data } = await api("/annonces", { corps: { texte } });
+    document.getElementById("statutAnnonce").textContent = ok ? "" : data.erreur;
+    if (ok) {
+      champ.value = "";
+      await chargerAnnonces();
+    }
+  });
+
+  document.getElementById("annonces").addEventListener("click", async (e) => {
+    const bouton = e.target.closest("[data-supprimer]");
+    if (!bouton || !confirm("Supprimer cette annonce ?")) return;
+    const { ok, data } = await api(`/annonces/${bouton.dataset.supprimer}`, { methode: "DELETE" });
+    document.getElementById("statutAnnonce").textContent = ok ? "" : data.erreur;
+    await chargerAnnonces();
+  });
 
   document.getElementById("footer").addEventListener("click", (e) => {
     const bouton = e.target.closest("[data-tiroir]");
@@ -320,6 +414,8 @@ const Barre = (() => {
   rafraichirEnLigne();
   setInterval(rafraichirChat, INTERVALLE_CHAT_FERME_MS);
   setInterval(rafraichirEnLigne, INTERVALLE_EN_LIGNE_MS);
+  chargerAnnonces();
+  setInterval(chargerAnnonces, INTERVALLE_ANNONCES_MS);
 
   // Profil chargé une seule fois ; la page peut l'attendre via Barre.profil.
   // Sans starter, le joueur est envoyé le choisir. Sans session, exigerConnexion() de la page redirige.

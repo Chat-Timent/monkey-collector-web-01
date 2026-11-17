@@ -7,7 +7,8 @@ CREATE TABLE users (
   pseudo        text NOT NULL UNIQUE,
   password_hash text NOT NULL,
   created_at    timestamptz NOT NULL DEFAULT now(),
-  elo           integer NOT NULL DEFAULT 1000  -- classement PVP (voir src/game/elo.js)
+  elo           integer NOT NULL DEFAULT 1000, -- classement PVP (voir src/game/elo.js)
+  annonces_lues bigint NOT NULL DEFAULT 0      -- dernière annonce lue (pastille de la mailbox)
 );
 
 CREATE TABLE sessions (
@@ -166,3 +167,13 @@ CREATE TABLE tirages_notables (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX tirages_notables_recents_idx ON tirages_notables (created_at DESC, id DESC);
+
+-- Annonces publiées par l'admin dans la mailbox du footer (voir src/services/annonces-service.js).
+CREATE TABLE annonces (
+  id         bigserial PRIMARY KEY,
+  user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  texte      text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT annonces_texte_max CHECK (char_length(texte) <= 500),
+  CONSTRAINT annonces_texte_non_vide CHECK (char_length(btrim(texte)) > 0)
+);

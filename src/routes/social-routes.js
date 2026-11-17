@@ -11,6 +11,7 @@ import {
 } from "../services/combat-service.js";
 import { envoyerChatGlobal, lireChatGlobal } from "../services/chat-service.js";
 import { classementElo } from "../services/elo-service.js";
+import { lireAnnonces, marquerAnnoncesLues, publierAnnonce, supprimerAnnonce } from "../services/annonces-service.js";
 import { ErreurJeu } from "../erreurs.js";
 
 export const socialRoutes = Router();
@@ -84,6 +85,28 @@ socialRoutes.get("/chat", authentifie, async (req, res) => {
 
 socialRoutes.post("/chat", authentifie, async (req, res) => {
   await envoyerChatGlobal(req.userId, req.body?.texte);
+  res.json({ ok: true });
+});
+
+// Mailbox du footer : tout joueur lit les annonces, seul l'admin publie et supprime.
+socialRoutes.get("/annonces", authentifie, async (req, res) => {
+  res.json(await lireAnnonces(req.userId));
+});
+
+socialRoutes.post("/annonces", authentifie, async (req, res) => {
+  const id = await publierAnnonce(req.userId, req.body?.texte);
+  res.json({ ok: true, id });
+});
+
+socialRoutes.post("/annonces/lues", authentifie, async (req, res) => {
+  await marquerAnnoncesLues(req.userId);
+  res.json({ ok: true });
+});
+
+socialRoutes.delete("/annonces/:annonce", authentifie, async (req, res) => {
+  const id = Number(req.params.annonce);
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ErreurJeu("annonce invalide");
+  await supprimerAnnonce(req.userId, id);
   res.json({ ok: true });
 });
 
