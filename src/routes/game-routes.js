@@ -6,6 +6,7 @@ import { definirEquipe, getEquipe, nbSlotsDuJoueur } from "../services/team-serv
 import { effetsDuJoueur, getArbre, getPointsArbre, prendreNoeud } from "../services/arbre-service.js";
 import { getElo } from "../services/elo-service.js";
 import { effectuerTirage, getQuota } from "../services/tirage-service.js";
+import { arreterAuto, avancerAuto, lancerAuto, passageAuto } from "../services/tirage-auto-service.js";
 import { lireRessources } from "../services/ressources-joueur-service.js";
 import { etatLoterie } from "../services/loterie-service.js";
 import { ErreurJeu } from "../erreurs.js";
@@ -17,6 +18,21 @@ export const gameRoutes = Router();
 // POST : le tirage modifie la collection et le starter.
 gameRoutes.post("/tirage", authentifie, async (req, res) => {
   res.json(await effectuerTirage(req.userId));
+});
+
+// Auto-tirage. Le GET fait aussi les tirages dus depuis le dernier passage (calcul à la demande,
+// comme la recharge) : la page Tirage l'appelle toutes les secondes pendant que ça tourne.
+gameRoutes.get("/tirage/auto", authentifie, async (req, res) => {
+  res.json(await passageAuto(req.userId));
+});
+
+gameRoutes.post("/tirage/auto", authentifie, async (req, res) => {
+  const { rythme, rarete } = req.body ?? {};
+  res.json({ auto: await lancerAuto(req.userId, Number(rythme), rarete) });
+});
+
+gameRoutes.post("/tirage/auto/arreter", authentifie, async (req, res) => {
+  res.json({ auto: await arreterAuto(req.userId) });
 });
 
 gameRoutes.get("/monkeydex", authentifie, async (req, res) => {
@@ -34,6 +50,9 @@ gameRoutes.get("/loterie", authentifie, async (req, res) => {
 // et ressources (acier, étoffe, essence). Les ressources sont servies ici plutôt que par
 // /armes, /equipements et /eveil : une requête de plus au lieu de trois appels par page.
 gameRoutes.get("/profil", authentifie, async (req, res) => {
+  // Auto-tirage en cours : ses tirages dus sont faits d'abord, pour que le stock affiché soit juste
+  // sur toutes les pages. Un échec ici ne doit pas casser la barre du haut.
+  await avancerAuto(req.userId).catch((err) => console.error("auto-tirage :", err));
   const [starter, quota, elo, ressources] = await Promise.all([
     getStarter(req.userId), getQuota(req.userId), getElo(req.userId), lireRessources(req.userId),
   ]);
