@@ -588,7 +588,7 @@
 
     async function equiperObjet(type, o, espece, emplacement) {
       try {
-        const { ok, data } = await api(`${OBJETS[type].api}/equiper`, { corps: { objet: o.objet, tier: o.tier, espece, slot: emplacement } });
+        const { ok, data } = await api(`${OBJETS[type].api}/equiper`, { corps: { id: o.id, espece, slot: emplacement } });
         if (!ok) throw new Error(data.erreur);
         OBJETS[type].donnees = data;
         await rafraichirEquipe();

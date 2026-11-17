@@ -52,21 +52,23 @@ CREATE TABLE perks_obtenus (
   UNIQUE (user_id, espece)
 );
 
--- Objets obtenus (src/data/armes.json, src/data/equipements.json), niveau d'objet et singe qui les porte.
+-- Objets obtenus (src/data/armes.json, src/data/equipements.json) : un exemplaire par ligne (empilables),
+-- niveau d'objet (monté en démantelant d'autres exemplaires) et singe qui le porte.
 CREATE TABLE objets_obtenus (
+  id        bigserial PRIMARY KEY,
   user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   type      text NOT NULL CHECK (type IN ('arme', 'equipement')),
   objet     text NOT NULL,
   tier      integer NOT NULL,
-  niveau    integer NOT NULL DEFAULT 1,    -- niveau d'objet, monté par les doublons
-  doublons  integer NOT NULL DEFAULT 0,    -- doublons accumulés vers le niveau suivant
+  niveau    integer NOT NULL DEFAULT 1,    -- niveau d'objet, monté par les exemplaires démantelés
+  doublons  integer NOT NULL DEFAULT 0,    -- exemplaires démantelés accumulés vers le niveau suivant
   espece    text,                          -- singe qui le porte (null = non équipé)
   slot      integer,                       -- emplacement sur ce singe (1 pour une arme, 1 à 3 pour un équipement)
   obtenu_at timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_id, type, objet, tier),
   UNIQUE (user_id, type, espece, slot),    -- un seul objet par emplacement et par singe
   CHECK ((espece IS NULL) = (slot IS NULL))
 );
+CREATE INDEX objets_obtenus_joueur ON objets_obtenus (user_id, type);
 
 -- Donjons de ressources et donjon d'éveil : palier courant et tickets du jour (heure de Paris) par donjon.
 CREATE TABLE donjons_progression (
