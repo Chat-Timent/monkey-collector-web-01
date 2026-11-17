@@ -375,6 +375,7 @@
       else if (e.type === "KO") txt = `${e.nom} est K.O.`;
       else if (e.type === "decret") txt = `${e.competence.icone} ${e.competence.nom} : ${e.de} donne +${e.atkPct} % ATK, +${e.hpPct} % PV et +${e.defPct} % DEF à ${e.cibles.length} allié${e.cibles.length > 1 ? "s" : ""}`;
       else if (e.type === "soin") txt = `🌸 ${e.de} soigne ${e.sur} : +${e.soin} PV · PV ${e.pvRestants}`;
+      else if (e.type === "souffle") txt = `${e.perk.icone} ${e.perk.nom} : ${e.nom} se relève · PV ${e.pvRestants}`;
       if (!txt) return;
 
       const d = document.createElement("div");
@@ -409,6 +410,9 @@
         actif = { camp: e.deCamp, slot: e.deSlot };
         etat[e.surCamp][e.surSlot].pv = e.pvRestants;
         fx = { camp: e.surCamp, slot: e.surSlot, type: "soin", texte: `+${e.soin}` };
+      } else if (e.type === "souffle") {
+        etat[e.camp][e.slot].pv = e.pvRestants;
+        fx = { camp: e.camp, slot: e.slot, type: "soin", texte: `${e.perk.icone} ${e.pvRestants}` };
       }
       ajouterLog(e);
     }

@@ -53,13 +53,16 @@ export function bonusPv(perk, hp) {
   return Math.round((hp * (perk?.pvPct ?? 0)) / 100);
 }
 
-// Maître des perks : valeurs chiffrées d'un perk (Peau de fer, Taunt, Floraison) augmentées de `pct`,
-// arrondies au dixième.
+// Valeurs d'un perk que Maître des perks augmente (les plafonds et nombres de cumuls ne bougent pas).
+const VALEURS_RENFORCABLES = ["defensePct", "pvPct", "soinPct", "atkParCoupPct", "atkGroupePct", "retourPvPct", "ignoreDefPct"];
+
+// Maître des perks : valeurs chiffrées d'un perk augmentées de `pct`, arrondies au dixième.
+// Le moteur de combat borne lui-même Second souffle (100 % des PV) et Perforant (100 % de la DEF).
 export function renforcerPerk(perk, pct = 0) {
   if (!perk || !pct) return perk;
   const renforce = { ...perk };
   // (+1e-9 : arrondi au dixième supérieur malgré les flottants, 25 × 1,15 valant 28,7499…)
-  for (const cle of ["defensePct", "pvPct", "soinPct"]) {
+  for (const cle of VALEURS_RENFORCABLES) {
     if (typeof renforce[cle] === "number") renforce[cle] = Math.round(renforce[cle] * (1 + pct) * 10 + 1e-9) / 10;
   }
   return renforce;

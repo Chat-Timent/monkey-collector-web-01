@@ -96,6 +96,42 @@ function decretRoyal(camp, tour, journal) {
   }
 }
 
+// Perk Étendard : au début du combat, chaque groupe de 3 slots reçoit +`atkGroupePct` % d'ATK par porteur
+// du groupe (porteur compris), cumul plafonné à `plafondPct`. Le bonus reste acquis même si le porteur tombe.
+function etendards(camp) {
+  for (let debut = 0; debut < camp.length; debut += 3) {
+    const groupe = camp.slice(debut, debut + 3).filter(Boolean);
+    const porteurs = groupe.filter((s) => s.perk?.id === "etendard");
+    if (porteurs.length === 0) continue;
+    const plafond = Math.max(...porteurs.map((s) => s.perk.plafondPct ?? Infinity));
+    const pct = Math.min(plafond, porteurs.reduce((t, s) => t + s.perk.atkGroupePct, 0));
+    for (const s of groupe) {
+      s.atk = Math.round(s.atk * (1 + pct / 100));
+      s.atkDepart = s.atk;
+    }
+  }
+}
+
+// Perk Frénésie : ATK du porteur augmentée de `atkParCoupPct` % par coup déjà porté, jusqu'à `cumulMax` cumuls.
+function atkDuCoup(attaquant) {
+  const p = attaquant.perk;
+  if (p?.id !== "frenesie" || !attaquant.frenesie) return attaquant.atk;
+  return Math.round(attaquant.atk * (1 + (p.atkParCoupPct * Math.min(attaquant.frenesie, p.cumulMax)) / 100));
+}
+
+// Perk Second souffle : une fois par combat, le porteur qui tombe revient à `retourPvPct` % de ses PV max (100 % au plus).
+function secondSouffle(cible, tour, journal) {
+  const p = cible.perk;
+  if (estVivant(cible) || p?.id !== "second_souffle" || cible.souffleUtilise) return;
+  cible.souffleUtilise = true;
+  cible.pv = Math.max(1, Math.round(cible.hp * Math.min(100, p.retourPvPct) / 100));
+  journal.push({
+    type: "souffle", tour,
+    nom: cible.nom, camp: cible.camp, slot: cible.slot,
+    perk: { nom: p.nom, icone: p.icone }, pvRestants: cible.pv,
+  });
+}
+
 // Quasi toujours 100 % de toucher. La précision et l'esquive ne retirent
 // qu'au maximum 15 points, donc elles n'interviennent que occasionnellement.
 function chanceTouche(attaquant, cible) {
@@ -116,6 +152,8 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
 
   const A = preparer(equipeA, "A");
   const B = preparer(equipeB, "B");
+  etendards(A);
+  etendards(B);
   const journal = [];
 
   for (let tour = 1; tour <= MAX_TOURS; tour++) {
@@ -151,12 +189,15 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
         }
 
         const critique = presage || hasard() * 100 < attaquant.crit;
-        const defense = presage ? cible.def * (1 - (attaquant.competence.percePct ?? 0) / 100) : cible.def;
-        let degats = degatsDe(attaquant.atk, defense);
+        // Part de la DEF qui compte encore : Présage et Perforant se cumulent (35 % puis 50 % ignorés → 32,5 % restants)
+        let partDef = presage ? 1 - (attaquant.competence.percePct ?? 0) / 100 : 1;
+        if (attaquant.perk?.id === "perforant") partDef *= 1 - Math.min(100, attaquant.perk.ignoreDefPct) / 100;
+        let degats = degatsDe(atkDuCoup(attaquant), cible.def * partDef);
         if (presage) degats = Math.round(degats * attaquant.competence.critMult);
         else if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
 
         cible.pv = Math.max(0, cible.pv - degats);
+        if (attaquant.perk?.id === "frenesie") attaquant.frenesie = (attaquant.frenesie ?? 0) + 1;
         journal.push({
           type: "degats", tour,
           de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
@@ -165,6 +206,7 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
           ...(presage && { competence: { nom: attaquant.competence.nom, icone: attaquant.competence.icone } }),
         });
 
+        secondSouffle(cible, tour, journal);
         if (!estVivant(cible)) {
           journal.push({ type: "KO", tour, nom: cible.nom, camp: cible.camp, slot: cible.slot });
         }

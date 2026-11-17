@@ -9,18 +9,44 @@
     "ironskin": {
       "nom": "Peau de fer",
       "icone": "🛡️",
-      "tiers": [{ "defensePct": 10 }, { "defensePct": 15 }, { "defensePct": 20 }, { "defensePct": 25 }]
+      "tiers": [{ "defensePct": 50 }, { "defensePct": 100 }, { "defensePct": 150 }, { "defensePct": 200 }]
     },
     "taunt": {
       "nom": "Taunt",
       "icone": "🎯",
       "tiers": null,
-      "valeurs": { "pvPct": 10 }
+      "valeurs": { "pvPct": 30 }
     },
     "blossoming": {
       "nom": "Floraison",
       "icone": "🌸",
-      "tiers": [{ "soinPct": 10 }, { "soinPct": 15 }, { "soinPct": 20 }, { "soinPct": 25 }, { "soinPct": 30 }]
+      "tiers": [{ "soinPct": 3 }, { "soinPct": 6 }, { "soinPct": 9 }, { "soinPct": 12 }, { "soinPct": 15 }]
+    },
+    "frenesie": {
+      "nom": "Frénésie",
+      "icone": "🔥",
+      "tiers": [
+        { "atkParCoupPct": 3, "cumulMax": 5 }, { "atkParCoupPct": 6, "cumulMax": 5 }, { "atkParCoupPct": 9, "cumulMax": 5 },
+        { "atkParCoupPct": 12, "cumulMax": 5 }, { "atkParCoupPct": 15, "cumulMax": 5 }
+      ]
+    },
+    "etendard": {
+      "nom": "Étendard",
+      "icone": "🚩",
+      "tiers": [
+        { "atkGroupePct": 4, "plafondPct": 30 }, { "atkGroupePct": 8, "plafondPct": 30 }, { "atkGroupePct": 12, "plafondPct": 30 },
+        { "atkGroupePct": 16, "plafondPct": 30 }, { "atkGroupePct": 20, "plafondPct": 30 }
+      ]
+    },
+    "second_souffle": {
+      "nom": "Second souffle",
+      "icone": "💨",
+      "tiers": [{ "retourPvPct": 15 }, { "retourPvPct": 35 }, { "retourPvPct": 55 }, { "retourPvPct": 75 }, { "retourPvPct": 100 }]
+    },
+    "perforant": {
+      "nom": "Perforant",
+      "icone": "📌",
+      "tiers": [{ "ignoreDefPct": 30 }, { "ignoreDefPct": 50 }, { "ignoreDefPct": 65 }, { "ignoreDefPct": 80 }, { "ignoreDefPct": 90 }]
     }
   }
 }

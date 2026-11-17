@@ -35,7 +35,7 @@ function decrireEffet(cle, valeur, { chanceLoterie, seuilEtincelle }) {
     case "elo_combats_bonus": return `+${valeur} combat classé par jour contre un même adversaire`;
     case "aventure_pct": return `+${pct(valeur)} d'XP et de coins en Aventure`;
     case "resonance_pct": return `Bonus de résonance +${pct(valeur)}`;
-    case "perk_pct": return `Perks ${pct(valeur)} plus efficaces (Peau de fer, Floraison, Taunt)`;
+    case "perk_pct": return `Perks ${pct(valeur)} plus efficaces`;
     default: return `${cle} : ${valeur}`;
   }
 }
