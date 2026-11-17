@@ -247,6 +247,30 @@ body.avec-barre { padding-top: var(--topbar-h); padding-bottom: var(--footer-h);
   gap: 6px;
   padding-right: 4px;
 }
+/* Mailbox : à gauche du footer, son tiroir s'ouvre au-dessus d'elle */
+.onglet-footer.mailbox { margin-right: auto; font-size: 16px; padding: 4px 12px; }
+.tiroir.gauche { right: auto; left: 14px; }
+#formAnnonce { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; flex-shrink: 0; }
+#formAnnonce[hidden] { display: none; }
+#texteAnnonce {
+  resize: vertical; min-height: 54px; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--carte-bord); background: #161616; color: var(--texte); font: inherit; font-size: 13px;
+}
+#formAnnonce button {
+  align-self: flex-end; padding: 7px 14px; border-radius: 8px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-weight: bold;
+}
+.tiroir .liste .vide { color: #777; font-size: 13px; margin: 4px 0; }
+#statutAnnonce { color: var(--accent-2); font-size: 12px; flex-shrink: 0; }
+#statutAnnonce:empty { display: none; }
+.tiroir .annonce { padding: 8px 10px; border-radius: 8px; background: #262626; font-size: 13px; flex-shrink: 0; }
+.tiroir .annonce .date { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #888; }
+.tiroir .annonce .texte { margin-top: 3px; white-space: pre-wrap; word-wrap: break-word; }
+.tiroir .annonce .supprimer {
+  background: none; border: none; color: #888; font-size: 16px; line-height: 1; cursor: pointer; padding: 0 2px;
+}
+.tiroir .annonce .supprimer:hover { color: var(--accent-2); }
+
 /* Classement : une ligne par joueur */
 .tiroir .liste { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
 .tiroir .joueur {
@@ -277,5 +301,5 @@ body.avec-barre { padding-top: var(--topbar-h); padding-bottom: var(--footer-h);
   #barre-onglets { padding: 0 6px; }
   #barre-onglets a { padding: 0 11px; font-size: 13px; }
   #footer { padding: 0 8px; }
-  .tiroir { right: 8px; left: 8px; width: auto; }
+  .tiroir, .tiroir.gauche { right: 8px; left: 8px; width: auto; }
 }
