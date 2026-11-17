@@ -29,11 +29,14 @@ export function estNotable(rarete) {
 
 // Poids des raretés pour un tirage, effets de l'arbre compris :
 // - Flair (`rarete_pct`) multiplie le poids des raretés rare, épique, légendaire et mythique ;
-// - `forcerRare` (Étincelle) ne garde que ces raretés, dans leurs proportions.
-export function poidsRaretes(effets = null, { forcerRare = false } = {}) {
+// - `forcerRare` (Étincelle) ne garde que ces raretés, dans leurs proportions ;
+// - `rareteMin` (singe offert, ex. "legendary") ne garde que cette rareté et les suivantes, dans leurs proportions.
+export function poidsRaretes(effets = null, { forcerRare = false, rareteMin = null } = {}) {
   const mult = 1 + (effets?.rarete_pct ?? 0);
+  const iMin = rareteMin === null ? 0 : RARETES.findIndex((r) => r.nom === rareteMin);
+  if (iMin < 0) throw new Error(`rareté inconnue : ${rareteMin}`);
   return RARETES
-    .filter((r) => !forcerRare || estRare(r.nom))
+    .filter((r, i) => i >= iMin && (!forcerRare || estRare(r.nom)))
     .map((r) => ({ ...r, poids: estRare(r.nom) ? r.poids * mult : r.poids }));
 }
 
@@ -46,12 +49,12 @@ export function chancesRaretes(effets = null) {
 }
 
 // Rareté d'un tirage (`hasard` injectable pour les tests).
-export function tirerRarete(effets = null, { forcerRare = false, hasard = Math.random } = {}) {
-  return tirerPondere(poidsRaretes(effets, { forcerRare }), hasard).nom;
+export function tirerRarete(effets = null, { forcerRare = false, rareteMin = null, hasard = Math.random } = {}) {
+  return tirerPondere(poidsRaretes(effets, { forcerRare, rareteMin }), hasard).nom;
 }
 
-export function tirer(effets = null, { forcerRare = false } = {}) {
-  const rarete = tirerRarete(effets, { forcerRare });
+export function tirer(effets = null, { forcerRare = false, rareteMin = null } = {}) {
+  const rarete = tirerRarete(effets, { forcerRare, rareteMin });
   const candidats = Object.entries(SINGES).filter(([, s]) => s.rarete === rarete);
   if (candidats.length === 0) return null;
   const [espece] = candidats[Math.floor(Math.random() * candidats.length)];

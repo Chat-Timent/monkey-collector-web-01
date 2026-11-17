@@ -10,8 +10,9 @@ const AVENTURE = DONJONS.aventure;
 
 const ORDRE_RARETES = RARETES.map((r) => r.nom); // common → mythic
 
-// Générateur pseudo-aléatoire déterministe (mulberry32) : un même étage donne toujours les mêmes ennemis.
-function generateur(graine) {
+// Générateur pseudo-aléatoire déterministe (mulberry32) : un même étage donne toujours les mêmes ennemis
+// (sert aussi à tirer les quêtes du jour, voir quotidien.js).
+export function generateur(graine) {
   let a = graine >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;

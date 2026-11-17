@@ -568,6 +568,11 @@
       rafraichirQuota();
       rafraichirLoterie();
     });
+    // Tirages gagnés par le cadeau ou les quêtes du footer (et un légendaire offert entre dans le flux)
+    document.addEventListener("recompense-recue", () => {
+      rafraichirQuota();
+      rafraichirLoterie();
+    });
 
     // Les légendaires des autres joueurs arrivent sans qu'on recharge la page
     const INTERVALLE_FLUX_MS = 60000;

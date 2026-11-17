@@ -10,6 +10,7 @@ import { ressourcesRoutes } from "./routes/ressources-routes.js";
 import { perksRoutes } from "./routes/perks-routes.js";
 import { eveilRoutes } from "./routes/eveil-routes.js";
 import { armesRoutes, equipementsRoutes } from "./routes/objets-routes.js";
+import { quotidienRoutes } from "./routes/quotidien-routes.js";
 import { gererErreurs } from "./erreurs.js";
 import { VERSION, versionnerHtml } from "./version.js";
 
@@ -67,6 +68,7 @@ export function creerApplication() {
   app.use(eveilRoutes);
   app.use(armesRoutes);
   app.use(equipementsRoutes);
+  app.use(quotidienRoutes);
   app.use(gererErreurs);
   return app;
 }

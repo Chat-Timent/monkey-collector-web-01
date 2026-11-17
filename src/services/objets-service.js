@@ -7,6 +7,7 @@ import {
 } from "../game/objets.js";
 import { infoRecompense } from "../game/ressources.js";
 import { lireCollection } from "./collection-service.js";
+import { progresserQuete } from "./quetes-service.js";
 import { ajouterRessource, depenserRessource, lireRessources } from "./ressources-joueur-service.js";
 
 function catalogueDe(type) {
@@ -66,34 +67,43 @@ export async function getObjets(userId, type) {
   };
 }
 
+// Un objet tiré au hasard dans le catalogue `type` et donné au joueur (dans la transaction `db`), sans rien payer.
+// Un objet déjà possédé (même objet, même tier) est un doublon : il fait progresser son niveau,
+// ou rend de la ressource s'il est déjà au niveau maximal. Sert à la loterie et aux objets offerts.
+export async function obtenirObjet(userId, type, db) {
+  const c = catalogueDe(type);
+  const { objet, tier } = tirerObjet(c);
+  const { rowCount } = await db.query(
+    `INSERT INTO objets_obtenus (user_id, type, objet, tier) VALUES ($1, $2, $3, $4)
+     ON CONFLICT (user_id, type, objet, tier) DO NOTHING`,
+    [userId, type, objet, tier]
+  );
+  if (rowCount === 1) return { objet, tier, doublon: false, niveau: 1, monte: false, rembourse: 0 };
+
+  const { rows } = await db.query(
+    "SELECT niveau, doublons FROM objets_obtenus WHERE user_id = $1 AND type = $2 AND objet = $3 AND tier = $4 FOR UPDATE",
+    [userId, type, objet, tier]
+  );
+  const apres = apresDoublon(c, rows[0]);
+  await db.query(
+    "UPDATE objets_obtenus SET niveau = $5, doublons = $6 WHERE user_id = $1 AND type = $2 AND objet = $3 AND tier = $4",
+    [userId, type, objet, tier, apres.niveau, apres.doublons]
+  );
+  if (apres.rembourse > 0) await ajouterRessource(userId, c.ressource, apres.rembourse, db);
+  return { objet, tier, doublon: true, niveau: apres.niveau, monte: apres.monte, rembourse: apres.rembourse };
+}
+
 // Tirage de la loterie, dans une transaction. La ressource est retirée en une requête (deux tirages simultanés
-// ne peuvent pas dépenser le même stock) ; un objet déjà possédé (même objet, même tier) est un doublon :
-// il fait progresser son niveau, ou rend de la ressource s'il est déjà au niveau maximal.
+// ne peuvent pas dépenser le même stock). Fait avancer la quête du jour de ce type d'objet.
 export async function tirerLoterieObjet(userId, type) {
   const c = catalogueDe(type);
   const tirage = await transaction(async (db) => {
     if ((await depenserRessource(userId, c.ressource, c.prix, db)) === null) {
       throw new ErreurJeu(`il faut ${c.prix} ${infoRecompense(c.ressource).nom} pour tirer`);
     }
-    const { objet, tier } = tirerObjet(c);
-    const { rowCount } = await db.query(
-      `INSERT INTO objets_obtenus (user_id, type, objet, tier) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (user_id, type, objet, tier) DO NOTHING`,
-      [userId, type, objet, tier]
-    );
-    if (rowCount === 1) return { objet, tier, doublon: false, niveau: 1, monte: false, rembourse: 0 };
-
-    const { rows } = await db.query(
-      "SELECT niveau, doublons FROM objets_obtenus WHERE user_id = $1 AND type = $2 AND objet = $3 AND tier = $4 FOR UPDATE",
-      [userId, type, objet, tier]
-    );
-    const apres = apresDoublon(c, rows[0]);
-    await db.query(
-      "UPDATE objets_obtenus SET niveau = $5, doublons = $6 WHERE user_id = $1 AND type = $2 AND objet = $3 AND tier = $4",
-      [userId, type, objet, tier, apres.niveau, apres.doublons]
-    );
-    if (apres.rembourse > 0) await ajouterRessource(userId, c.ressource, apres.rembourse, db);
-    return { objet, tier, doublon: true, niveau: apres.niveau, monte: apres.monte, rembourse: apres.rembourse };
+    const resultat = await obtenirObjet(userId, type, db);
+    await progresserQuete(userId, type, 1, db);
+    return resultat;
   });
   return { tirage, ...(await getObjets(userId, type)) };
 }

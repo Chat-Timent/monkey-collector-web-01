@@ -1,0 +1,27 @@
+{
+  "serie": [
+    { "tirages": 200 },
+    { "acier": 100 },
+    { "etoffe": 100 },
+    { "essence": 150 },
+    { "xp": 5000, "coins": 2000 },
+    { "tirages": 500 },
+    { "singe": "legendary", "objets": 3 }
+  ],
+  "quetes": {
+    "parJour": 3,
+    "recompenses": [
+      { "acier": 50 },
+      { "etoffe": 50 },
+      { "essence": 100 }
+    ],
+    "bonus": { "acier": 100, "etoffe": 100, "essence": 100, "tirages": 150, "coins": 500 },
+    "catalogue": {
+      "tirages": { "texte": "Faire 500 tirages", "icone": "🎟️", "objectif": 500 },
+      "pvp": { "texte": "Faire 3 combats PVP", "icone": "⚔️", "objectif": 3 },
+      "arme": { "texte": "Tirer 3 armes", "icone": "🗡️", "objectif": 3 },
+      "equipement": { "texte": "Tirer 3 équipements", "icone": "⛑️", "objectif": 3 },
+      "perk": { "texte": "Tirer 1 perk", "icone": "🎯", "objectif": 1 }
+    }
+  }
+}

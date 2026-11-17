@@ -4,7 +4,10 @@ import { combat, degatsDe } from "../src/game/combat-engine.js";
 import { PALIER_RARETE, puissance, puissanceCible, statsAuNiveau } from "../src/game/puissance.js";
 import { RESONANCES, appliquerResonances, resonancesActives, resonancesAvecBonus } from "../src/game/resonances.js";
 import { SINGES } from "../src/game/monkeys.js";
-import { chancesRaretes, estNotable, estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirerRarete } from "../src/game/monkeys.js";
+import { chancesRaretes, estNotable, estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirer, tirerRarete } from "../src/game/monkeys.js";
+import {
+  QUETE_BONUS, QUOTIDIEN, TYPES_QUETES, decrireRecompense, etatQuetes, etatSerie, pastilles, quetesDuJour, validerQuotidien, veille,
+} from "../src/game/quotidien.js";
 import { appliquerGains, gainsDuTirage } from "../src/game/progression.js";
 import { COMPETENCES, competenceDe, validerCompetences } from "../src/game/competences.js";
 import { EVEIL, ameliorationCompetence, bonusEveil, bonusEveilPct, coutEveil, paliersEveil, peutEveiller, validerEveil } from "../src/game/eveil.js";
@@ -103,6 +106,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "GET /monkeydex",
     "GET /perks",
     "GET /profil",
+    "GET /quotidien",
     "GET /ressources",
     "POST /annonces",
     "POST /annonces/lues",
@@ -127,6 +131,9 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /perks/equiper",
     "POST /perks/loterie",
     "POST /presence",
+    "POST /quotidien/bonus",
+    "POST /quotidien/quetes",
+    "POST /quotidien/serie",
     "POST /ressources/balayer",
     "POST /ressources/combat",
     "POST /starter",
@@ -1211,4 +1218,100 @@ test("éveil : détail des 6 niveaux pour la fiche du Monkeydex (bonus, coût, c
   assert.ok(sexy.every((p) => p.competence === null));
   // Rareté non éveillable : aucun niveau
   assert.deepEqual(paliersEveil(getEspece("balloon_monkey")), []);
+});
+
+test("série de connexion : J1 à J7, puis retour à J1 après J7 ou après un jour manqué", () => {
+  const serie = QUOTIDIEN.serie;
+  // Jamais récupérée : J1 disponible, le reste à venir
+  const neuf = etatSerie(null, "2026-11-17");
+  assert.equal(neuf.courant, 1);
+  assert.equal(neuf.recuperee, false);
+  assert.deepEqual(neuf.jours.map((j) => j.etat), ["dispo", ...Array(serie.length - 1).fill("avenir")]);
+  // J3 récupéré hier : J4 disponible, J1 à J3 reçus
+  const suite = etatSerie({ jour: 3, dernier_jour: "2026-11-16" }, "2026-11-17");
+  assert.equal(suite.courant, 4);
+  assert.deepEqual(suite.jours.slice(0, 5).map((j) => j.etat), ["recu", "recu", "recu", "dispo", "avenir"]);
+  // J3 récupéré aujourd'hui : rien de disponible
+  const fait = etatSerie({ jour: 3, dernier_jour: "2026-11-17" }, "2026-11-17");
+  assert.equal(fait.recuperee, true);
+  assert.equal(fait.courant, 3);
+  assert.equal(fait.jours[2].etat, "recu");
+  assert.equal(fait.jours[3].etat, "avenir");
+  // Jour manqué : la série repart de J1
+  assert.equal(etatSerie({ jour: 5, dernier_jour: "2026-11-15" }, "2026-11-17").courant, 1);
+  // Après J7 : retour à J1 (passage de mois compris)
+  assert.equal(etatSerie({ jour: serie.length, dernier_jour: "2026-11-30" }, "2026-12-01").courant, 1);
+  assert.equal(veille("2026-03-01"), "2026-02-28");
+  assert.equal(veille("2027-01-01"), "2026-12-31");
+});
+
+test("quêtes du jour : mêmes quêtes pour tous, distinctes, et qui changent d'un jour à l'autre", () => {
+  const q = QUOTIDIEN.quetes;
+  const jour = quetesDuJour("2026-11-17");
+  assert.equal(jour.length, q.parJour);
+  assert.equal(new Set(jour).size, q.parJour);
+  assert.deepEqual(quetesDuJour("2026-11-17"), jour);
+  for (const id of jour) assert.ok(TYPES_QUETES.includes(id));
+  const differents = new Set(Array.from({ length: 14 }, (_, i) => quetesDuJour(`2026-12-${String(i + 1).padStart(2, "0")}`).join()));
+  assert.ok(differents.size > 1);
+});
+
+test("quêtes du jour : progression plafonnée, bonus quand toutes sont terminées, pastilles", () => {
+  const jour = "2026-11-17";
+  const ids = quetesDuJour(jour);
+  const objectif = (id) => QUOTIDIEN.quetes.catalogue[id].objectif;
+
+  const vide = etatQuetes(jour, []);
+  assert.deepEqual(vide.quetes.map((x) => x.rang), [1, 2, 3]);
+  assert.ok(vide.quetes.every((x) => x.progres === 0 && !x.terminee));
+  assert.equal(vide.bonus.disponible, false);
+
+  const lignes = [
+    { quete: ids[0], progres: objectif(ids[0]) + 40, reclamee: true },
+    { quete: ids[1], progres: objectif(ids[1]), reclamee: false },
+    { quete: ids[2], progres: objectif(ids[2]) - 1, reclamee: false },
+  ];
+  const partiel = etatQuetes(jour, lignes);
+  assert.equal(partiel.quetes[0].progres, objectif(ids[0]));
+  assert.equal(partiel.quetes[1].terminee, true);
+  assert.equal(partiel.quetes[2].terminee, false);
+  assert.equal(partiel.bonus.disponible, false);
+  const serieFaite = etatSerie({ jour: 1, dernier_jour: jour }, jour);
+  assert.deepEqual(pastilles(serieFaite, partiel), { serie: false, quetes: true });
+
+  lignes[1].reclamee = true;
+  lignes[2].progres += 1;
+  lignes[2].reclamee = true;
+  const complet = etatQuetes(jour, lignes);
+  assert.equal(complet.bonus.disponible, true);
+  assert.equal(pastilles(serieFaite, complet).quetes, true);
+  const fini = etatQuetes(jour, [...lignes, { quete: QUETE_BONUS, progres: 0, reclamee: true }]);
+  assert.deepEqual(pastilles(serieFaite, fini), { serie: false, quetes: false });
+  assert.deepEqual(pastilles(etatSerie(null, jour), fini), { serie: true, quetes: false });
+});
+
+test("quotidien : règles validées et récompenses décrites", () => {
+  assert.doesNotThrow(() => validerQuotidien(QUOTIDIEN));
+  const copie = () => JSON.parse(JSON.stringify(QUOTIDIEN));
+  const inconnue = copie();
+  inconnue.quetes.catalogue.danser = { texte: "Danser", icone: "💃", objectif: 1 };
+  assert.throws(() => validerQuotidien(inconnue), /quête inconnue/);
+  const mauvaise = copie();
+  mauvaise.serie[0] = { tirages: -5 };
+  assert.throws(() => validerQuotidien(mauvaise), /quantité invalide/);
+  const rarete = copie();
+  rarete.serie[6] = { singe: "divin" };
+  assert.throws(() => validerQuotidien(rarete), /rareté inconnue/);
+
+  assert.deepEqual(decrireRecompense({ singe: "legendary" }), [{ icone: "🐒", valeur: "Légendaire+", nom: "singe légendaire ou mieux" }]);
+  assert.deepEqual(decrireRecompense({ acier: 100 })[0].icone, "🔩");
+  assert.equal(decrireRecompense({ objets: 3 })[0].valeur, "3 objets");
+});
+
+test("singe offert : rareté minimale respectée, dans les proportions des raretés gardées", () => {
+  assert.deepEqual(poidsRaretes(null, { rareteMin: "legendary" }).map((r) => r.nom), ["legendary", "mythic"]);
+  for (let i = 0; i < 50; i++) assert.ok(["legendary", "mythic"].includes(getEspece(tirer(null, { rareteMin: "legendary" })).rarete));
+  assert.equal(tirerRarete(null, { rareteMin: "legendary", hasard: () => 0 }), "legendary");
+  assert.equal(tirerRarete(null, { rareteMin: "legendary", hasard: () => 0.999 }), "mythic");
+  assert.throws(() => poidsRaretes(null, { rareteMin: "divin" }), /rareté inconnue/);
 });

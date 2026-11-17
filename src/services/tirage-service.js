@@ -8,6 +8,7 @@ import { agregerEffets, pointsDepenses, pointsDisponibles } from "../game/starte
 import { effetsDuJoueur, lireNoeudsPris } from "./arbre-service.js";
 import { ajouterCopie } from "./collection-service.js";
 import { enregistrerTirageNotable } from "./loterie-service.js";
+import { progresserQuete } from "./quetes-service.js";
 import { gagnerRecompense, getStarter } from "./starter-service.js";
 
 async function lireLigneQuota(userId, db) {
@@ -102,6 +103,7 @@ export async function effectuerTirage(userId) {
     const starter = await gagnerRecompense(userId, gains, starterAvant, db);
 
     await enregistrerQuota(userId, quota, db, compteurSansRare(ligne.tirages_sans_rare, espece.rarete));
+    await progresserQuete(userId, "tirages", 1, db);
     // Légendaire ou mythique : le tirage part dans le flux public de la page Tirage
     if (estNotable(espece.rarete)) await enregistrerTirageNotable(userId, id, espece.rarete, db);
 

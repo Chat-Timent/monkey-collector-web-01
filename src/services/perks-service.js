@@ -4,6 +4,7 @@ import { PERKS, effetPerk, nbTiers, perkExiste, tirerPerk, xpDoublon } from "../
 import { pointsDepenses, pointsDisponibles } from "../game/starter-arbre.js";
 import { lireNoeudsPris } from "./arbre-service.js";
 import { lireCollection } from "./collection-service.js";
+import { progresserQuete } from "./quetes-service.js";
 import { gagnerRecompense, getStarter } from "./starter-service.js";
 
 async function lirePerks(userId, db = pool) {
@@ -54,6 +55,7 @@ export async function tirerLoterie(userId) {
     const doublon = rowCount === 0;
     const xp = doublon ? xpDoublon(perk, tier) : 0;
     const apres = await gagnerRecompense(userId, { xp, coins: -PERKS.prix }, starter, db);
+    await progresserQuete(userId, "perk", 1, db);
     const pris = await lireNoeudsPris(userId, db);
 
     return {

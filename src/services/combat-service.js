@@ -15,6 +15,7 @@ import { competenceDe } from "../game/competences.js";
 import { bonusEveil, bonusEveilPct } from "../game/eveil.js";
 import { bonusObjets } from "../game/objets.js";
 import { objetsDesSinges } from "./objets-service.js";
+import { progresserQuete } from "./quetes-service.js";
 
 // Singe d'un joueur prêt pour le moteur de combat (fonction pure) : stats de son niveau, bonus de l'arbre (`effets`),
 // perk porté (`perk`, effet brut), niveau d'éveil (`eveil`) et objets portés (`objets`, effets à leur niveau).
@@ -86,6 +87,11 @@ async function enregistrerCombat(db, defi, equipeA, equipeB) {
      VALUES ($1, $2, $3, $4) RETURNING id`,
     [defi.id, defi.de_user, defi.vers_user, resultat]
   );
+  // Quête PVP : seuls les combats qui comptent pour l'elo avancent (même anti-farm, voir eloDuCombat).
+  // Joueurs pris dans un ordre fixe : deux combats croisés simultanés verrouillent leurs lignes dans le même ordre.
+  if (resultat.elo.compte) {
+    for (const joueur of [defi.de_user, defi.vers_user].sort()) await progresserQuete(joueur, "pvp", 1, db);
+  }
   return rows[0].id;
 }
 
