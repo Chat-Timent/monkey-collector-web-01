@@ -827,6 +827,35 @@ test("perks en combat : taunt attire les attaques, floraison soigne tous les 2 t
   assert.ok(reserve.journal.slice(koBlesse).some((e) => e.type === "soin" && e.de === "Soigneur"));
 });
 
+test("entre les tours : buffs des singes (Décret royal) puis perks (Floraison), toujours visibles dans cet ordre", () => {
+  const decret = competenceDe(getEspece("king_monkey"));
+  const singe = (nom, extra = {}) => ({ nom, hp: 10000, atk: 100, def: 0, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 100, perk: null, ...extra });
+  const fleur = effetPerk("blossoming", 3);
+  // Rois et soigneurs dans les deux camps, tous touchés : décret et floraison tombent aux mêmes tours
+  const r = combat(
+    [singe("RoiA", { competence: decret }), singe("FleurA", { perk: fleur }), singe("SoldatA")],
+    [singe("FleurB", { perk: fleur }), singe("RoiB", { competence: decret }), singe("SoldatB")],
+    () => 0.5
+  );
+  const parTour = new Map();
+  let tour = 0;
+  for (const e of r.journal) {
+    if (e.type === "tour") parTour.set((tour = e.numero), []);
+    else parTour.get(tour).push(e.type);
+  }
+  const toursDouble = [...parTour].filter(([, types]) => types.includes("decret") && types.includes("soin"));
+  assert.ok(toursDouble.length >= 4);
+  for (const [, types] of toursDouble) {
+    const dernierDecret = types.lastIndexOf("decret");
+    const premierSoin = types.indexOf("soin");
+    const premiereAttaque = types.findIndex((t) => t === "degats" || t === "rate");
+    // Un décret par roi, puis un soin par soigneur, le tout avant la première attaque
+    assert.equal(types.filter((t) => t === "decret").length, 2);
+    assert.equal(types.filter((t) => t === "soin").length, 2);
+    assert.ok(dernierDecret < premierSoin && types.lastIndexOf("soin") < premiereAttaque);
+  }
+});
+
 test("perks en combat : Frénésie, Étendard, Second souffle et Perforant", () => {
   const singe = (nom, extra = {}) => ({ nom, hp: 1e6, atk: 100, def: 100, spd: 1, prec: 0, esq: 0, crit: 0, critdmg: 100, perk: null, ...extra });
   const coups = (r, de) => r.journal.filter((e) => e.type === "degats" && e.de === de).map((e) => e.degats);
