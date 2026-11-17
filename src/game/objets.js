@@ -24,7 +24,9 @@ export function validerCatalogue(c, nom = "catalogue") {
   const n = c.niveaux ?? {};
   if (!Array.isArray(n.doublons) || !n.doublons.every((d) => Number.isInteger(d) && d >= 1)) throw new Error(`doublons par niveau invalides (${nom})`);
   if (!(typeof n.bonusParNiveauPct === "number" && n.bonusParNiveauPct >= 0)) throw new Error(`bonus par niveau invalide (${nom})`);
-  if (!Number.isInteger(n.rembourseAuMax) || n.rembourseAuMax < 0) throw new Error(`remboursement au maximum invalide (${nom})`);
+  if (!Array.isArray(c.demantelement) || c.demantelement.length !== nbTiers || !c.demantelement.every((v) => Number.isInteger(v) && v >= 0)) {
+    throw new Error(`il faut ${nbTiers} valeurs de démantèlement entières (${nom})`);
+  }
   const objets = Object.entries(c.objets ?? {});
   if (objets.length === 0) throw new Error(`aucun objet (${nom})`);
   for (const [id, o] of objets) {
@@ -91,12 +93,26 @@ export function doublonsRequis(c, niveau) {
 }
 
 // Effet d'un doublon sur un objet possédé ({ niveau, doublons }) : un doublon de plus, et le niveau monte
-// dès que le compte est atteint. Au niveau maximal, le doublon rend `rembourseAuMax` de la ressource.
+// dès que le compte est atteint. Au niveau maximal, rien ne change (un exemplaire au maximum n'en reçoit plus).
 export function apresDoublon(c, { niveau, doublons }) {
   const requis = doublonsRequis(c, niveau);
-  if (requis === null) return { niveau, doublons, monte: false, rembourse: c.niveaux.rembourseAuMax };
-  if (doublons + 1 >= requis) return { niveau: niveau + 1, doublons: 0, monte: true, rembourse: 0 };
-  return { niveau, doublons: doublons + 1, monte: false, rembourse: 0 };
+  if (requis === null) return { niveau, doublons, monte: false };
+  if (doublons + 1 >= requis) return { niveau: niveau + 1, doublons: 0, monte: true };
+  return { niveau, doublons: doublons + 1, monte: false };
+}
+
+// Démantèlement d'un exemplaire `source` ({ id, objet, tier }) parmi les exemplaires du joueur (`exemplaires`) :
+// il donne un doublon à un autre exemplaire du même objet et du même tier qui n'est pas au niveau maximal
+// (celui du niveau le plus élevé, puis le plus avancé, puis le plus ancien), sinon il rend de la ressource
+// selon son tier (`demantelement`). Renvoie { cible, ...apresDoublon } ou { cible: null, rembourse }.
+export function resultatDemantelement(c, source, exemplaires) {
+  const max = niveauMaxObjet(c);
+  const candidats = exemplaires
+    .filter((e) => e.id !== source.id && e.objet === source.objet && e.tier === source.tier && e.niveau < max)
+    .sort((a, b) => b.niveau - a.niveau || b.doublons - a.doublons || Number(a.id) - Number(b.id));
+  const cible = candidats[0];
+  if (!cible) return { cible: null, rembourse: c.demantelement[source.tier - 1] };
+  return { cible, ...apresDoublon(c, cible) };
 }
 
 // Valeurs d'un objet à son niveau : celles du tier, augmentées de `bonusParNiveauPct` % par niveau au-dessus de 1,

@@ -101,3 +101,20 @@ h2 { font-size: 13px; color: var(--texte-doux); text-transform: uppercase; lette
   font-size: 22px;
   cursor: pointer;
 }
+
+/* ---------- Exemplaires (objets empilables) ---------- */
+.objet .portes { font-size: 12px; color: var(--texte-doux); }
+.objet .portes:empty { display: none; }
+.exemplaires { display: flex; flex-direction: column; gap: 6px; text-align: left; margin-bottom: 10px; }
+.exemplaire { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border-radius: 10px; background: #1c1c1c; }
+.exemplaire .infos { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.exemplaire .niv { font-size: 13px; font-weight: bold; color: var(--or); }
+.exemplaire .effet-ex { font-size: 12px; color: var(--texte-doux); }
+.exemplaire .porteur { justify-content: flex-start; margin: 0; }
+.exemplaire .non-equipe { margin: 0; font-size: 12px; }
+.exemplaire button {
+  flex-shrink: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid #6b3a3a; background: #3a2626;
+  color: #ffb3b3; font: inherit; font-size: 12px; font-weight: bold; cursor: pointer;
+}
+.exemplaire button:disabled { border-color: #333; background: #2a2a2a; color: #777; cursor: default; }
+.message-detail { min-height: 1.2em; margin: 0 0 8px; color: var(--or); font-size: 13px; }

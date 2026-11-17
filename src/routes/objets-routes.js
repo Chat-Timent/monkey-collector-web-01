@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { authentifie } from "../middleware/authentifie.js";
-import { equiperObjet, getObjets, tirerLoterieObjet } from "../services/objets-service.js";
+import { demantelerObjet, equiperObjet, getObjets, tirerLoterieObjet } from "../services/objets-service.js";
 
-// Routes d'un type d'objet, sous /`chemin` : état de la page, loterie, équipement.
+// Routes d'un type d'objet, sous /`chemin` : état de la page, loterie, équipement et démantèlement d'un exemplaire.
 function routesObjets(type, chemin) {
   const routes = Router();
 
@@ -14,10 +14,15 @@ function routesObjets(type, chemin) {
     res.json(await tirerLoterieObjet(req.userId, type));
   });
 
-  // { objet, tier, espece, slot } ; espece null pour retirer l'objet
+  // { id, espece, slot } : exemplaire à équiper ; espece null pour le retirer
   routes.post(`/${chemin}/equiper`, authentifie, async (req, res) => {
-    const { objet, tier, espece = null, slot = 1 } = req.body ?? {};
-    res.json(await equiperObjet(req.userId, type, objet, tier, espece, slot));
+    const { id, espece = null, slot = 1 } = req.body ?? {};
+    res.json(await equiperObjet(req.userId, type, id, espece, slot));
+  });
+
+  // { id } : exemplaire (non équipé) à démanteler
+  routes.post(`/${chemin}/demanteler`, authentifie, async (req, res) => {
+    res.json(await demantelerObjet(req.userId, type, req.body?.id));
   });
 
   return routes;

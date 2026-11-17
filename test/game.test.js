@@ -26,7 +26,7 @@ import {
   ticketsApresCadeau, ticketsDisponibles, ticketsParJour, validerDonjons, validerRessourcesJoueur,
 } from "../src/game/ressources.js";
 import {
-  ARMES, CATALOGUES, EQUIPEMENTS, apresDoublon, bonusObjets, doublonsRequis, effetObjet, nbTiersObjet, niveauMaxObjet, objetExiste, tirerObjet,
+  ARMES, CATALOGUES, EQUIPEMENTS, apresDoublon, bonusObjets, doublonsRequis, resultatDemantelement, effetObjet, nbTiersObjet, niveauMaxObjet, objetExiste, tirerObjet,
   validerCatalogue, valeursObjet,
 } from "../src/game/objets.js";
 import { calculerElo, limiteCombatsElo } from "../src/game/elo.js";
@@ -111,6 +111,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /annonces",
     "POST /annonces/lues",
     "POST /arbre/noeuds",
+    "POST /armes/demanteler",
     "POST /armes/equiper",
     "POST /armes/loterie",
     "POST /aventure/combat",
@@ -122,6 +123,7 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /defis",
     "POST /defis/:id/repondre",
     "POST /equipe",
+    "POST /equipements/demanteler",
     "POST /equipements/equiper",
     "POST /equipements/loterie",
     "POST /eveil/balayer",
@@ -207,7 +209,7 @@ test("les requêtes invalides reçoivent une erreur JSON sans toucher la base", 
 
     // Pages et actions de l'éveil, des armes et du balayage : connexion obligatoire
     for (const [methode, chemin] of [["GET", "/eveil"], ["POST", "/eveil/combat"], ["POST", "/eveil/balayer"], ["POST", "/eveil/eveiller"],
-      ["GET", "/armes"], ["POST", "/armes/loterie"], ["POST", "/armes/equiper"], ["POST", "/ressources/balayer"],
+      ["GET", "/armes"], ["POST", "/armes/loterie"], ["POST", "/armes/equiper"], ["POST", "/armes/demanteler"], ["POST", "/ressources/balayer"],
       ["GET", "/equipements"], ["POST", "/equipements/loterie"], ["POST", "/equipements/equiper"]]) {
       const r = await fetch(`${base}${chemin}`, { method: methode });
       assert.equal(r.status, 401, chemin);
@@ -1132,21 +1134,22 @@ test("armes : catalogue vérifié, 4 armes à 5 tiers, loterie pondérée par ti
   // JSON incohérent refusé
   const casse = (modif) => ({ ...ARMES, ...modif });
   assert.throws(() => validerCatalogue(casse({ ressource: "or" })), /ressource inconnue/);
-  assert.throws(() => validerCatalogue(casse({ chancesTiers: [50, 50] })), /2 tiers/);
+  assert.throws(() => validerCatalogue(casse({ chancesTiers: [50, 50] })), /il faut 2/);
+  assert.throws(() => validerCatalogue(casse({ demantelement: [2, 3, 5, 8, -1] })), /démantèlement/);
   assert.throws(() => validerCatalogue(casse({ objets: { x: { nom: "X", icone: "x", tiers: [{ vol: 1 }, {}, {}, {}, {}] } } })), /effet inconnu/);
   assert.throws(() => validerCatalogue(casse({ niveaux: { ...ARMES.niveaux, doublons: [1, 0] } })), /doublons/);
 });
 
-test("armes : doublons 1, 1, 2, 2 jusqu'au niveau 5, puis 5 acier rendus ; +10 % par niveau", () => {
+test("armes : doublons 1, 1, 2, 2 jusqu'au niveau 5 ; +10 % par niveau", () => {
   let etat = { niveau: 1, doublons: 0 };
   const suite = [];
   for (let i = 0; i < 7; i++) {
     const r = apresDoublon(ARMES, etat);
-    suite.push([r.niveau, r.doublons, r.monte, r.rembourse]);
+    suite.push([r.niveau, r.doublons, r.monte]);
     etat = r;
   }
   assert.deepEqual(suite, [
-    [2, 0, true, 0], [3, 0, true, 0], [3, 1, false, 0], [4, 0, true, 0], [4, 1, false, 0], [5, 0, true, 0], [5, 0, false, 5],
+    [2, 0, true], [3, 0, true], [3, 1, false], [4, 0, true], [4, 1, false], [5, 0, true], [5, 0, false],
   ]);
   assert.deepEqual([1, 2, 3, 4, 5].map((n) => doublonsRequis(ARMES, n)), [1, 1, 2, 2, null]);
   assert.deepEqual(valeursObjet(ARMES, "epee", 5, 1), { atkPct: 12 });
@@ -1314,4 +1317,25 @@ test("singe offert : rareté minimale respectée, dans les proportions des raret
   assert.equal(tirerRarete(null, { rareteMin: "legendary", hasard: () => 0 }), "legendary");
   assert.equal(tirerRarete(null, { rareteMin: "legendary", hasard: () => 0.999 }), "mythic");
   assert.throws(() => poidsRaretes(null, { rareteMin: "divin" }), /rareté inconnue/);
+});
+
+test("objets empilables : démanteler donne un doublon au meilleur exemplaire, sinon de la ressource selon le tier", () => {
+  assert.deepEqual(ARMES.demantelement, [2, 3, 5, 8, 15]);
+  assert.deepEqual(EQUIPEMENTS.demantelement, [2, 3, 5, 8, 15]);
+  const ex = (id, objet, tier, niveau, doublons = 0) => ({ id, objet, tier, niveau, doublons });
+  // Seul exemplaire : ressource rendue selon le tier
+  assert.deepEqual(resultatDemantelement(ARMES, ex(1, "epee", 3, 1), [ex(1, "epee", 3, 1)]), { cible: null, rembourse: 5 });
+  // Un autre exemplaire du même objet et du même tier : il reçoit le doublon (niveau 1 → 2)
+  const deux = [ex(1, "epee", 3, 1), ex(2, "epee", 3, 1)];
+  const r = resultatDemantelement(ARMES, deux[0], deux);
+  assert.deepEqual([r.cible.id, r.niveau, r.doublons, r.monte], [2, 2, 0, true]);
+  // Le doublon va au niveau le plus élevé ; un autre tier ou un autre objet ne compte pas
+  const plusieurs = [ex(1, "epee", 3, 1), ex(2, "epee", 3, 2), ex(3, "epee", 3, 3, 1), ex(4, "epee", 4, 4), ex(5, "dague", 3, 4)];
+  const r2 = resultatDemantelement(ARMES, plusieurs[0], plusieurs);
+  assert.deepEqual([r2.cible.id, r2.niveau, r2.doublons, r2.monte], [3, 4, 0, true]);
+  // Les exemplaires au niveau maximal sont ignorés ; s'il n'y a qu'eux, ressource rendue
+  const auMax = [ex(1, "masse", 5, 1), ex(2, "masse", 5, 5)];
+  assert.deepEqual(resultatDemantelement(ARMES, auMax[0], auMax), { cible: null, rembourse: 15 });
+  const r3 = resultatDemantelement(ARMES, auMax[0], [...auMax, ex(3, "masse", 5, 2)]);
+  assert.deepEqual([r3.cible.id, r3.niveau, r3.doublons], [3, 3, 0]); // niveau 2 → 3 : un doublon suffit
 });

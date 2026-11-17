@@ -66,8 +66,7 @@ async function donnerRecompense(userId, r, db) {
     const type = Math.random() < 0.5 ? "arme" : "equipement";
     const o = await obtenirObjet(userId, type, db);
     const def = CATALOGUES[type].objets[o.objet];
-    const suite = !o.doublon ? "" : o.monte ? ` · niv. ${o.niveau}` : " · doublon";
-    obtenus.push({ texte: `${def.nom} T${o.tier}${suite}`, icone: def.icone });
+    obtenus.push({ texte: `${def.nom} T${o.tier}`, icone: def.icone });
   }
   return obtenus;
 }
