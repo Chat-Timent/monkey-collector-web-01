@@ -1,39 +1,68 @@
 {
   "paliers": [2, 4, 6],
-  "categories": {
-    "Amour": {
-      "bonus": [
-        { "hp": 10, "atk": 2, "def": 4 },
-        { "hp": 47, "atk": 9, "def": 19 },
-        { "hp": 65, "atk": 13, "def": 26 }
+  "traits": {
+    "rempart": {
+      "nom": "Rempart", "icone": "🏰", "couleur": "#6fa8dc", "role": "Tank",
+      "paliers": [
+        { "reductionBase": 5.5, "reductionBonus": 11 },
+        { "reductionBase": 14, "reductionBonus": 28 },
+        { "reductionBase": 19, "reductionBonus": 38 }
       ]
     },
-    "Tristesse": {
-      "bonus": [
-        { "hp": 5, "atk": 3, "def": 13 },
-        { "hp": 23, "atk": 12, "def": 58 },
-        { "hp": 31, "atk": 16, "def": 78 }
+    "sacrifice": {
+      "nom": "Sacrifice", "icone": "🩸", "couleur": "#e0457b", "role": "Tank / hybride",
+      "paliers": [
+        { "partStats": 11 },
+        { "partStats": 10 },
+        { "partStats": 8 }
       ]
     },
-    "Joie": {
-      "bonus": [
-        { "hp": 5, "atk": 6, "def": 2 },
-        { "hp": 21, "atk": 28, "def": 11 },
-        { "hp": 29, "atk": 39, "def": 15 }
+    "euphorie": {
+      "nom": "Euphorie", "icone": "😄", "couleur": "#ffd23f", "role": "DPS",
+      "paliers": [
+        { "atkParTour": 2.5, "atkPlafond": 10 },
+        { "atkParTour": 6.5, "atkPlafond": 35 },
+        { "atkParTour": 10, "atkPlafond": 60 }
       ]
     },
-    "Sang-froid": {
-      "bonus": [
-        { "hp": 5, "atk": 5, "def": 5 },
-        { "hp": 23, "atk": 23, "def": 23 },
-        { "hp": 31, "atk": 31, "def": 31 }
+    "chaos": {
+      "nom": "Chaos", "icone": "🌀", "couleur": "#ff6b3d", "role": "DPS",
+      "paliers": [
+        { "chance": 35, "partDegats": 34 },
+        { "chance": 60, "partDegats": 64 },
+        { "chance": 85, "partDegats": 72 }
       ]
     },
-    "Chaos": {
-      "bonus": [
-        { "hp": 2, "atk": 8, "def": 2 },
-        { "hp": 11, "atk": 38, "def": 8 },
-        { "hp": 16, "atk": 53, "def": 11 }
+    "tueurs_de_geant": {
+      "nom": "Tueurs de géant", "icone": "🏹", "couleur": "#e8913a", "role": "DPS",
+      "paliers": [
+        { "pvMaxPct": 1.1, "plafondAtkPct": 14 },
+        { "pvMaxPct": 3.2, "plafondAtkPct": 40 },
+        { "pvMaxPct": 4.8, "plafondAtkPct": 60 }
+      ]
+    },
+    "devouement": {
+      "nom": "Dévouement", "icone": "💚", "couleur": "#5fd38d", "role": "Support",
+      "paliers": [
+        { "soinPct": 11 },
+        { "soinPct": 30 },
+        { "soinPct": 48 }
+      ]
+    },
+    "malediction": {
+      "nom": "Malédiction", "icone": "💀", "couleur": "#a487e0", "role": "Support",
+      "paliers": [
+        { "parTour": 2, "plafond": 8 },
+        { "parTour": 7, "plafond": 35 },
+        { "parTour": 14, "plafond": 70 }
+      ]
+    },
+    "renforcement": {
+      "nom": "Renforcement", "icone": "💪", "couleur": "#9fb3c8", "role": "Support / hybride",
+      "paliers": [
+        { "statsPct": 4 },
+        { "statsPct": 12 },
+        { "statsPct": 18 }
       ]
     }
   }

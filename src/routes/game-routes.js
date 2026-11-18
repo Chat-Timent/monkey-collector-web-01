@@ -82,7 +82,7 @@ gameRoutes.get("/equipe", authentifie, async (req, res) => {
   // Stats de chaque emplacement telles qu'en combat (arbre, perk, éveil, objets et résonances compris), null si vide
   const STATS = ["hp", "atk", "def", "spd", "prec", "esq", "crit", "critdmg"];
   const combat = prete.map((s) => (s ? Object.fromEntries(STATS.map((k) => [k, s[k]])) : null));
-  // Bonus de résonance affichés tels qu'ils comptent en combat (Harmonie, Chœur compris)
+  // Catalogue des traits avec leurs valeurs telles qu'elles comptent en combat (Harmonie, Chœur compris)
   res.json({ equipe, nbSlots, resonances: resonancesAvecBonus(effets.resonance_pct), combat });
 });
 

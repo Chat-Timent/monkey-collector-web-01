@@ -41,7 +41,7 @@ export function singeDeCombat(espece, e, niveau, { effets, perk = null, eveil = 
     nom: e.nom,
     image: getImageUrl(espece),
     rarete: e.rarete,
-    categorie: e.categorie,
+    traits: e.traits ?? [],
     // Taunt : PV du porteur augmentés de pvPct % ; Peau de fer : défense augmentée de defensePct %
     hp: Math.round(s.hp * (1 + effets.hp_pct)) + bonusPv(perkPorte, s.hp) + bonusEveil(s.hp, pctEveil) + obj.hp,
     atk: Math.round(s.atk * (1 + effets.atk_pct)) + bonusEveil(s.atk, pctEveil) + obj.atk,
@@ -74,8 +74,8 @@ export async function preparerEquipe(userId, db = pool) {
       effets, perk: perks[espece] ?? null, eveil: possede?.eveil ?? 1, objets: objets[espece] ?? [],
     });
   }
-  // Résonances de catégorie : tous les singes de l'équipe comptent, rotation active ou non ;
-  // bonus augmentés par Harmonie et Chœur
+  // Résonances de traits : tous les singes de l'équipe comptent, rotation active ou non ;
+  // Renforcement appliqué aux stats, effets des autres traits attachés aux porteurs ; valeurs augmentées par Harmonie et Chœur
   return appliquerResonances(slots, resonancesAvecBonus(effets.resonance_pct)).equipe;
 }
 

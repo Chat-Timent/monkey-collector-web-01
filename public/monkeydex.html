@@ -117,12 +117,15 @@
     .fiche h2 { margin: 0 0 6px; font-size: 22px; }
     .fiche .description { font-style: italic; color: #bbb; font-size: 14px; margin: 0 0 10px; }
     .fiche .niveau { color: #ffb86b; font-size: 13px; }
-    .fiche .detail-famille:not(:empty) { margin-top: 8px; }
-    .bouton-famille {
+    .fiche .detail-traits { margin-top: 10px; }
+    .fiche .detail-traits[hidden] { display: none; }
+    .fiche #detail-rarete { margin-bottom: 6px; }
+    .fiche-entete #detail-rarete img { width: 16px; height: 16px; }
+    .bouton-trait {
       display: inline-flex; align-items: center; gap: 6px;
       background: none; border: none; padding: 0; color: var(--texte-doux); font: inherit; cursor: pointer;
     }
-    .bouton-famille:hover .famille { filter: brightness(1.25); }
+    .bouton-trait:hover .trait { filter: brightness(1.25); }
     .fiche table {
       width: 100%;
       border-collapse: collapse;
@@ -204,10 +207,11 @@
       <div class="fiche-entete">
         <img id="detail-image" alt="">
         <div>
+          <span class="rarete" id="detail-rarete"><img alt=""><span></span></span>
           <h2 id="detail-nom"></h2>
           <p class="description" id="detail-description"></p>
           <div class="niveau" id="detail-niveau"></div>
-          <div id="detail-famille" class="detail-famille"></div>
+          <div class="ligne-traits detail-traits" id="ligne-traits"><span id="detail-traits" class="traits"></span></div>
         </div>
       </div>
       <div id="detail-competence" class="competence" hidden></div>
@@ -241,7 +245,7 @@
     const PAR_PAGE = 12;
     let singes = [];
     let essence = 0; // stock d'essence (éveil depuis la fiche)
-    let familles = null; // { resonances, compte } pour le panneau des familles (réponse /equipe)
+    let infosTraits = null; // { resonances, compte } pour le panneau des traits (réponse /equipe)
     let page = 0;
     let renduVersion = 0;
     const grille = document.getElementById("grille");
@@ -250,15 +254,15 @@
       const r = infoRarete(s.espece.rarete);
       return `
         <button class="carte${s.eveil && s.eveil.niveau >= s.eveil.max ? " eveil-max" : ""}" data-index="${indexGlobal}">
-          <img src="${s.image}" alt="">
-          <h3>${s.espece.nom} <small>×${s.amount}</small></h3>
-          ${s.eveil ? etoilesEveilHTML(s.eveil.niveau, s.eveil.max) : ""}
-          <span class="rarete" style="border-color:${r.couleur}; color:${r.couleur}">
+          <span class="rarete" style="border-color:${r.couleur}; color:color-mix(in srgb, ${r.couleur} 55%, #ffffff)">
             <img src="${r.icone}" alt="">
             ${r.label}
           </span>
-          ${badgeFamilleHTML(s.espece.categorie)}
+          <img src="${s.image}" alt="">
+          <h3>${s.espece.nom} <small>×${s.amount}</small></h3>
+          ${s.eveil ? etoilesEveilHTML(s.eveil.niveau, s.eveil.max) : ""}
           <div class="niv">Lvl ${s.niveau.niveau} (${s.niveau.progression}/${s.niveau.prochain})</div>
+          ${badgesTraitsHTML(s.espece)}
         </button>`;
     }
 
@@ -290,20 +294,26 @@
       document.getElementById("detail-nom").style.color = r.couleur;
       document.getElementById("detail-description").textContent = s.espece.description ?? "";
       document.getElementById("detail-niveau").textContent =
-        `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}`;
-      const zoneFamille = document.getElementById("detail-famille");
-      zoneFamille.innerHTML = "";
-      if (infoFamille(s.espece.categorie)) {
-        // Badge cliquable : ouvre les bonus de toutes les familles, celle-ci en évidence
+        `Niveau ${s.niveau.niveau} · ×${s.amount}`;
+      const rarete = document.getElementById("detail-rarete");
+      rarete.style.borderColor = r.couleur;
+      rarete.style.color = `color-mix(in srgb, ${r.couleur} 55%, #ffffff)`;
+      rarete.querySelector("img").src = r.icone;
+      rarete.querySelector("span").textContent = r.label;
+      const zoneTraits = document.getElementById("detail-traits");
+      zoneTraits.innerHTML = "";
+      for (const id of traitsDe(s.espece)) {
+        // Badge cliquable : ouvre le panneau des traits, celui-ci en évidence
         const bouton = document.createElement("button");
         bouton.type = "button";
-        bouton.className = "bouton-famille";
-        bouton.setAttribute("aria-label", `Famille ${s.espece.categorie} : voir les bonus`);
-        bouton.innerHTML = `${badgeFamilleHTML(s.espece.categorie, true)} <span>ⓘ</span>`;
-        bouton.disabled = !familles;
-        bouton.addEventListener("click", () => ouvrirInfosFamilles(familles.resonances, familles.compte, s.espece.categorie));
-        zoneFamille.appendChild(bouton);
+        bouton.className = "bouton-trait";
+        bouton.setAttribute("aria-label", `Trait ${infoTrait(id).nom} : voir les effets`);
+        bouton.innerHTML = `${badgeTraitHTML(id, true)} <span>ⓘ</span>`;
+        bouton.disabled = !infosTraits;
+        bouton.addEventListener("click", () => ouvrirInfosTraits(infosTraits.resonances, infosTraits.compte, id));
+        zoneTraits.appendChild(bouton);
       }
+      document.getElementById("ligne-traits").hidden = !zoneTraits.children.length;
 
       const zoneCompetence = document.getElementById("detail-competence");
       zoneCompetence.hidden = !s.competence;
@@ -417,7 +427,7 @@
       if (e.target.id === "detail") fermerFiche();
     });
     document.addEventListener("keydown", (e) => {
-      if (document.getElementById("infos-familles")?.open) return; // Échap ferme d'abord le panneau
+      if (document.getElementById("infos-traits")?.open) return; // Échap ferme d'abord le panneau
       if (e.key === "Escape") fermerFiche();
     });
 
@@ -443,12 +453,8 @@
       singes = data.singes;
       essence = data.essence ?? 0;
       if (resEquipe.ok) {
-        const compte = {};
-        for (const { espece } of resEquipe.data.equipe) {
-          const cat = singes.find((s) => s.id === espece)?.espece.categorie;
-          if (cat) compte[cat] = (compte[cat] ?? 0) + 1;
-        }
-        familles = { resonances: resEquipe.data.resonances, compte };
+        const compte = compterTraitsEspeces(resEquipe.data.equipe.map(({ espece }) => singes.find((s) => s.id === espece)?.espece));
+        infosTraits = { resonances: resEquipe.data.resonances, compte };
       }
       document.getElementById("total").textContent = `Nombre total de singes : ${data.total}`;
 

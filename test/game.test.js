@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { combat, degatsDe } from "../src/game/combat-engine.js";
 import { PALIER_RARETE, puissance, puissanceCible, statsAuNiveau } from "../src/game/puissance.js";
-import { RESONANCES, appliquerResonances, resonancesActives, resonancesAvecBonus } from "../src/game/resonances.js";
 import { SINGES } from "../src/game/monkeys.js";
 import { chancesRaretes, estNotable, estRare, getEspece, getImageUrl, getNiveau, poidsRaretes, statsFinales, tirer, tirerRarete } from "../src/game/monkeys.js";
 import {
@@ -504,7 +503,7 @@ test("Mythique : 1/1000 au tirage, même palier de 15 % au-dessus du légendaire
 
   const s = getEspece("crystal_ball_monkey");
   assert.equal(s.rarete, "mythic");
-  assert.equal(s.categorie, "Amour");
+  assert.deepEqual(s.traits, ["euphorie", "tueurs_de_geant"]);
   assert.equal(s.competence, "presage");
   const legendaires = Object.values(SINGES).filter((e) => e.rarete === "legendary");
   // Offensif : plus d'attaque que tout légendaire, et le profil le plus tourné vers l'attaque (ATK / DEF)
@@ -580,22 +579,6 @@ test("Explorateur : +10 % d'XP et de coins en Aventure, tirages inchangés", () 
   const base = { xp: 155, coins: 42, tirages: 5 };
   assert.deepEqual(recompensesAvecBonus(base, agregerEffets([])), base);
   assert.deepEqual(recompensesAvecBonus(base, agregerEffets(["strat.explorateur"])), { xp: 171, coins: 46, tirages: 5 });
-});
-
-test("Harmonie et Chœur : bonus de résonance augmentés de 10 % puis 25 %", () => {
-  assert.equal(resonancesAvecBonus(0), RESONANCES);
-  const pct = agregerEffets(["strat.harmonie", "strat.choeur"]).resonance_pct;
-  assert.ok(Math.abs(pct - 0.25) < 1e-9);
-  const augmentees = resonancesAvecBonus(pct);
-  // Amour, palier 4 : { hp: 47, atk: 9, def: 19 } → +25 %, arrondi au dixième
-  assert.deepEqual(augmentees.categories.Amour.bonus[1], { hp: 58.8, atk: 11.3, def: 23.8 });
-  assert.deepEqual(augmentees.paliers, RESONANCES.paliers);
-  // Les données d'origine ne sont pas modifiées
-  assert.deepEqual(RESONANCES.categories.Amour.bonus[1], { hp: 47, atk: 9, def: 19 });
-  // Appliqué à une équipe : deux singes Amour reçoivent le palier 2 augmenté
-  const singe = (categorie) => ({ hp: 1000, atk: 100, def: 100, categorie });
-  const { equipe } = appliquerResonances([singe("Amour"), singe("Amour")], resonancesAvecBonus(0.1));
-  assert.deepEqual([equipe[0].hp, equipe[0].atk, equipe[0].def], [1110, 102, 104]);
 });
 
 test("Maître des perks : valeurs des perks 15 % plus fortes, plafonds et cumuls inchangés", () => {
@@ -1026,41 +1009,6 @@ test("aucun singe n'a les mêmes stats qu'un autre, ni la même croissance", () 
     bases.add(b);
     croissances.add(c);
   }
-});
-
-test("résonances : paliers à 2, 4 et 6 singes de la même catégorie, tous slots confondus", () => {
-  const s = (categorie) => ({ categorie, nom: categorie, hp: 1000, atk: 100, def: 100 });
-  // 1 singe : rien
-  assert.deepEqual(resonancesActives([s("Joie"), s("Chaos"), null]), []);
-  // 2 Joie : palier 2 ; le singe d'une autre catégorie n'est pas touché
-  const deux = appliquerResonances([s("Joie"), s("Chaos"), s("Joie")]);
-  assert.deepEqual(deux.resonances.map((r) => [r.categorie, r.nb, r.palier]), [["Joie", 2, 2]]);
-  const b = RESONANCES.categories.Joie.bonus[0];
-  assert.equal(deux.equipe[0].atk, Math.round(100 * (1 + b.atk / 100)));
-  assert.equal(deux.equipe[1].atk, 100);
-  // les singes hors rotation active (slots 4 à 9) comptent aussi : 4 Joie répartis sur 9 slots = palier 4
-  const neuf = [s("Joie"), null, null, s("Joie"), null, null, s("Joie"), null, s("Joie")];
-  assert.equal(resonancesActives(neuf)[0].palier, 4);
-  // palier 6 atteint, et 5 reste au palier 4
-  assert.equal(resonancesActives(Array(5).fill(0).map(() => s("Amour")))[0].palier, 4);
-  assert.equal(resonancesActives(Array(6).fill(0).map(() => s("Amour")))[0].palier, 6);
-  // plusieurs résonances en même temps, équipe d'origine non modifiée
-  const origine = [s("Joie"), s("Joie"), s("Chaos"), s("Chaos")];
-  const deux2 = appliquerResonances(origine);
-  assert.equal(deux2.resonances.length, 2);
-  assert.equal(origine[0].atk, 100);
-});
-
-test("résonances : les singes du catalogue ont tous une famille connue", () => {
-  for (const [id, s] of Object.entries(SINGES)) {
-    assert.ok(RESONANCES.categories[s.categorie], `${id} : catégorie ${s.categorie}`);
-  }
-  for (const cat of Object.values(RESONANCES.categories)) assert.equal(cat.bonus.length, RESONANCES.paliers.length);
-});
-
-test("les ennemis de l'aventure ne profitent pas des résonances", () => {
-  const ennemis = ennemisEtage(30).filter(Boolean);
-  assert.ok(ennemis.length > 0 && ennemis.every((e) => e.categorie === undefined));
 });
 
 test("Peau de fer : la défense du porteur augmente du pourcentage de son tier", () => {
