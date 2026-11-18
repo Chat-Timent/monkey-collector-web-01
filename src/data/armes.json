@@ -3,7 +3,7 @@
   "slots": 1,
   "prix": 10,
   "ressource": "acier",
-  "chancesTiers": [50, 27, 14, 7, 2],
+  "chancesTiers": [400, 120, 40, 12, 3],
   "demantelement": [2, 3, 5, 8, 15],
   "objets": {
     "epee": {
