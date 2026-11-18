@@ -109,18 +109,21 @@
     .choix-tuiles { padding: 6px; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
     .choix-tuiles .tuile-objet .emoji { font-size: 30px; }
     .sans-infobulle .infobulle { display: none !important; }
-    .apercu-objet {
-      display: flex; align-items: center; justify-content: space-between; gap: 10px;
-      margin: 4px 6px 6px; padding: 10px; border-radius: 10px; background: #1c1c1c; border: 1px solid #333;
+    /* Bulle d'un objet de la fenêtre de choix, juste au-dessus de la tuile (en dessous s'il n'y a pas la place).
+       Position fixe calculée en JS : la liste défile, une infobulle CSS y serait coupée. Survol = aperçu,
+       clic = bulle épinglée avec le bouton Équiper (le seul moyen sur téléphone). */
+    .bulle-objet {
+      position: fixed; z-index: 70; width: max-content; max-width: min(240px, calc(100vw - 16px));
+      padding: 8px 10px; border-radius: 10px; background: #111; border: 1px solid var(--tier, #555);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6); font-size: 12px; color: var(--texte-doux);
     }
-    .apercu-objet .infos { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .apercu-objet b { font-size: 14px; }
-    .apercu-objet .effet, .apercu-objet .porteur-texte { font-size: 12px; color: var(--texte-doux); }
-    .apercu-objet button {
-      flex-shrink: 0; padding: 9px 16px; border-radius: 10px; border: none;
+    .bulle-objet[hidden] { display: none; }
+    .bulle-objet b { display: block; margin-bottom: 3px; font-size: 14px; color: var(--tier); }
+    .bulle-objet span { display: block; }
+    .bulle-objet button {
+      display: block; width: 100%; margin-top: 8px; padding: 7px 14px; border-radius: 8px; border: none;
       background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font: inherit; font-weight: bold; cursor: pointer;
     }
-    .apercu-objet .vide { padding: 0; }
 
     /* ---------- Fenêtre de choix ---------- */
     .fond {
@@ -208,6 +211,7 @@
     <div class="choix" role="dialog" aria-modal="true" aria-labelledby="choix-titre">
       <header><h3 id="choix-titre"></h3><button class="fermer" type="button" aria-label="Fermer">✕</button></header>
       <div id="choix-liste"></div>
+      <div id="bulle-objet" class="bulle-objet" hidden></div>
     </div>
   </div>
 
@@ -438,11 +442,13 @@
       $("choix-titre").textContent = titre;
       const liste = $("choix-liste");
       liste.innerHTML = "";
+      cacherBulle();
       for (const o of options) liste.appendChild(o);
       $("fond-choix").hidden = false;
     }
     function fermerChoix() {
       $("fond-choix").hidden = true;
+      cacherBulle();
     }
     // Option de la fenêtre : `visuel` (image ou icône), nom, badges éventuels, sous-texte
     function option({ image, icone, nom, badges = "", traits = "", sous = "", desactive = false, retirer = false, action }) {
@@ -533,9 +539,53 @@
       ouvrirChoix(`Perk de ${cible?.espece.nom ?? ""}`, options);
     }
 
+    // ---------- Bulle des objets (fenêtre de choix) ----------
+    // Une seule bulle, placée juste au-dessus de la tuile visée. Survol à la souris : aperçu (sans bouton) ;
+    // clic : bulle épinglée avec Équiper, qui reste jusqu'au clic suivant ailleurs.
+    const bulle = { epinglee: null, contenu: null }; // tuile épinglée, et fonction qui remplit la bulle pour une tuile
+    function placerBulle(tuile) {
+      const el = $("bulle-objet");
+      const r = tuile.getBoundingClientRect();
+      const liste = $("choix-liste").getBoundingClientRect();
+      // Tuile sortie de la zone visible de la liste (défilement) : pas de bulle flottant dans le vide
+      if (r.bottom < liste.top || r.top > liste.bottom) { el.hidden = true; return; }
+      el.hidden = false;
+      const marge = 8;
+      const l = el.offsetWidth, h = el.offsetHeight;
+      const gauche = Math.min(Math.max(marge, r.left + r.width / 2 - l / 2), window.innerWidth - l - marge);
+      const haut = r.top - h - marge >= marge ? r.top - h - marge : Math.min(r.bottom + marge, window.innerHeight - h - marge);
+      el.style.left = `${gauche}px`;
+      el.style.top = `${haut}px`;
+    }
+    function montrerBulle(tuile, avecBouton) {
+      const el = $("bulle-objet");
+      el.style.setProperty("--tier", getComputedStyle(tuile).getPropertyValue("--tier"));
+      bulle.contenu(el, tuile, avecBouton);
+      placerBulle(tuile);
+    }
+    function cacherBulle() {
+      bulle.epinglee?.classList.remove("choisie");
+      bulle.epinglee = null;
+      $("bulle-objet").hidden = true;
+    }
+    // Après un survol : revient à la bulle épinglée s'il y en a une
+    function finSurvol() {
+      if (bulle.epinglee) montrerBulle(bulle.epinglee, true);
+      else $("bulle-objet").hidden = true;
+    }
+    $("choix-liste").addEventListener("scroll", () => {
+      if (bulle.epinglee) placerBulle(bulle.epinglee);
+      else $("bulle-objet").hidden = true;
+    });
+    window.addEventListener("resize", () => { if (bulle.epinglee) placerBulle(bulle.epinglee); });
+    // Clic ailleurs que sur une tuile ou dans la bulle : la bulle épinglée se ferme
+    $("fond-choix").addEventListener("click", (e) => {
+      if (bulle.epinglee && !e.target.closest(".choix-tuiles .tuile-objet, #bulle-objet")) cacherBulle();
+    });
+
     // Objets : l'objet porté en tête (avec Retirer), puis tous les exemplaires en tuiles (libres d'abord).
-    // Un clic sur une tuile l'affiche en dessous (nom, effet chiffré sur ce singe, porteur) avec le bouton Équiper :
-    // l'infobulle de survol n'existe pas sur téléphone.
+    // Survol d'une tuile : bulle juste au-dessus (nom, effet chiffré sur ce singe, porteur) ;
+    // clic : la même bulle épinglée, avec le bouton Équiper (seul moyen sur téléphone, sans survol).
     function ouvrirChoixObjet(type, espece, emplacement) {
       const { donnees: d, retirer, vide, nom } = OBJETS[type];
       const cible = trouverSinge(espece);
@@ -558,21 +608,27 @@
         grille.innerHTML = exemplaires.map((o) => tuileObjetHTML(d.catalogue, o, {
           stats: base, porteur: o.espece ? trouverSinge(o.espece) : null, classe: "sans-infobulle",
         })).join("");
-        const apercu = document.createElement("div");
-        apercu.className = "apercu-objet";
-        apercu.innerHTML = `<p class="vide">Choisis un objet.</p>`;
-        grille.querySelectorAll(".tuile-objet").forEach((t) => t.addEventListener("click", () => {
-          grille.querySelectorAll(".choisie").forEach((x) => x.classList.remove("choisie"));
-          t.classList.add("choisie");
+        bulle.contenu = (el, t, avecBouton) => {
           const o = exemplaires.find((x) => x.id === Number(t.dataset.id));
           const porteur = o.espece ? trouverSinge(o.espece) : null;
-          apercu.innerHTML = `<div class="infos"><b></b><span class="effet"></span><span class="porteur-texte"></span></div><button type="button">Équiper</button>`;
-          apercu.querySelector("b").textContent = nomObjet(d.catalogue, o.objet, o.tier);
-          apercu.querySelector(".effet").textContent = texteEffetsObjet(o.valeurs, base);
-          apercu.querySelector(".porteur-texte").textContent = porteur ? `Porté par ${porteur.espece.nom} : il le perdra` : "Libre";
-          apercu.querySelector("button").addEventListener("click", () => { fermerChoix(); equiperObjet(type, o, espece, emplacement); });
-        }));
-        options.push(grille, apercu);
+          el.innerHTML = `<b></b><span class="effet"></span><span class="porteur-texte"></span>${avecBouton ? `<button type="button">Équiper</button>` : ""}`;
+          el.querySelector("b").textContent = nomObjet(d.catalogue, o.objet, o.tier);
+          el.querySelector(".effet").textContent = texteEffetsObjet(o.valeurs, base);
+          el.querySelector(".porteur-texte").textContent = porteur ? `Porté par ${porteur.espece.nom} : il le perdra` : "Libre";
+          el.querySelector("button")?.addEventListener("click", () => { fermerChoix(); equiperObjet(type, o, espece, emplacement); });
+        };
+        grille.querySelectorAll(".tuile-objet").forEach((t) => {
+          // Souris seulement : sur écran tactile, un appui déclencherait aussi le survol
+          t.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse" && t !== bulle.epinglee) montrerBulle(t, false); });
+          t.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse" && t !== bulle.epinglee) finSurvol(); });
+          t.addEventListener("click", () => {
+            bulle.epinglee?.classList.remove("choisie");
+            bulle.epinglee = t;
+            t.classList.add("choisie");
+            montrerBulle(t, true);
+          });
+        });
+        options.push(grille);
       }
       if (d.obtenus.length === 0) options.push(messageVide(vide));
       const titre = type === "arme" ? `Arme de ${cible?.espece.nom ?? ""}` : `${nom} ${emplacement} de ${cible?.espece.nom ?? ""}`;
