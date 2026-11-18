@@ -54,20 +54,25 @@
 #statutChat { font-size: 12px; color: var(--or); min-height: 16px; margin-top: 4px; flex-shrink: 0; }
 
 /* Badge de trait : fond teinté de la couleur du trait (les raretés, elles, sont cerclées) */
+/* Style neutre (gris, coins peu arrondis) : seule l'icône est en couleur. Les couleurs vives et
+   la forme en pilule restent réservées à la rareté, pour ne jamais confondre un trait avec elle. */
 .trait {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 2px 7px;
+  border-radius: 4px;
   font-size: 11px;
-  font-weight: bold;
+  font-weight: normal;
   white-space: nowrap;
-  color: var(--trait);
-  background: color-mix(in srgb, var(--trait) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--trait) 45%, transparent);
+  color: #d4d4d4;
+  background: #2a2a2a;
+  border: 1px solid #3c3c3c;
 }
-.trait.grand { font-size: 14px; padding: 4px 12px; border-radius: 8px; }
+.trait.grand { font-size: 13px; padding: 3px 10px; }
+/* Ligne « Traits : … », placée dans le descriptif, loin de la rareté */
+.ligne-traits { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.ligne-traits .etiquette { font-size: 11px; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 0.04em; }
 /* Plusieurs traits d'un même singe : rangés côte à côte, à la ligne si la place manque */
 .traits { display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: middle; max-width: 100%; }
 

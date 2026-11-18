@@ -158,6 +158,12 @@ function badgesTraitsHTML(espece, grand = false) {
   return traits.length ? `<span class="traits">${traits.map((t) => badgeTraitHTML(t, grand)).join("")}</span>` : "";
 }
 
+// Ligne « Traits » du descriptif d'un singe (chaîne vide s'il n'en a pas) : toujours séparée de la rareté.
+function ligneTraitsHTML(espece, grand = false) {
+  const badges = badgesTraitsHTML(espece, grand);
+  return badges ? `<div class="ligne-traits"><span class="etiquette">Traits</span>${badges}</div>` : "";
+}
+
 // Appel au serveur. `corps` présent → POST JSON. Renvoie { ok, status, data } ;
 // `data.erreur` contient le message du serveur en cas d'échec.
 // Une coupure réseau fait échouer la promesse, comme fetch.

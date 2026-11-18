@@ -117,7 +117,10 @@
     .fiche h2 { margin: 0 0 6px; font-size: 22px; }
     .fiche .description { font-style: italic; color: #bbb; font-size: 14px; margin: 0 0 10px; }
     .fiche .niveau { color: #ffb86b; font-size: 13px; }
-    .fiche .detail-traits:not(:empty) { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 8px; }
+    .fiche .detail-traits { margin-top: 10px; }
+    .fiche .detail-traits[hidden] { display: none; }
+    .fiche #detail-rarete { margin-bottom: 6px; }
+    .fiche-entete #detail-rarete img { width: 16px; height: 16px; }
     .bouton-trait {
       display: inline-flex; align-items: center; gap: 6px;
       background: none; border: none; padding: 0; color: var(--texte-doux); font: inherit; cursor: pointer;
@@ -204,10 +207,11 @@
       <div class="fiche-entete">
         <img id="detail-image" alt="">
         <div>
+          <span class="rarete" id="detail-rarete"><img alt=""><span></span></span>
           <h2 id="detail-nom"></h2>
           <p class="description" id="detail-description"></p>
           <div class="niveau" id="detail-niveau"></div>
-          <div id="detail-traits" class="detail-traits"></div>
+          <div class="ligne-traits detail-traits" id="ligne-traits"><span class="etiquette">Traits</span><span id="detail-traits" class="traits"></span></div>
         </div>
       </div>
       <div id="detail-competence" class="competence" hidden></div>
@@ -250,15 +254,15 @@
       const r = infoRarete(s.espece.rarete);
       return `
         <button class="carte${s.eveil && s.eveil.niveau >= s.eveil.max ? " eveil-max" : ""}" data-index="${indexGlobal}">
-          <img src="${s.image}" alt="">
-          <h3>${s.espece.nom} <small>×${s.amount}</small></h3>
-          ${s.eveil ? etoilesEveilHTML(s.eveil.niveau, s.eveil.max) : ""}
-          <span class="rarete" style="border-color:${r.couleur}; color:${r.couleur}">
+          <span class="rarete" style="border-color:${r.couleur}; color:color-mix(in srgb, ${r.couleur} 55%, #ffffff)">
             <img src="${r.icone}" alt="">
             ${r.label}
           </span>
-          ${badgesTraitsHTML(s.espece)}
+          <img src="${s.image}" alt="">
+          <h3>${s.espece.nom} <small>×${s.amount}</small></h3>
+          ${s.eveil ? etoilesEveilHTML(s.eveil.niveau, s.eveil.max) : ""}
           <div class="niv">Lvl ${s.niveau.niveau} (${s.niveau.progression}/${s.niveau.prochain})</div>
+          ${badgesTraitsHTML(s.espece)}
         </button>`;
     }
 
@@ -290,7 +294,12 @@
       document.getElementById("detail-nom").style.color = r.couleur;
       document.getElementById("detail-description").textContent = s.espece.description ?? "";
       document.getElementById("detail-niveau").textContent =
-        `Niveau ${s.niveau.niveau} · ${r.label} · ×${s.amount}`;
+        `Niveau ${s.niveau.niveau} · ×${s.amount}`;
+      const rarete = document.getElementById("detail-rarete");
+      rarete.style.borderColor = r.couleur;
+      rarete.style.color = `color-mix(in srgb, ${r.couleur} 55%, #ffffff)`;
+      rarete.querySelector("img").src = r.icone;
+      rarete.querySelector("span").textContent = r.label;
       const zoneTraits = document.getElementById("detail-traits");
       zoneTraits.innerHTML = "";
       for (const id of traitsDe(s.espece)) {
@@ -304,6 +313,7 @@
         bouton.addEventListener("click", () => ouvrirInfosTraits(infosTraits.resonances, infosTraits.compte, id));
         zoneTraits.appendChild(bouton);
       }
+      document.getElementById("ligne-traits").hidden = !zoneTraits.children.length;
 
       const zoneCompetence = document.getElementById("detail-competence");
       zoneCompetence.hidden = !s.competence;

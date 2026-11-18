@@ -126,8 +126,9 @@
     /* Carte haute : le portrait se centre sur la hauteur plutôt que de rester collé en haut */
     .singe .portrait { display: flex; align-items: center; justify-content: center; }
     .singe .portrait img { width: 150px; height: 150px; object-fit: contain; }
-    .singe .nom { font-size: 24px; font-weight: bold; margin: 0 0 8px; }
-    .singe .badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+    .singe .nom { font-size: 24px; font-weight: bold; margin: 0 0 6px; }
+    .singe .badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .singe .fam:not(:empty) { margin-bottom: 10px; }
     /* Bordure à la couleur exacte de la rareté, texte éclairci : le bleu du commun (#060ee4)
        est illisible tel quel sur fond sombre. */
     .rarete {
@@ -393,12 +394,10 @@
       zone.innerHTML = `
         <div class="portrait"><img alt=""></div>
         <div>
+          <div class="badges"><span class="rarete"><img alt=""><span class="label"></span></span></div>
           <h3 class="nom"></h3>
-          <div class="badges">
-            <span class="rarete"><img alt=""><span class="label"></span></span>
-            <span class="fam"></span>
-          </div>
           <p class="description"></p>
+          <div class="fam"></div>
           <div class="niveau"></div>
           <div class="competence" hidden></div>
           <div id="stats"></div>
@@ -414,7 +413,7 @@
       badge.style.borderColor = r.couleur;
       badge.querySelector("img").src = r.icone;
       badge.querySelector(".label").textContent = r.label;
-      zone.querySelector(".fam").innerHTML = badgesTraitsHTML(singe.espece);
+      zone.querySelector(".fam").innerHTML = ligneTraitsHTML(singe.espece);
       zone.querySelector(".description").textContent = singe.espece.description ?? "";
       zone.querySelector(".niveau").innerHTML =
         `Niveau ${singe.niveau.niveau} · ${singe.niveau.progression} / ${singe.niveau.prochain} vers le suivant`

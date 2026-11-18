@@ -71,6 +71,7 @@
     .fiche-entete h3 { margin: 0 0 4px; font-size: 19px; }
     .fiche-entete .badges { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-bottom: 4px; }
     .fiche-entete .niveau { font-size: 13px; color: var(--or); display: flex; gap: 8px; align-items: center; }
+    .fiche-entete .ligne-traits { margin-top: 8px; }
     .actions { display: flex; gap: 8px; margin: 12px 0; }
     .actions button {
       flex: 1; padding: 9px; border-radius: 10px; border: 1px solid #444; background: #2b2f3a;
@@ -253,7 +254,7 @@
     }
     function pastilleHTML(rarete) {
       const r = infoRarete(rarete);
-      return `<span class="pastille" style="border-color:${r.couleur};color:${r.couleur}"><img src="${r.icone}" alt="">${r.label}</span>`;
+      return `<span class="pastille" style="border-color:${r.couleur};color:color-mix(in srgb, ${r.couleur} 55%, #ffffff)"><img src="${r.icone}" alt="">${r.label}</span>`;
     }
     const etoiles = (s) => (s?.eveil ? etoilesEveilHTML(s.eveil.niveau, s.eveil.max) : "");
 
@@ -400,9 +401,10 @@
         <div class="fiche-entete">
           <img src="${s.image}" alt="">
           <div>
+            <div class="badges">${pastilleHTML(s.espece.rarete)}</div>
             <h3 style="color:${r.couleur}">${s.espece.nom}</h3>
-            <div class="badges">${pastilleHTML(s.espece.rarete)} ${badgesTraitsHTML(s.espece)}</div>
             <div class="niveau">Niveau ${s.niveau.niveau} ${etoiles(s)}</div>
+            ${ligneTraitsHTML(s.espece)}
           </div>
         </div>
         <div class="actions">
@@ -440,7 +442,7 @@
       $("fond-choix").hidden = true;
     }
     // Option de la fenêtre : `visuel` (image ou icône), nom, badges éventuels, sous-texte
-    function option({ image, icone, nom, badges = "", sous = "", desactive = false, retirer = false, action }) {
+    function option({ image, icone, nom, badges = "", traits = "", sous = "", desactive = false, retirer = false, action }) {
       const b = document.createElement("button");
       b.type = "button";
       b.className = "option" + (retirer ? " retirer" : "");
@@ -449,7 +451,7 @@
         b.textContent = nom;
       } else {
         b.innerHTML = `${image ? `<img src="${image}" alt="">` : `<span class="icone"></span>`}
-          <span class="infos"><span class="nom"></span>${badges ? `<span class="badges">${badges}</span>` : ""}<span class="sous"></span></span>`;
+          <span class="infos">${badges ? `<span class="badges">${badges}</span>` : ""}<span class="nom"></span><span class="sous"></span>${traits}</span>`;
         if (!image) b.querySelector(".icone").textContent = icone;
         b.querySelector(".nom").innerHTML = nom;
         b.querySelector(".sous").textContent = sous;
@@ -491,7 +493,8 @@
         options.push(option({
           image: s.image,
           nom: `${s.espece.nom} ${etoiles(s)}`,
-          badges: `${pastilleHTML(s.espece.rarete)} ${badgesTraitsHTML(s.espece)}`,
+          badges: pastilleHTML(s.espece.rarete),
+          traits: ligneTraitsHTML(s.espece),
           sous: `Lvl ${s.niveau.niveau} · PV ${st.hp} · ATK ${st.atk} · DEF ${st.def}` + (j >= 0 ? ` · échanger avec ${nomPlace(j)}` : ""),
           action: () => choisirSinge(index, s.id),
         }));
