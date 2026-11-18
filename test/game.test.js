@@ -1237,13 +1237,13 @@ test("armes : catalogue vérifié, 4 armes à 5 tiers, loterie pondérée par ti
   const suite = (...v) => { let i = 0; return () => v[i++]; };
   assert.deepEqual(tirerObjet(ARMES, suite(0, 0)), { objet: "epee", tier: 1 });
   assert.deepEqual(tirerObjet(ARMES, suite(0.99, 0.999)), { objet: "masse", tier: 5 });
-  assert.deepEqual(tirerObjet(ARMES, suite(0.3, 0.6)), { objet: "dague", tier: 2 }); // 0,6 × 100 = 60 : après les 50 du tier I
-  // Sur beaucoup de tirages : environ 50 % de tier I et 2 % de tier V
+  assert.deepEqual(tirerObjet(ARMES, suite(0.3, 0.8)), { objet: "dague", tier: 2 }); // 0,8 × 575 = 460 : après les 400 du tier I
+  // Sur beaucoup de tirages : environ 70 % de tier I et 0,5 % de tier V
   let graine = 7;
   const hasard = () => { graine = (graine * 16807) % 2147483647; return graine / 2147483647; };
   const compte = [0, 0, 0, 0, 0];
   for (let i = 0; i < 20000; i++) compte[tirerObjet(ARMES, hasard).tier - 1]++;
-  assert.ok(Math.abs(compte[0] / 20000 - 0.5) < 0.02 && Math.abs(compte[4] / 20000 - 0.02) < 0.006, String(compte));
+  assert.ok(Math.abs(compte[0] / 20000 - 400 / 575) < 0.02 && Math.abs(compte[4] / 20000 - 3 / 575) < 0.003, String(compte));
   // JSON incohérent refusé
   const casse = (modif) => ({ ...ARMES, ...modif });
   assert.throws(() => validerCatalogue(casse({ ressource: "or" })), /ressource inconnue/);
