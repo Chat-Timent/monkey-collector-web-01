@@ -96,13 +96,109 @@ function decretRoyal(camp, tour, journal) {
   }
 }
 
+// ---------- Traits (résonances d'équipe) ----------
+// Valeurs du trait `id` pour ce singe s'il le porte et que la résonance est active (voir resonances.js), sinon null.
+// Un effet de combat exige un porteur vivant et dans la rotation active ; seul Sacrifice récompense aussi la réserve.
+function trait(s, id) {
+  return s?.effetsTraits?.[id] ?? null;
+}
+
+// Trait Euphorie : au début de chaque tour, chaque porteur vivant de la rotation active cumule +`atkParTour` % d'ATK,
+// jusqu'à `atkPlafond` %. Le bonus s'ajoute à celui de Frénésie dans l'ATK du coup (atkDuCoup) ; pas d'événement.
+function euphorie(camp) {
+  for (const s of rotationActive(camp)) {
+    const t = trait(s, "euphorie");
+    if (t) s.euphorie = Math.min(t.atkPlafond, Math.round(((s.euphorie ?? 0) + t.atkParTour) * 10) / 10);
+  }
+}
+
+// Trait Malédiction : au début de chaque tour, si au moins un porteur est vivant dans la rotation active, l'ennemi
+// de la rotation active adverse qui a le plus de PV actuels (à égalité : le premier slot) perd `parTour` % de DEF
+// et autant d'ATK, cumulable sur lui jusqu'à `plafond` %. Une seule malédiction par camp et par tour, même avec
+// plusieurs porteurs. Le cumul est gardé à part (`cible.malediction`) et appliqué au calcul de chaque coup (DEF de la
+// cible, ATK de l'attaquant) : Décret royal, qui recalcule `atk` et `def` depuis leurs valeurs de départ, ne l'efface pas.
+// Événement seulement quand le cumul augmente (rien sur une cible au plafond).
+function malediction(camp, adverses, tour, journal) {
+  const porteur = rotationActive(camp).find((s) => trait(s, "malediction"));
+  if (!porteur) return;
+  const t = trait(porteur, "malediction");
+  const actifs = rotationActive(adverses);
+  if (actifs.length === 0) return;
+  const cible = actifs.reduce((haut, s) => (s.pv > haut.pv ? s : haut));
+  const avant = cible.malediction ?? 0;
+  const cumul = Math.round(Math.min(100, t.plafond, avant + t.parTour) * 10) / 10;
+  if (cumul <= avant) return;
+  cible.malediction = cumul;
+  journal.push({
+    type: "malediction", tour,
+    de: porteur.nom, deCamp: porteur.camp, deSlot: porteur.slot,
+    sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
+    pct: Math.round((cumul - avant) * 10) / 10, cumul,
+  });
+}
+
+// Trait Rempart : réduction (en %) des dégâts reçus par un porteur, plus forte quand ses PV baissent
+// (PV au moment du coup) : base + bonus × (1 − PV / PV max). S'applique à tous les dégâts : coups, Présage, seconde frappe.
+function reductionRempart(cible) {
+  const t = trait(cible, "rempart");
+  if (!t) return 0;
+  return Math.min(100, t.reductionBase + t.reductionBonus * (1 - cible.pv / cible.hp));
+}
+
+// Trait Dévouement : chaque coup d'un porteur soigne l'allié vivant de sa rotation active qui a le plus petit ratio
+// PV / PV max (à égalité : le premier slot ; le porteur peut se soigner lui-même), de `soinPct` % des dégâts réellement
+// infligés, sans dépasser ses PV max. Le soin est rangé dans l'événement de dégâts (`devouement`) : pas de pas de replay en plus.
+function devouement(attaquant, campAttaquant, inflige) {
+  const t = trait(attaquant, "devouement");
+  if (!t || inflige <= 0) return null;
+  const allies = rotationActive(campAttaquant);
+  if (allies.length === 0) return null;
+  const cible = allies.reduce((bas, s) => (s.pv / s.hp < bas.pv / bas.hp ? s : bas));
+  const soin = Math.min(Math.round((inflige * t.soinPct) / 100), cible.hp - cible.pv);
+  if (soin <= 0) return null;
+  cible.pv += soin;
+  return { sur: cible.nom, surSlot: cible.slot, soin, pvRestants: cible.pv };
+}
+
+// Trait Sacrifice : quand un porteur meurt pour de bon (après un éventuel Second souffle), tous les autres porteurs
+// vivants de son camp, réserve comprise, gagnent `partStats` % de ses PV max, ATK et DEF (valeurs au moment de sa mort),
+// cumulable à chaque mort. Les valeurs de départ (`hpDepart`…) suivent, pour que Décret royal ne les écrase pas.
+function sacrifice(mort, camp, tour, journal) {
+  const t = trait(mort, "sacrifice");
+  if (!t || estVivant(mort) || mort.sacrifie) return;
+  mort.sacrifie = true;
+  const beneficiaires = tousVivants(camp).filter((s) => s !== mort && trait(s, "sacrifice"));
+  if (beneficiaires.length === 0) return;
+  const gain = {
+    hp: Math.round((mort.hp * t.partStats) / 100),
+    atk: Math.round((mort.atk * t.partStats) / 100),
+    def: Math.round((mort.def * t.partStats) / 100),
+  };
+  for (const s of beneficiaires) {
+    s.hp += gain.hp; s.hpDepart += gain.hp; s.pv += gain.hp;
+    s.atk += gain.atk; s.atkDepart += gain.atk;
+    s.def += gain.def; s.defDepart += gain.def;
+  }
+  journal.push({
+    type: "sacrifice", tour,
+    nom: mort.nom, camp: mort.camp, slot: mort.slot,
+    partStats: t.partStats, ...gain,
+    cibles: beneficiaires.map((s) => ({ slot: s.slot, hp: s.hp, pv: s.pv })),
+  });
+}
+
 // Effets qui se déclenchent entre les tours, avant les attaques, toujours dans le même ordre :
 // 1. buffs des singes (passifs des mythiques, ex. Décret royal), camp A puis camp B ;
-// 2. perks (Floraison, tous les 2 tours), camp A puis camp B.
+// 2. traits : Euphorie (camp A puis B), puis Malédiction (camp A puis B) ;
+// 3. perks (Floraison, tous les 2 tours), camp A puis camp B.
 // Chaque effet écrit son propre événement dans le journal : aucun n'en masque un autre.
 function effetsEntreTours(A, B, tour, journal) {
   decretRoyal(A, tour, journal);
   decretRoyal(B, tour, journal);
+  euphorie(A);
+  euphorie(B);
+  malediction(A, B, tour, journal);
+  malediction(B, A, tour, journal);
   if (tour % 2 === 0) {
     floraison(A, tour, journal);
     floraison(B, tour, journal);
@@ -125,11 +221,16 @@ function etendards(camp) {
   }
 }
 
-// Perk Frénésie : ATK du porteur augmentée de `atkParCoupPct` % par coup déjà porté, jusqu'à `cumulMax` cumuls.
+// ATK d'un coup : ATK × (1 + Frénésie + Euphorie) × (1 − Malédiction subie) ; Frénésie et Euphorie s'additionnent.
+// Perk Frénésie : +`atkParCoupPct` % par coup déjà porté, jusqu'à `cumulMax` cumuls ; trait Euphorie : cumul du porteur ;
+// trait Malédiction : cumul posé sur l'attaquant par les porteurs adverses.
 function atkDuCoup(attaquant) {
   const p = attaquant.perk;
-  if (p?.id !== "frenesie" || !attaquant.frenesie) return attaquant.atk;
-  return Math.round(attaquant.atk * (1 + (p.atkParCoupPct * Math.min(attaquant.frenesie, p.cumulMax)) / 100));
+  const frenesie = p?.id === "frenesie" && attaquant.frenesie ? p.atkParCoupPct * Math.min(attaquant.frenesie, p.cumulMax) : 0;
+  const bonus = frenesie + (attaquant.euphorie ?? 0);
+  const maudit = Math.min(100, attaquant.malediction ?? 0);
+  if (!bonus && !maudit) return attaquant.atk;
+  return Math.round(attaquant.atk * (1 + bonus / 100) * (1 - maudit / 100));
 }
 
 // Perk Second souffle : une fois par combat, le porteur qui tombe revient à `retourPvPct` % de ses PV max (100 % au plus).
@@ -157,6 +258,31 @@ function chanceTouche(attaquant, cible) {
 // La défense réduit toujours les dégâts sans jamais les annuler (minimum 1).
 export function degatsDe(atk, def) {
   return Math.max(1, Math.round((atk * atk) / (atk + def)));
+}
+
+// Applique un coup déjà calculé (`degats` avant Rempart) : Rempart de la cible, PV, soin de Dévouement,
+// événement de dégâts (`extra` : critique, compétence, seconde frappe), Second souffle, K.O. puis Sacrifice.
+function frapper(attaquant, campAttaquant, cible, campCible, degats, extra, tour, journal) {
+  const reduction = reductionRempart(cible);
+  const finaux = reduction ? Math.max(1, Math.round(degats * (1 - reduction / 100))) : Math.max(1, degats);
+  const avant = cible.pv;
+  cible.pv = Math.max(0, cible.pv - finaux);
+  const soin = devouement(attaquant, campAttaquant, avant - cible.pv);
+  const { critique, ...reste } = extra;
+  journal.push({
+    type: "degats", tour,
+    de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
+    sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
+    degats: finaux, critique, pvRestants: cible.pv,
+    ...reste,
+    ...(soin && { devouement: soin }),
+  });
+
+  secondSouffle(cible, tour, journal);
+  if (!estVivant(cible)) {
+    journal.push({ type: "KO", tour, nom: cible.nom, camp: cible.camp, slot: cible.slot });
+    sacrifice(cible, campCible, tour, journal);
+  }
 }
 
 export function combat(equipeA, equipeB, hasard = Math.random) {
@@ -196,27 +322,45 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
           continue;
         }
 
+        // Ordre de calcul d'un coup :
+        // 1. ATK du coup = ATK × (1 + Frénésie + Euphorie) × (1 − Malédiction de l'attaquant) ;
+        // 2. DEF de la cible = DEF × part gardée (Présage, Perforant) × (1 − Malédiction) ;
+        // 3. degatsDe, puis critique ou Présage ;
+        // 4. + bonus Tueurs de géant (non multiplié par le critique) ;
+        // 5. frapper : × (1 − Rempart de la cible), PV, Dévouement, Second souffle, K.O., Sacrifice ;
+        // 6. jet de Chaos : seconde frappe éventuelle.
         const critique = presage || hasard() * 100 < attaquant.crit;
         // Part de la DEF qui compte encore : Présage et Perforant se cumulent (35 % puis 50 % ignorés → 32,5 % restants)
         let partDef = presage ? 1 - (attaquant.competence.percePct ?? 0) / 100 : 1;
         if (attaquant.perk?.id === "perforant") partDef *= 1 - Math.min(100, attaquant.perk.ignoreDefPct) / 100;
-        let degats = degatsDe(atkDuCoup(attaquant), cible.def * partDef);
+        if (cible.malediction) partDef *= 1 - Math.min(100, cible.malediction) / 100;
+        const atk = atkDuCoup(attaquant);
+        let degats = degatsDe(atk, cible.def * partDef);
         if (presage) degats = Math.round(degats * attaquant.competence.critMult);
         else if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
 
-        cible.pv = Math.max(0, cible.pv - degats);
-        if (attaquant.perk?.id === "frenesie") attaquant.frenesie = (attaquant.frenesie ?? 0) + 1;
-        journal.push({
-          type: "degats", tour,
-          de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
-          sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
-          degats, critique, pvRestants: cible.pv,
-          ...(presage && { competence: { nom: attaquant.competence.nom, icone: attaquant.competence.icone } }),
-        });
+        // Trait Tueurs de géant : + `pvMaxPct` % des PV max de la cible, au plus `plafondAtkPct` % de l'ATK du coup
+        const geant = trait(attaquant, "tueurs_de_geant");
+        if (geant) degats += Math.round(Math.min((cible.hp * geant.pvMaxPct) / 100, (atk * geant.plafondAtkPct) / 100));
 
-        secondSouffle(cible, tour, journal);
-        if (!estVivant(cible)) {
-          journal.push({ type: "KO", tour, nom: cible.nom, camp: cible.camp, slot: cible.slot });
+        if (attaquant.perk?.id === "frenesie") attaquant.frenesie = (attaquant.frenesie ?? 0) + 1;
+        frapper(attaquant, camp, cible, adverses, degats, {
+          critique,
+          ...(presage && { competence: { nom: attaquant.competence.nom, icone: attaquant.competence.icone } }),
+        }, tour, journal);
+
+        // Trait Chaos : chance de seconde frappe sur un ennemi vivant au hasard de la rotation active (taunt ignoré,
+        // sans jet de toucher ni critique), de `partDegats` % des dégâts de la première, pris avant le Rempart de la
+        // première cible ; seul le Rempart de sa propre cible s'applique. Elle ne relance ni Frénésie ni Chaos,
+        // compte pour Dévouement et peut mettre K.O. (Second souffle, Sacrifice).
+        const chaos = trait(attaquant, "chaos");
+        if (chaos) {
+          const actifs = rotationActive(adverses);
+          if (actifs.length > 0 && hasard() * 100 < chaos.chance) {
+            const seconde = actifs[Math.floor(hasard() * actifs.length)];
+            frapper(attaquant, camp, seconde, adverses, Math.round((degats * chaos.partDegats) / 100),
+              { critique: false, doubleFrappe: true }, tour, journal);
+          }
         }
       }
     }

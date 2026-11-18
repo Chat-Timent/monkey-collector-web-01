@@ -165,15 +165,15 @@
     }
     .pastille img { width: 14px; height: 14px; object-fit: contain; }
 
-    /* Résonances : une pastille par catégorie présente dans l'équipe */
+    /* Résonances : une pastille par trait présent dans l'équipe */
     #resonances { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; min-height: 34px; }
     .resonance {
       display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
       background: #242424; border: 1px solid #333; color: var(--texte-doux); font: inherit; font-size: 14px; cursor: pointer;
     }
-    .resonance:hover { border-color: var(--famille, var(--accent)); }
+    .resonance:hover { border-color: var(--trait, var(--accent)); }
     .resonance.infos { color: var(--texte); }
-    .resonance.active { border-color: var(--famille, var(--accent)); color: var(--famille, var(--texte)); font-weight: bold; }
+    .resonance.active { border-color: var(--trait, var(--accent)); color: var(--trait, var(--texte)); font-weight: bold; }
 
     #message { min-height: 1.2em; color: var(--or); font-size: 14px; margin: 0 0 10px; }
 
@@ -229,7 +229,7 @@
       arme: { api: "/armes", donnees: { catalogue: {}, obtenus: [], slots: 1 }, nom: "Arme", retirer: "✕ Retirer l'arme", vide: "Aucune arme : tire-en dans l'onglet Objets !" },
       equipement: { api: "/equipements", donnees: { catalogue: {}, obtenus: [], slots: 3 }, nom: "Équipement", retirer: "✕ Retirer l'équipement", vide: "Aucun équipement : tire-en dans l'onglet Objets !" },
     };
-    let resonances = { paliers: [], categories: {} };
+    let resonances = { paliers: [], traits: {} };
     let equipe = Array(6).fill(null);
     let combat = [];          // stats de chaque emplacement telles qu'en combat (réponse /equipe)
     let selection = null;     // index de l'emplacement affiché dans la fiche
@@ -259,35 +259,34 @@
 
     // ---------- Résonances ----------
 
+    // Une pastille par trait présent dans l'équipe (un singe compte pour chacun de ses traits) : porteurs / prochain palier,
+    // en couleur quand un palier est atteint ; un clic ouvre le panneau des traits sur celui-ci.
     function afficherResonances() {
-      const compte = {};
-      for (const id of equipe) {
-        const cat = id && trouverSinge(id)?.espece.categorie;
-        if (cat && resonances.categories[cat]) compte[cat] = (compte[cat] ?? 0) + 1;
-      }
+      const compte = compterTraitsEspeces(equipe.filter(Boolean).map((id) => trouverSinge(id)?.espece));
       const zone = $("resonances");
       zone.innerHTML = "";
-      for (const [cat, nb] of Object.entries(compte)) {
-        const { paliers } = resonances;
-        const atteints = paliers.filter((p) => nb >= p).length;
-        const prochain = paliers[atteints] ?? paliers[paliers.length - 1];
+      const { paliers } = resonances;
+      for (const [id, t] of Object.entries(resonances.traits ?? {})) {
+        const nb = compte[id] ?? 0;
+        const info = infoTrait(id);
+        if (nb === 0 || !info) continue;
+        const atteint = indexPalierTrait(paliers, nb);
+        const prochain = paliers[atteint] ?? paliers[paliers.length - 1];
         const pastille = document.createElement("button");
         pastille.type = "button";
-        pastille.className = "resonance" + (atteints > 0 ? " active" : "");
-        pastille.addEventListener("click", () => ouvrirInfosFamilles(resonances, compte, cat));
-        const famille = infoFamille(cat);
-        if (famille) pastille.style.setProperty("--famille", famille.couleur);
-        pastille.textContent = `${famille?.icone ?? ""} ${nb}/${prochain}`;
-        const b = atteints > 0 ? resonances.categories[cat].bonus[atteints - 1] : null;
-        pastille.title = b ? `${cat} : +${pctFr(b.hp)} % PV, +${pctFr(b.atk)} % ATK, +${pctFr(b.def)} % DEF` : cat;
-        pastille.setAttribute("aria-label", `${cat} : ${nb} sur ${prochain}, voir les bonus`);
+        pastille.className = "resonance" + (atteint > 0 ? " active" : "");
+        pastille.addEventListener("click", () => ouvrirInfosTraits(resonances, compte, id));
+        pastille.style.setProperty("--trait", info.couleur);
+        pastille.textContent = `${info.icone} ${nb}/${prochain}`;
+        pastille.title = atteint > 0 ? `${info.nom} : ${effetTrait(id, t.paliers[atteint - 1])}` : info.nom;
+        pastille.setAttribute("aria-label", `${info.nom} : ${nb} sur ${prochain}, voir les traits`);
         zone.appendChild(pastille);
       }
       const infos = document.createElement("button");
       infos.type = "button";
       infos.className = "resonance infos";
-      infos.textContent = "ⓘ Familles";
-      infos.addEventListener("click", () => ouvrirInfosFamilles(resonances, compte));
+      infos.textContent = "ⓘ Traits";
+      infos.addEventListener("click", () => ouvrirInfosTraits(resonances, compte));
       zone.appendChild(infos);
     }
 
@@ -402,7 +401,7 @@
           <img src="${s.image}" alt="">
           <div>
             <h3 style="color:${r.couleur}">${s.espece.nom}</h3>
-            <div class="badges">${pastilleHTML(s.espece.rarete)} ${badgeFamilleHTML(s.espece.categorie)}</div>
+            <div class="badges">${pastilleHTML(s.espece.rarete)} ${badgesTraitsHTML(s.espece)}</div>
             <div class="niveau">Niveau ${s.niveau.niveau} ${etoiles(s)}</div>
           </div>
         </div>
@@ -492,7 +491,7 @@
         options.push(option({
           image: s.image,
           nom: `${s.espece.nom} ${etoiles(s)}`,
-          badges: `${pastilleHTML(s.espece.rarete)} ${badgeFamilleHTML(s.espece.categorie)}`,
+          badges: `${pastilleHTML(s.espece.rarete)} ${badgesTraitsHTML(s.espece)}`,
           sous: `Lvl ${s.niveau.niveau} · PV ${st.hp} · ATK ${st.atk} · DEF ${st.def}` + (j >= 0 ? ` · échanger avec ${nomPlace(j)}` : ""),
           action: () => choisirSinge(index, s.id),
         }));
@@ -577,7 +576,7 @@
     $("fond-choix").addEventListener("click", (e) => { if (e.target === $("fond-choix")) fermerChoix(); });
     document.querySelector(".choix .fermer").addEventListener("click", fermerChoix);
     document.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape" || document.getElementById("infos-familles")?.open) return;
+      if (e.key !== "Escape" || document.getElementById("infos-traits")?.open) return;
       if (!$("fond-choix").hidden) fermerChoix();
       else if (mobile.matches && selection !== null) fermerFiche();
     });

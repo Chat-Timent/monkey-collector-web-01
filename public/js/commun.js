@@ -37,73 +37,125 @@ function infoRarete(rarete) {
   return { ...r, icone: avecVersion(`/images/MonkeysRarities/rarity_${rarete}.png`) };
 }
 
-// Familles de singes (champ "categorie" de monkeys.json) : réunir des singes d'une même famille
-// déclenche une résonance en combat. Icône et couleur identiques sur toutes les pages.
-const FAMILLES_AFFICHAGE = {
-  "Amour":      { icone: "💗", couleur: "#ff5c9a" },
-  "Tristesse":  { icone: "💧", couleur: "#4da3ff" },
-  "Joie":       { icone: "😄", couleur: "#ffd23f" },
-  "Sang-froid": { icone: "😐", couleur: "#9fb3c8" },
-  "Chaos":      { icone: "🔥", couleur: "#ff5a36" },
+// Traits des singes (champ "traits" de monkeys.json, 1 à 3 par singe) : réunir des porteurs d'un même trait
+// déclenche une résonance en combat. Nom, icône et couleur identiques sur toutes les pages
+// (copie de src/data/resonances.json, vérifiée par les tests).
+const TRAITS_AFFICHAGE = {
+  rempart:         { nom: "Rempart",         icone: "🏰", couleur: "#6fa8dc" },
+  sacrifice:       { nom: "Sacrifice",       icone: "🩸", couleur: "#e0457b" },
+  euphorie:        { nom: "Euphorie",        icone: "😄", couleur: "#ffd23f" },
+  chaos:           { nom: "Chaos",           icone: "🌀", couleur: "#ff6b3d" },
+  tueurs_de_geant: { nom: "Tueurs de géant", icone: "🏹", couleur: "#e8913a" },
+  devouement:      { nom: "Dévouement",      icone: "💚", couleur: "#5fd38d" },
+  malediction:     { nom: "Malédiction",     icone: "💀", couleur: "#a487e0" },
+  renforcement:    { nom: "Renforcement",    icone: "💪", couleur: "#9fb3c8" },
 };
 
-// Icône, couleur et nom d'une famille, ou null pour un singe sans famille.
-function infoFamille(categorie) {
-  const f = FAMILLES_AFFICHAGE[categorie];
-  return f ? { nom: categorie, ...f } : null;
+// Ce que fait chaque trait, en une phrase sans chiffres (les chiffres de chaque palier : effetTrait).
+const DESCRIPTIONS_TRAITS = {
+  rempart: "Les porteurs subissent moins de dégâts, encore moins quand leurs PV baissent.",
+  sacrifice: "Quand un porteur tombe, les autres porteurs en vie (réserve comprise) gagnent une part de ses PV max, ATK et DEF.",
+  euphorie: "Les porteurs gagnent de l'ATK à chaque tour, jusqu'à un plafond.",
+  chaos: "Après une attaque, un porteur peut frapper une seconde fois un ennemi au hasard.",
+  tueurs_de_geant: "Les coups des porteurs infligent un bonus selon les PV max de la cible, plafonné selon leur ATK.",
+  devouement: "Chaque coup d'un porteur soigne l'allié le plus blessé d'une part des dégâts infligés.",
+  malediction: "À chaque tour, l'ennemi qui a le plus de PV perd de la DEF et de l'ATK, cumulable.",
+  renforcement: "Les porteurs gagnent des PV, de l'ATK et de la DEF.",
+};
+
+// Icône, couleur et nom d'un trait, ou null pour un trait inconnu.
+function infoTrait(id) {
+  const t = TRAITS_AFFICHAGE[id];
+  return t ? { id, ...t } : null;
 }
 
-// Pourcentage à la française (les bonus augmentés par l'arbre peuvent avoir une décimale : 6,3)
+// Traits connus d'une espèce, dans son ordre (liste vide pour d'anciennes données sans traits).
+function traitsDe(espece) {
+  return (espece?.traits ?? []).filter((t) => TRAITS_AFFICHAGE[t]);
+}
+
+// Nombre de porteurs de chaque trait parmi des espèces (un singe compte pour chacun de ses traits).
+function compterTraitsEspeces(especes) {
+  const compte = {};
+  for (const e of especes) for (const t of traitsDe(e)) compte[t] = (compte[t] ?? 0) + 1;
+  return compte;
+}
+
+// Pourcentage à la française (les valeurs augmentées par l'arbre peuvent avoir une décimale : 6,3)
 function pctFr(v) {
   return v.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
 }
 
-// Panneau listant toutes les familles et leurs bonus par palier.
-// `resonances` : catalogue renvoyé par /equipe ; `compte` : { famille: nombre dans l'équipe } ;
-// `enAvant` : famille à faire défiler et à mettre en évidence.
-function ouvrirInfosFamilles(resonances, compte = {}, enAvant = null) {
-  let dialogue = document.getElementById("infos-familles");
+// Effet d'un palier en quelques mots, calculé depuis ses valeurs (src/data/resonances.json, Harmonie et Chœur compris).
+function effetTrait(id, v) {
+  if (!v) return "";
+  if (id === "rempart") return `−${pctFr(v.reductionBase)} % de dégâts subis, jusqu'à −${pctFr(v.reductionBase + v.reductionBonus)} % à 0 PV`;
+  if (id === "sacrifice") return `+${pctFr(v.partStats)} % des PV max, ATK et DEF du porteur tombé`;
+  if (id === "euphorie") return `+${pctFr(v.atkParTour)} % d'ATK par tour, jusqu'à +${pctFr(v.atkPlafond)} %`;
+  if (id === "chaos") return `${pctFr(v.chance)} % de chances de frapper à nouveau, à ${pctFr(v.partDegats)} % des dégâts`;
+  if (id === "tueurs_de_geant") return `+${pctFr(v.pvMaxPct)} % des PV max de la cible, au plus ${pctFr(v.plafondAtkPct)} % de l'ATK`;
+  if (id === "devouement") return `Soin de ${pctFr(v.soinPct)} % des dégâts infligés`;
+  if (id === "malediction") return `−${pctFr(v.parTour)} % de DEF et d'ATK par tour, jusqu'à −${pctFr(v.plafond)} %`;
+  if (id === "renforcement") return `+${pctFr(v.statsPct)} % de PV, d'ATK et de DEF`;
+  return "";
+}
+
+// Index (0 = aucun) du plus haut palier atteint avec `nb` porteurs.
+function indexPalierTrait(paliers, nb) {
+  return paliers.filter((p) => nb >= p).length;
+}
+
+// Panneau listant les 8 traits : rôle, description et effet de chaque palier.
+// `resonances` : catalogue renvoyé par /equipe ; `compte` : { trait: porteurs dans l'équipe } ;
+// `enAvant` : trait à faire défiler et à mettre en évidence.
+function ouvrirInfosTraits(resonances, compte = {}, enAvant = null) {
+  let dialogue = document.getElementById("infos-traits");
   if (!dialogue) {
     dialogue = document.createElement("dialog");
-    dialogue.id = "infos-familles";
-    dialogue.setAttribute("aria-labelledby", "infos-familles-titre");
+    dialogue.id = "infos-traits";
+    dialogue.setAttribute("aria-labelledby", "infos-traits-titre");
     // Clic en dehors du panneau : fermeture
     dialogue.addEventListener("click", (e) => { if (e.target === dialogue) dialogue.close(); });
     document.body.appendChild(dialogue);
   }
-  const familles = Object.keys(resonances.categories).filter((nom) => infoFamille(nom));
-  const sections = familles.map((nom) => {
-    const nb = compte[nom] ?? 0;
-    const lignes = resonances.paliers.map((seuil, i) => {
-      const b = resonances.categories[nom].bonus[i];
-      const atteint = nb >= seuil && (resonances.paliers[i + 1] === undefined || nb < resonances.paliers[i + 1]);
-      return `<tr class="${atteint ? "atteint" : ""}">
-                <th scope="row">${seuil} singes</th>
-                <td>+${pctFr(b.hp)} % PV</td><td>+${pctFr(b.atk)} % ATK</td><td>+${pctFr(b.def)} % DEF</td>
-              </tr>`;
-    }).join("");
-    return `<section class="infos-famille${nom === enAvant ? " en-avant" : ""}" data-famille="${nom}">
-              <h3>${badgeFamilleHTML(nom, true)} <span class="dans-equipe">${nb} dans l'équipe</span></h3>
+  const ids = Object.keys(resonances?.traits ?? {}).filter((id) => infoTrait(id));
+  const sections = ids.map((id) => {
+    const t = resonances.traits[id];
+    const nb = compte[id] ?? 0;
+    const atteint = indexPalierTrait(resonances.paliers, nb);
+    const lignes = resonances.paliers.map((seuil, i) => `
+      <tr class="${atteint === i + 1 ? "atteint" : ""}">
+        <th scope="row">${seuil} singes</th><td>${effetTrait(id, t.paliers[i])}</td>
+      </tr>`).join("");
+    return `<section class="infos-trait${id === enAvant ? " en-avant" : ""}" data-trait="${id}">
+              <h3>${badgeTraitHTML(id, true)} <span class="role">${t.role}</span> <span class="dans-equipe">${nb} dans l'équipe</span></h3>
+              <p>${DESCRIPTIONS_TRAITS[id] ?? ""}</p>
               <table>${lignes}</table>
             </section>`;
   }).join("");
   dialogue.innerHTML = `
-    <div class="infos-familles-entete">
-      <h2 id="infos-familles-titre">Familles</h2>
+    <div class="infos-traits-entete">
+      <h2 id="infos-traits-titre">Traits</h2>
       <button type="button" class="fermer" aria-label="Fermer">×</button>
     </div>
-    <p class="infos-familles-aide">Les singes d'une même famille dans l'équipe (renfort compris) gagnent ces bonus.</p>
+    <p class="infos-traits-aide">Plus l'équipe compte de singes d'un même trait (renfort compris), plus son effet est fort.</p>
     ${sections}`;
   dialogue.querySelector(".fermer").addEventListener("click", () => dialogue.close());
   if (!dialogue.open) dialogue.showModal();
   dialogue.querySelector(".en-avant")?.scrollIntoView({ block: "nearest" });
 }
 
-// Badge de famille (chaîne vide pour un singe sans famille). `grand` : version pour les fiches.
-function badgeFamilleHTML(categorie, grand = false) {
-  const f = infoFamille(categorie);
-  if (!f) return "";
-  return `<span class="famille${grand ? " grand" : ""}" style="--famille:${f.couleur}">${f.icone} ${f.nom}</span>`;
+// Badge d'un trait (chaîne vide pour un trait inconnu). `grand` : version pour les fiches.
+function badgeTraitHTML(id, grand = false) {
+  const t = infoTrait(id);
+  if (!t) return "";
+  return `<span class="trait${grand ? " grand" : ""}" style="--trait:${t.couleur}">${t.icone} ${t.nom}</span>`;
+}
+
+// Badges de tous les traits d'une espèce, rangés ensemble (chaîne vide si elle n'en a pas).
+function badgesTraitsHTML(espece, grand = false) {
+  const traits = traitsDe(espece);
+  return traits.length ? `<span class="traits">${traits.map((t) => badgeTraitHTML(t, grand)).join("")}</span>` : "";
 }
 
 // Appel au serveur. `corps` présent → POST JSON. Renvoie { ok, status, data } ;

@@ -137,6 +137,13 @@
     }
     .bulle.decret { color: #f2c94c; text-shadow: 0 0 6px #b8860b; }
 
+    /* Traits : seconde frappe de Chaos, Malédiction, Sacrifice ; le soin de Dévouement est une seconde bulle */
+    .bulle.chaos { color: #ff8a5c; }
+    .carte.maudit { animation: secousse calc(0.4s / var(--vitesse)); border-color: #a487e0; }
+    .bulle.malediction { color: #c3a6ff; text-shadow: 0 0 6px #6b4fb3; }
+    .bulle.sacrifice { color: #ff7aa6; text-shadow: 0 0 6px #b3245a; }
+    .bulle.second { top: 14px; }
+
     @keyframes secousse {
       0%, 100% { transform: translateX(0); }
       25% { transform: translateX(-6px); }
@@ -359,6 +366,8 @@
     let index = 0;
     let actif = null;
     let fx = null;
+    // Seconde bulle du même pas : soin de Dévouement sur un allié de l'attaquant
+    let fx2 = null;
     let timer = null;
 
     let dernierIdMessage = 0;
@@ -366,6 +375,7 @@
     let chatTimer = null;
 
     const adverse = () => (monCamp === "A" ? "B" : "A");
+    const iconeTrait = (id) => infoTrait(id)?.icone ?? "";
 
     // ---------- Combat ----------
 
@@ -378,11 +388,14 @@
       const classes = ["carte", camp === monCamp ? "moi" : "adv"];
       if (m.dead) classes.push("mort");
       if (estActif) classes.push(actif.presage ? "presage-lanceur" : actif.decret ? "decret-lanceur" : "attaque");
-      if (estCible && fx.type === "degats") classes.push("touche");
+      if (estCible && (fx.type === "degats" || fx.type === "chaos")) classes.push("touche");
       if (estCible && fx.type === "presage") classes.push("touche-fort");
       if (estCible && fx.type === "souffle") classes.push("releve");
+      if (estCible && fx.type === "malediction") classes.push("maudit");
+      const estSoigne = fx2 && fx2.camp === camp && fx2.slot === i;
 
-      const bulle = estCible ? `<div class="bulle ${fx.type}">${fx.texte}</div>` : "";
+      const bulle = (estCible ? `<div class="bulle ${fx.type}">${fx.texte}</div>` : "")
+        + (estSoigne ? `<div class="bulle ${fx2.type}${estCible ? " second" : ""}">${fx2.texte}</div>` : "");
       const pct = Math.max(0, Math.round((m.pv / m.max) * 100));
       const bordure = RARETES_AFFICHAGE[m.rarete]
         ? `style="box-shadow: inset 0 3px 0 ${RARETES_AFFICHAGE[m.rarete].couleur}"` : "";
@@ -408,13 +421,18 @@
       let classe = "";
       if (e.type === "tour") { txt = `Tour ${e.numero}`; classe = "tour"; }
       else if (e.type === "degats" && e.competence) txt = `${e.competence.icone} ${e.competence.nom} : ${e.de} → ${e.sur} : ${e.degats} dégâts (critique) · PV restants ${e.pvRestants}`;
+      else if (e.type === "degats" && e.doubleFrappe) txt = `${iconeTrait("chaos")} ${e.de} frappe aussi ${e.sur} : ${e.degats} dégâts · PV restants ${e.pvRestants}`;
       else if (e.type === "degats") txt = `${e.de} → ${e.sur} : ${e.degats} dégâts${e.critique ? " (critique)" : ""} · PV restants ${e.pvRestants}`;
       else if (e.type === "rate") txt = `${e.de} rate ${e.sur}`;
       else if (e.type === "KO") txt = `${e.nom} est K.O.`;
       else if (e.type === "decret") txt = `${e.competence.icone} ${e.competence.nom} : ${e.de} donne +${e.atkPct} % ATK, +${e.hpPct} % PV et +${e.defPct} % DEF à ${e.cibles.length} allié${e.cibles.length > 1 ? "s" : ""}`;
       else if (e.type === "soin") txt = `🌸 ${e.de} soigne ${e.sur} : +${e.soin} PV · PV ${e.pvRestants}`;
       else if (e.type === "souffle") txt = `${e.perk.icone} ${e.perk.nom} : ${e.nom} se relève · PV ${e.pvRestants}`;
+      else if (e.type === "malediction") txt = `${iconeTrait("malediction")} Malédiction : ${e.de} maudit ${e.sur} : −${pctFr(e.pct)} % DEF et ATK (−${pctFr(e.cumul)} % au total)`;
+      else if (e.type === "sacrifice") txt = `${iconeTrait("sacrifice")} Sacrifice : ${e.nom} tombe, ${e.cibles.length} allié${e.cibles.length > 1 ? "s gagnent" : " gagne"} +${e.hp} PV, +${e.atk} ATK et +${e.def} DEF`;
       if (!txt) return;
+      // Soin de Dévouement, rangé dans le coup
+      if (e.type === "degats" && e.devouement) txt += ` · ${iconeTrait("devouement")} ${e.devouement.sur} +${e.devouement.soin} PV`;
 
       const d = document.createElement("div");
       d.textContent = txt;
@@ -433,6 +451,10 @@
         actif = { camp: e.deCamp, slot: e.deSlot, presage: true };
         etat[e.surCamp][e.surSlot].pv = e.pvRestants;
         fx = { camp: e.surCamp, slot: e.surSlot, type: "presage", texte: `${e.competence.icone} -${e.degats} CRIT` };
+      } else if (e.type === "degats" && e.doubleFrappe) {
+        actif = { camp: e.deCamp, slot: e.deSlot };
+        etat[e.surCamp][e.surSlot].pv = e.pvRestants;
+        fx = { camp: e.surCamp, slot: e.surSlot, type: "chaos", texte: `${iconeTrait("chaos")} -${e.degats}` };
       } else if (e.type === "degats") {
         actif = { camp: e.deCamp, slot: e.deSlot };
         etat[e.surCamp][e.surSlot].pv = e.pvRestants;
@@ -456,12 +478,23 @@
         etat[e.camp][e.slot].perkUtilise = true;
         $("banniere").textContent = `${e.perk.icone} ${e.perk.nom} : ${e.nom} se relève !`;
         fx = { camp: e.camp, slot: e.slot, type: "souffle", texte: `${e.perk.icone} +${e.pvRestants} PV` };
+      } else if (e.type === "malediction") {
+        actif = { camp: e.deCamp, slot: e.deSlot };
+        fx = { camp: e.surCamp, slot: e.surSlot, type: "malediction", texte: `${iconeTrait("malediction")} -${pctFr(e.pct)} %` };
+      } else if (e.type === "sacrifice") {
+        for (const c of e.cibles) Object.assign(etat[e.camp][c.slot], { max: c.hp, pv: c.pv });
+        fx = { camp: e.camp, slots: e.cibles.map((c) => c.slot), type: "sacrifice", texte: `${iconeTrait("sacrifice")} +${pctFr(e.partStats)} %` };
+      }
+      // Dévouement : l'allié soigné reçoit sa propre bulle
+      if (e.type === "degats" && e.devouement) {
+        etat[e.deCamp][e.devouement.surSlot].pv = e.devouement.pvRestants;
+        fx2 = { camp: e.deCamp, slot: e.devouement.surSlot, type: "soin", texte: `${iconeTrait("devouement")} +${e.devouement.soin}` };
       }
       ajouterLog(e);
     }
 
     function appliquerSansAnimation(e) {
-      if (e.type !== "KO") { actif = null; fx = null; }
+      if (e.type !== "KO") { actif = null; fx = null; fx2 = null; }
       appliquer(e);
     }
 
@@ -470,6 +503,7 @@
       timer = null;
       actif = null;
       fx = null;
+      fx2 = null;
       dessiner();
       $("banniere").textContent = "Combat terminé";
       const v = resultat.vainqueur;
@@ -533,7 +567,7 @@
       if (index >= journal.length) return terminer(true);
 
       const e = journal[index++];
-      if (e.type !== "KO") { actif = null; fx = null; }
+      if (e.type !== "KO") { actif = null; fx = null; fx2 = null; }
       appliquer(e);
       dessiner();
       // Second souffle : le combat reste en pause le temps de l'animation

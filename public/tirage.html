@@ -414,7 +414,7 @@
       badge.style.borderColor = r.couleur;
       badge.querySelector("img").src = r.icone;
       badge.querySelector(".label").textContent = r.label;
-      zone.querySelector(".fam").innerHTML = badgeFamilleHTML(singe.espece.categorie);
+      zone.querySelector(".fam").innerHTML = badgesTraitsHTML(singe.espece);
       zone.querySelector(".description").textContent = singe.espece.description ?? "";
       zone.querySelector(".niveau").innerHTML =
         `Niveau ${singe.niveau.niveau} · ${singe.niveau.progression} / ${singe.niveau.prochain} vers le suivant`

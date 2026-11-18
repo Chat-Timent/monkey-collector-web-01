@@ -53,8 +53,8 @@
 #formChat button:disabled { background: #333; color: #888; cursor: default; }
 #statutChat { font-size: 12px; color: var(--or); min-height: 16px; margin-top: 4px; flex-shrink: 0; }
 
-/* Badge de famille : fond teinté de la couleur de la famille (les raretés, elles, sont cerclées) */
-.famille {
+/* Badge de trait : fond teinté de la couleur du trait (les raretés, elles, sont cerclées) */
+.trait {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -63,15 +63,17 @@
   font-size: 11px;
   font-weight: bold;
   white-space: nowrap;
-  color: var(--famille);
-  background: color-mix(in srgb, var(--famille) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--famille) 45%, transparent);
+  color: var(--trait);
+  background: color-mix(in srgb, var(--trait) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--trait) 45%, transparent);
 }
-.famille.grand { font-size: 14px; padding: 4px 12px; border-radius: 8px; }
+.trait.grand { font-size: 14px; padding: 4px 12px; border-radius: 8px; }
+/* Plusieurs traits d'un même singe : rangés côte à côte, à la ligne si la place manque */
+.traits { display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: middle; max-width: 100%; }
 
-/* Panneau d'infos des familles (bonus de résonance par palier) */
-#infos-familles {
-  width: min(460px, calc(100vw - 32px));
+/* Panneau d'infos des traits (effet de chaque palier) */
+#infos-traits {
+  width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   padding: 18px 20px;
   border: 1px solid #333;
@@ -79,21 +81,23 @@
   background: #1e1e1e;
   color: var(--texte);
 }
-#infos-familles::backdrop { background: rgba(0, 0, 0, 0.6); }
-.infos-familles-entete { display: flex; justify-content: space-between; align-items: center; }
-.infos-familles-entete h2 { margin: 0; font-size: 20px; }
-.infos-familles-entete .fermer {
+#infos-traits::backdrop { background: rgba(0, 0, 0, 0.6); }
+.infos-traits-entete { display: flex; justify-content: space-between; align-items: center; }
+.infos-traits-entete h2 { margin: 0; font-size: 20px; }
+.infos-traits-entete .fermer {
   background: none; border: none; color: var(--texte-doux); font-size: 26px; line-height: 1; cursor: pointer;
 }
-.infos-familles-aide { color: var(--texte-doux); font-size: 13px; margin: 6px 0 14px; }
-.infos-famille { padding: 10px 0; border-top: 1px solid #2c2c2c; }
-.infos-famille.en-avant { background: #262626; border-radius: 10px; padding: 10px; }
-.infos-famille h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; font-size: 14px; }
-.infos-famille .dans-equipe { color: var(--texte-doux); font-weight: normal; font-size: 12px; }
-.infos-famille table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.infos-famille th { text-align: left; font-weight: normal; color: var(--texte-doux); padding: 3px 0; }
-.infos-famille td { text-align: right; padding: 3px 0 3px 8px; white-space: nowrap; }
-.infos-famille tr.atteint th, .infos-famille tr.atteint td { color: var(--accent); font-weight: bold; }
+.infos-traits-aide { color: var(--texte-doux); font-size: 13px; margin: 6px 0 14px; }
+.infos-trait { padding: 10px 0; border-top: 1px solid #2c2c2c; }
+.infos-trait.en-avant { background: #262626; border-radius: 10px; padding: 10px; }
+.infos-trait h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 6px; font-size: 14px; }
+.infos-trait .role { color: var(--texte); font-weight: normal; font-size: 12px; }
+.infos-trait .dans-equipe { color: var(--texte-doux); font-weight: normal; font-size: 12px; margin-left: auto; }
+.infos-trait p { margin: 0 0 6px; color: var(--texte-doux); font-size: 13px; }
+.infos-trait table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.infos-trait th { text-align: left; font-weight: normal; color: var(--texte-doux); padding: 3px 10px 3px 0; white-space: nowrap; vertical-align: top; }
+.infos-trait td { text-align: left; padding: 3px 0; }
+.infos-trait tr.atteint th, .infos-trait tr.atteint td { color: var(--accent); font-weight: bold; }
 
 /* ---------- Sélecteur des pages Objets (Perks, Armes, Équipements) ---------- */
 
