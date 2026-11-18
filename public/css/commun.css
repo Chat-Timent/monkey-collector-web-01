@@ -70,9 +70,8 @@
   border: 1px solid #3c3c3c;
 }
 .trait.grand { font-size: 13px; padding: 3px 10px; }
-/* Ligne « Traits : … », placée dans le descriptif, loin de la rareté */
+/* Ligne des traits, placée dans le descriptif, loin de la rareté */
 .ligne-traits { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
-.ligne-traits .etiquette { font-size: 11px; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 0.04em; }
 /* Plusieurs traits d'un même singe : rangés côte à côte, à la ligne si la place manque */
 .traits { display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: middle; max-width: 100%; }
 
