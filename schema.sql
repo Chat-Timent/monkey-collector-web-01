@@ -8,7 +8,8 @@ CREATE TABLE users (
   password_hash text NOT NULL,
   created_at    timestamptz NOT NULL DEFAULT now(),
   elo           integer NOT NULL DEFAULT 1000, -- classement PVP (voir src/game/elo.js)
-  annonces_lues bigint NOT NULL DEFAULT 0      -- dernière annonce lue (pastille de la mailbox)
+  annonces_lues bigint NOT NULL DEFAULT 0,     -- dernière annonce lue (pastille de la mailbox)
+  deck_actif    integer NOT NULL DEFAULT 1 CHECK (deck_actif >= 1 AND deck_actif <= 3) -- deck utilisé en combat
 );
 
 CREATE TABLE sessions (
@@ -126,12 +127,22 @@ CREATE TABLE quetes_jour (
   PRIMARY KEY (user_id, jour, quete)
 );
 
+-- Équipes du joueur : 3 decks (src/constants/game.js NB_DECKS), le deck actif (users.deck_actif) sert en combat.
 CREATE TABLE equipe (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   slot    integer NOT NULL CHECK (slot >= 1 AND slot <= 9),
   espece  text NOT NULL,
-  PRIMARY KEY (user_id, slot),
-  UNIQUE (user_id, espece)
+  deck    integer NOT NULL DEFAULT 1 CHECK (deck >= 1 AND deck <= 3),
+  CONSTRAINT equipe_pkey PRIMARY KEY (user_id, deck, slot),
+  CONSTRAINT equipe_deck_espece_key UNIQUE (user_id, deck, espece)
+);
+
+-- Noms donnés par les joueurs à leurs decks (une ligne seulement pour un deck renommé)
+CREATE TABLE decks (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  deck    integer NOT NULL CHECK (deck >= 1 AND deck <= 3),
+  nom     text NOT NULL CHECK (char_length(nom) >= 1 AND char_length(nom) <= 20),
+  PRIMARY KEY (user_id, deck)
 );
 
 CREATE TABLE presence (

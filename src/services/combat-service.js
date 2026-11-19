@@ -56,8 +56,9 @@ export function singeDeCombat(espece, e, niveau, { effets, perk = null, eveil = 
 // Équipe prête pour le moteur de combat, avec les bonus PVP de l'arbre du joueur.
 // `db` : la connexion de la transaction en cours, pour ne pas en ouvrir d'autres
 // (le nombre de connexions simultanées à la base est limité).
-export async function preparerEquipe(userId, db = pool) {
-  const equipe = await getEquipe(userId, db);
+// `deck` : null = le deck actif (combats) ; un numéro pour afficher les stats d'un autre deck (page Équipe).
+export async function preparerEquipe(userId, db = pool, deck = null) {
+  const equipe = await getEquipe(userId, db, deck);
   const collection = await lireCollection(userId, db);
   const effets = await effetsDuJoueur(userId, db);
   const perks = await perksDesSinges(userId, db);

@@ -125,6 +125,8 @@ test("l'application expose exactement les mêmes routes HTTP", () => {
     "POST /defis",
     "POST /defis/:id/repondre",
     "POST /equipe",
+    "POST /equipe/actif",
+    "POST /equipe/nom",
     "POST /equipements/demanteler",
     "POST /equipements/equiper",
     "POST /equipements/loterie",
