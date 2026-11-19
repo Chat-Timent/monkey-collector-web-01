@@ -1,4 +1,4 @@
-// Éveil des singes légendaires et mythiques : fonctions pures, sans base de données.
+// Éveil des singes légendaires, mythiques et prismatiques : fonctions pures, sans base de données.
 // Règles dans src/data/eveil.json ; améliorations des compétences dans src/data/competences.json (champ "eveil").
 // Un singe commence au niveau d'éveil 1 ; chaque niveau au-dessus donne `bonusParNiveauPct` % de PV, ATK et DEF
 // (de ses stats de base, comme les perks).

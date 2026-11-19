@@ -49,10 +49,10 @@ test("traits : 8 traits valides, chaque singe en porte 1 à 3, 7 à 9 porteurs p
   validerTraitsSinges(SINGES);
   const tous = Object.values(SINGES);
   const compte = compterTraits(tous);
-  // Après l'ajout des singes 51 à 57 (virus, stunned, snail, cactus, cyclope, nerd, rainbow)
-  const attendus = { chaos: 7, tueurs_de_geant: 7, euphorie: 8, sacrifice: 8, devouement: 8, renforcement: 9, rempart: 9, malediction: 9 };
+  // Après l'ajout des singes 51 à 57 (virus, stunned, snail, cactus, cyclope, nerd, rainbow) puis 58 (shiny)
+  const attendus = { chaos: 8, tueurs_de_geant: 8, euphorie: 8, sacrifice: 8, devouement: 8, renforcement: 9, rempart: 9, malediction: 9 };
   for (const t of Object.keys(REGLAGES_TRAITS)) assert.equal(compte[t], attendus[t], t);
-  assert.equal(tous.filter((s) => s.traits.length === 2).length, 11);
+  assert.equal(tous.filter((s) => s.traits.length === 2).length, 12);
   assert.ok(tous.every((s) => s.categorie === undefined && s.traits.length >= 1 && s.traits.length <= 2));
   // Chaque trait compte au moins 2 singes communs ou peu communs
   const bas = compterTraits(tous.filter((s) => s.rarete === "common" || s.rarete === "uncommon"));

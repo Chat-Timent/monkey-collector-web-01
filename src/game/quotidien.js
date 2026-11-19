@@ -21,6 +21,7 @@ export const TYPES_QUETES = ["tirages", "pvp", "arme", "equipement", "perk"];
 const QUANTITES = ["tirages", "coins", "xp", ...Object.keys(RESSOURCES_JOUEUR), "objets"];
 const NOMS_RARETES = {
   common: "Commun", uncommon: "Peu commun", rare: "Rare", epic: "Épique", legendary: "Légendaire", mythic: "Mythique",
+  prismatic: "Prismatique",
 };
 
 function validerRecompense(r, ou) {

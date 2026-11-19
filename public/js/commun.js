@@ -8,6 +8,7 @@ const RARETES_AFFICHAGE = {
   epic:      { label: "Epic",       couleur: "#a831eb" },
   legendary: { label: "Légendaire", couleur: "#fe9308" },
   mythic:    { label: "Mythique",   couleur: "#E01E1E" },
+  prismatic: { label: "Prismatique", couleur: "#FFB3E0" },
 };
 
 // ---------- Version du site ----------
@@ -332,6 +333,7 @@ const LIBELLES_REGLAGES = {
   defPct: (v) => `+${v} % de DEF`,
   cumulMax: (v) => `cumulable ${v} fois`,
   bouclierPct: (v) => `bouclier de ${v} % des PV max`,
+  degatsPct: (v) => `+${v} % de dégâts par cumul`,
   tousLes: (v) => `tous les ${v} tours`,
 };
 function texteAmeliorationCompetence(avant, apres) {
@@ -346,6 +348,7 @@ function descriptionCompetence(c) {
   if (c?.id === "presage") return `Tous les ${c.tousLes} tours, frappe l'ennemi qui a le moins de PV : coup critique garanti, dégâts ×${String(c.critMult).replace(".", ",")}, ignore ${c.percePct} % de sa DEF.`;
   if (c?.id === "decret_royal") return `Tous les ${c.tousLes} tours, donne +${c.atkPct} % d'ATK, +${c.hpPct} % de PV et +${c.defPct} % de DEF aux singes de sa rotation (lui compris), cumulable jusqu'à ${c.cumulMax} fois.`;
   if (c?.id === "arc_en_ciel") return `Tous les ${c.tousLes} tours, donne aux singes de sa rotation (lui compris) un bouclier de ${String(c.bouclierPct).replace(".", ",")} % de leurs PV max, qui absorbe les dégâts avant les PV. Le nouveau bouclier remplace l'ancien.`;
+  if (c?.id === "lumiere_rasante") return `Chaque attaque sur la même cible que la précédente donne +${String(c.degatsPct).replace(".", ",")} % de dégâts, cumulable jusqu'à ${c.cumulMax} fois (+${String(c.degatsPct * c.cumulMax).replace(".", ",")} %). Changer de cible remet le cumul à zéro.`;
   return "";
 }
 

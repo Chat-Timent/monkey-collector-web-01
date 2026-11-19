@@ -35,5 +35,16 @@
       "3": { "bouclierPct": 15 },
       "6": { "bouclierPct": 20 }
     }
+  },
+  "lumiere_rasante": {
+    "nom": "Lumière rasante",
+    "icone": "✨",
+    "actif": true,
+    "degatsPct": 7,
+    "cumulMax": 5,
+    "eveil": {
+      "3": { "degatsPct": 9 },
+      "6": { "cumulMax": 6 }
+    }
   }
 }

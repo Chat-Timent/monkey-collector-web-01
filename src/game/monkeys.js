@@ -16,19 +16,19 @@ function tirerPondere(items, hasard = Math.random) {
 }
 
 // Raretés concernées par Flair et Étincelle
-const RARES = ["rare", "epic", "legendary", "mythic"];
+const RARES = ["rare", "epic", "legendary", "mythic", "prismatic"];
 export function estRare(rarete) {
   return RARES.includes(rarete);
 }
 
 // Raretés assez rares pour être annoncées à tout le monde dans le flux de la page Tirage.
-const NOTABLES = ["legendary", "mythic"];
+const NOTABLES = ["legendary", "mythic", "prismatic"];
 export function estNotable(rarete) {
   return NOTABLES.includes(rarete);
 }
 
 // Poids des raretés pour un tirage, effets de l'arbre compris :
-// - Flair (`rarete_pct`) multiplie le poids des raretés rare, épique, légendaire et mythique ;
+// - Flair (`rarete_pct`) multiplie le poids des raretés rare, épique, légendaire, mythique et prismatique ;
 // - `forcerRare` (Étincelle) ne garde que ces raretés, dans leurs proportions ;
 // - `rareteMin` (singe offert, ex. "legendary") ne garde que cette rareté et les suivantes, dans leurs proportions.
 export function poidsRaretes(effets = null, { forcerRare = false, rareteMin = null } = {}) {

@@ -51,7 +51,7 @@ function construireMonkeydex(collection) {
         image: getImageUrl(id),
         rang: ordre[espece.rarete] ?? 0,
         competence: competenceDe(espece, eveil),
-        // Éveil (légendaires et mythiques) : niveau, coût du suivant (null au maximum) et détail des niveaux
+        // Éveil (légendaires, mythiques et prismatiques) : niveau, coût du suivant (null au maximum) et détail des niveaux
         eveil: peutEveiller(espece.rarete)
           ? { niveau: eveil, max: EVEIL.niveauMax, cout: coutEveil(espece.rarete, eveil), paliers: paliersEveil(espece) }
           : null,

@@ -1,4 +1,4 @@
-// Éveil : donjon d'éveil (essence, page Éveil) et montée du niveau d'éveil des singes légendaires et mythiques
+// Éveil : donjon d'éveil (essence, page Éveil) et montée du niveau d'éveil des singes légendaires, mythiques et prismatiques
 // (depuis la fiche du Monkeydex).
 import { transaction } from "../config/database.js";
 import { ErreurJeu } from "../erreurs.js";
@@ -44,7 +44,7 @@ export async function balayerEveil(userId) {
 export async function eveiller(userId, espece) {
   if (typeof espece !== "string" || !Object.hasOwn(SINGES, espece)) throw new ErreurJeu("singe inconnu");
   const rarete = SINGES[espece].rarete;
-  if (!peutEveiller(rarete)) throw new ErreurJeu("seuls les singes légendaires et mythiques peuvent s'éveiller");
+  if (!peutEveiller(rarete)) throw new ErreurJeu("seuls les singes légendaires, mythiques et prismatiques peuvent s'éveiller");
 
   await transaction(async (db) => {
     const { rows } = await db.query(
