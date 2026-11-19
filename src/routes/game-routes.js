@@ -2,7 +2,10 @@ import { Router } from "express";
 import { authentifie } from "../middleware/authentifie.js";
 import { getResumeMonkeydex, getClassement } from "../services/collection-service.js";
 import { choisirStarter, getStarter } from "../services/starter-service.js";
-import { definirEquipe, getEquipe, nbSlotsDuJoueur } from "../services/team-service.js";
+import {
+  activerDeck, definirEquipe, getDeckActif, getDecks, getEquipe, nbSlotsDuJoueur, renommerDeck, validerDeck,
+} from "../services/team-service.js";
+import { pool } from "../config/database.js";
 import { effetsDuJoueur, getArbre, getPointsArbre, prendreNoeud } from "../services/arbre-service.js";
 import { getElo } from "../services/elo-service.js";
 import { effectuerTirage, getQuota } from "../services/tirage-service.js";
@@ -75,21 +78,40 @@ gameRoutes.post("/starter", authentifie, async (req, res) => {
   res.json(await choisirStarter(req.userId, choix));
 });
 
+// `?deck=N` : deck affiché (par défaut le deck actif, celui des combats)
 gameRoutes.get("/equipe", authentifie, async (req, res) => {
-  const [equipe, nbSlots, effets, prete] = await Promise.all([
-    getEquipe(req.userId), nbSlotsDuJoueur(req.userId), effetsDuJoueur(req.userId), preparerEquipe(req.userId),
+  const actif = await getDeckActif(req.userId);
+  const deck = req.query.deck === undefined ? actif : validerDeck(req.query.deck);
+  const [equipe, nbSlots, effets, prete, decks] = await Promise.all([
+    getEquipe(req.userId, pool, deck), nbSlotsDuJoueur(req.userId), effetsDuJoueur(req.userId),
+    preparerEquipe(req.userId, pool, deck), getDecks(req.userId),
   ]);
   // Stats de chaque emplacement telles qu'en combat (arbre, perk, éveil, objets et résonances compris), null si vide
   const STATS = ["hp", "atk", "def", "spd", "prec", "esq", "crit", "critdmg"];
   const combat = prete.map((s) => (s ? Object.fromEntries(STATS.map((k) => [k, s[k]])) : null));
   // Catalogue des traits avec leurs valeurs telles qu'elles comptent en combat (Harmonie, Chœur compris)
-  res.json({ equipe, nbSlots, resonances: resonancesAvecBonus(effets.resonance_pct), combat });
+  res.json({ equipe, nbSlots, resonances: resonancesAvecBonus(effets.resonance_pct), combat, deck, actif, decks });
 });
 
+// `deck` absent : le deck actif (anciens clients)
 gameRoutes.post("/equipe", authentifie, async (req, res) => {
-  const { especes } = req.body ?? {};
+  const { especes, deck } = req.body ?? {};
   if (!Array.isArray(especes)) throw new ErreurJeu("especes requis");
-  res.json({ equipe: await definirEquipe(req.userId, especes) });
+  const n = deck === undefined ? await getDeckActif(req.userId) : validerDeck(deck);
+  res.json({ equipe: await definirEquipe(req.userId, especes, n) });
+});
+
+// Deck utilisé en combat
+gameRoutes.post("/equipe/actif", authentifie, async (req, res) => {
+  const deck = validerDeck(req.body?.deck);
+  await activerDeck(req.userId, deck);
+  res.json({ actif: deck });
+});
+
+gameRoutes.post("/equipe/nom", authentifie, async (req, res) => {
+  const deck = validerDeck(req.body?.deck);
+  await renommerDeck(req.userId, deck, req.body?.nom);
+  res.json({ decks: await getDecks(req.userId) });
 });
 
 gameRoutes.get("/classement", authentifie, async (req, res) => {

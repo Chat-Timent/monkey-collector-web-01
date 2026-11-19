@@ -33,6 +33,10 @@ export const STARTERS = {
   ice: { nom: "Ice monkey" },
 };
 
+// Multideck : équipes par joueur (bornes reprises dans schema.sql), longueur maximale d'un nom de deck
+export const NB_DECKS = 3;
+export const NOM_DECK_MAX = 20;
+
 export const DUREE_DEFI_SEC = 60;
 export const SEUIL_EN_LIGNE_SEC = 45;
 export const DELAI_INITIAL_MS = 1000;

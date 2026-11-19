@@ -181,11 +181,34 @@
     .resonance.infos { color: var(--texte); }
     .resonance.active { border-color: var(--trait, var(--accent)); color: var(--trait, var(--texte)); font-weight: bold; }
 
+    /* ---------- Decks : un onglet par équipe, ⚔️ = deck utilisé en combat ---------- */
+    .barre-decks { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px; }
+    #decks { display: flex; gap: 6px; flex-wrap: wrap; }
+    .onglet-deck {
+      display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px;
+      background: #242424; border: 1px solid #333; color: var(--texte-doux); font: inherit; font-size: 14px; cursor: pointer;
+    }
+    .onglet-deck:hover { border-color: var(--accent); }
+    .onglet-deck.vu { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); color: var(--texte); font-weight: bold; }
+    .onglet-deck .renommer { padding: 0 2px; color: var(--texte-doux); font-weight: normal; }
+    .onglet-deck .renommer:hover { color: var(--accent); }
+    .onglet-deck input {
+      width: 13ch; padding: 0; border: none; border-bottom: 1px solid var(--accent); background: transparent;
+      color: var(--texte); font: inherit; outline: none;
+    }
+    #activer-deck {
+      margin-left: auto; padding: 8px 14px; border-radius: 999px; border: none; font: inherit; font-size: 14px; font-weight: bold;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; cursor: pointer;
+    }
+    #activer-deck:disabled { background: #2b2b2b; color: var(--texte-doux); cursor: default; }
+    #activer-deck[hidden] { display: none; }
+
     #message { min-height: 1.2em; color: var(--or); font-size: 14px; margin: 0 0 10px; }
 
     /* Téléphone : la liste prend toute la largeur, la fiche s'ouvre par-dessus en plein écran */
     @media (max-width: 760px) {
       .disposition { display: block; }
+      #activer-deck { margin-left: 0; width: 100%; }
       .ligne { grid-template-columns: 44px minmax(0, 1fr); }
       .ligne img { width: 44px; height: 44px; }
       .ligne .droite { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; align-items: center; }
@@ -199,6 +222,10 @@
 </head>
 <body>
   <main class="contenu">
+    <div class="barre-decks">
+      <div id="decks" role="tablist" aria-label="Decks"></div>
+      <button id="activer-deck" type="button" hidden></button>
+    </div>
     <div id="resonances"></div>
     <p id="message"></p>
     <div class="disposition">
@@ -238,6 +265,10 @@
     };
     let resonances = { paliers: [], traits: {} };
     let equipe = Array(6).fill(null);
+    let decks = [];           // [{ deck, nom, nb }] (réponse /equipe)
+    let deckVu = null;        // deck affiché (null = le deck actif, au premier chargement)
+    let deckActif = 1;        // deck utilisé en combat
+    let renommage = false;    // nom du deck affiché en cours d'édition
     let combat = [];          // stats de chaque emplacement telles qu'en combat (réponse /equipe)
     let selection = null;     // index de l'emplacement affiché dans la fiche
     let minuteurMessage = null;
@@ -263,6 +294,105 @@
       return `<span class="pastille" style="border-color:${r.couleur};color:color-mix(in srgb, ${r.couleur} 55%, #ffffff)"><img src="${r.icone}" alt="">${r.label}</span>`;
     }
     const etoiles = (s) => (s?.eveil ? etoilesEveilHTML(s.eveil.niveau, s.eveil.max) : "");
+
+    // ---------- Decks ----------
+
+    const nomDeck = (d) => d.nom ?? `Équipe ${d.deck}`;
+
+    // Un onglet par deck (⚔️ devant le deck des combats) ; l'onglet affiché porte le crayon de renommage.
+    // À droite : « Utiliser en combat » pour un autre deck que l'actif.
+    function afficherDecks() {
+      const zone = $("decks");
+      zone.innerHTML = "";
+      for (const d of decks) {
+        const onglet = document.createElement(d.deck === deckVu && renommage ? "div" : "button");
+        if (onglet.tagName === "BUTTON") onglet.type = "button";
+        onglet.className = "onglet-deck" + (d.deck === deckVu ? " vu" : "");
+        onglet.setAttribute("role", "tab");
+        onglet.setAttribute("aria-selected", String(d.deck === deckVu));
+        if (d.deck === deckActif) onglet.title = "Deck utilisé en combat";
+        const prefixe = d.deck === deckActif ? "⚔️ " : "";
+        if (d.deck === deckVu && renommage) {
+          onglet.innerHTML = `<span></span><input maxlength="20" aria-label="Nom du deck">`;
+          onglet.querySelector("span").textContent = prefixe;
+          const champ = onglet.querySelector("input");
+          champ.value = nomDeck(d);
+          let fini = false;
+          const terminer = (garder) => {
+            if (fini) return;
+            fini = true;
+            renommage = false;
+            if (garder && champ.value.trim() !== nomDeck(d)) renommerDeck(d.deck, champ.value);
+            else afficherDecks();
+          };
+          champ.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") terminer(true);
+            if (e.key === "Escape") { e.stopPropagation(); terminer(false); }
+          });
+          champ.addEventListener("blur", () => terminer(true));
+          zone.appendChild(onglet);
+          champ.focus();
+          champ.select();
+          continue;
+        }
+        onglet.innerHTML = `<span class="nom-deck"></span>`;
+        onglet.querySelector(".nom-deck").textContent = prefixe + nomDeck(d);
+        if (d.deck === deckVu) {
+          const crayon = document.createElement("span");
+          crayon.className = "renommer";
+          crayon.textContent = "✎";
+          crayon.title = "Renommer";
+          onglet.appendChild(crayon);
+        }
+        onglet.addEventListener("click", (e) => {
+          if (d.deck !== deckVu) changerDeck(d.deck);
+          else if (e.target.closest(".renommer")) { renommage = true; afficherDecks(); }
+        });
+        zone.appendChild(onglet);
+      }
+      const bouton = $("activer-deck");
+      bouton.hidden = deckVu === deckActif;
+      const vide = !equipe.some(Boolean);
+      bouton.disabled = vide;
+      bouton.textContent = vide ? "Deck vide" : "⚔️ Utiliser en combat";
+    }
+
+    async function changerDeck(deck) {
+      deckVu = deck;
+      renommage = false;
+      selection = null;
+      try {
+        await rafraichirEquipe();
+        selectionnerPremier();
+      } catch (err) {
+        afficherMessage("Erreur : " + err.message);
+      }
+    }
+
+    async function activerDeck() {
+      try {
+        const { ok, data } = await api("/equipe/actif", { corps: { deck: deckVu } });
+        if (!ok) throw new Error(data.erreur);
+        deckActif = data.actif;
+        afficherDecks();
+        afficherMessage("✓ Deck utilisé en combat", true);
+      } catch (err) {
+        afficherMessage("Erreur : " + err.message);
+      }
+    }
+    $("activer-deck").addEventListener("click", activerDeck);
+
+    async function renommerDeck(deck, nom) {
+      try {
+        const { ok, data } = await api("/equipe/nom", { corps: { deck, nom } });
+        if (!ok) throw new Error(data.erreur);
+        decks = data.decks;
+        afficherMessage("✓ Sauvegardé", true);
+      } catch (err) {
+        afficherMessage("Erreur : " + err.message);
+      }
+      afficherDecks();
+    }
 
     // ---------- Résonances ----------
 
@@ -652,7 +782,7 @@
       if (ailleurs >= 0) nouvelle[ailleurs] = nouvelle[index];
       nouvelle[index] = id;
       try {
-        const { ok, data } = await api("/equipe", { corps: { especes: nouvelle } });
+        const { ok, data } = await api("/equipe", { corps: { especes: nouvelle, deck: deckVu } });
         if (!ok) throw new Error(data.erreur);
         if (id === null && selection === index) selection = null;
         else if (id) selection = index;
@@ -691,8 +821,11 @@
 
     // Équipe et stats de combat (après chaque changement : les totaux dépendent de tout l'équipement et des résonances)
     async function rafraichirEquipe() {
-      const res = await api("/equipe");
+      const res = await api(deckVu === null ? "/equipe" : `/equipe?deck=${deckVu}`);
       if (!res.ok) throw new Error(res.data.erreur);
+      deckVu = res.data.deck;
+      deckActif = res.data.actif;
+      decks = res.data.decks ?? [];
       resonances = res.data.resonances ?? resonances;
       combat = res.data.combat ?? [];
       equipe = Array(res.data.nbSlots ?? 6).fill(null);
@@ -704,6 +837,7 @@
     }
 
     function afficherTout() {
+      afficherDecks();
       afficherResonances();
       afficherListe();
       afficherFiche();
@@ -726,11 +860,14 @@
         afficherMessage("Erreur de chargement, réessaie.");
         return;
       }
-      // Sur grand écran, la fiche du premier singe est ouverte d'office
-      if (selection === null && !mobile.matches) {
-        const premier = equipe.findIndex(Boolean);
-        if (premier >= 0) selectionner(premier);
-      }
+      selectionnerPremier();
+    }
+
+    // Sur grand écran, la fiche du premier singe est ouverte d'office
+    function selectionnerPremier() {
+      if (selection !== null || mobile.matches) return;
+      const premier = equipe.findIndex(Boolean);
+      if (premier >= 0) selectionner(premier);
     }
 
     // Débloquer « Rang de renfort » ajoute un emplacement, et l'arbre change les stats : on recharge l'équipe
