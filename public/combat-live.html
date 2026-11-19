@@ -491,6 +491,8 @@
       if (!txt) return;
       // Bouclier : part des dégâts absorbée avant les PV
       if (e.type === "degats" && e.absorbe) txt += ` · 🛡️ ${e.absorbe} absorbés (bouclier ${e.bouclierRestant})`;
+      // Lumière rasante : bonus de dégâts du coup (absent des combats enregistrés avant la compétence)
+      if (e.type === "degats" && e.lumiere) txt += ` · ✨ Lumière rasante ×${e.lumiere.cumul} (+${pctFr(e.lumiere.pct)} %)`;
       // Soin de Dévouement, rangé dans le coup
       if (e.type === "degats" && e.devouement) txt += ` · ${iconeTrait("devouement")} ${e.devouement.sur} +${e.devouement.soin} PV`;
 
@@ -558,6 +560,8 @@
         etat[e.surCamp][e.surSlot].bouclier = e.bouclierRestant;
         if (fx) fx.texte += ` 🛡️${e.absorbe}`;
       }
+      // Lumière rasante : petite étincelle et nombre de cumuls sur la bulle du coup
+      if (e.type === "degats" && e.lumiere && fx) fx.texte = `✨×${e.lumiere.cumul} ${fx.texte}`;
       // Dévouement : l'allié soigné reçoit sa propre bulle
       if (e.type === "degats" && e.devouement) {
         etat[e.deCamp][e.devouement.surSlot].pv = e.devouement.pvRestants;

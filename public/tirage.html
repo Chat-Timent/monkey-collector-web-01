@@ -273,7 +273,7 @@
       </section>
 
       <section class="carte">
-        <h2>Légendaires et mythiques récents</h2>
+        <h2>Derniers légendaires et mieux</h2>
         <div class="flux" id="flux"></div>
       </section>
     </div>
@@ -594,7 +594,7 @@
         Barre.afficherStarter(data.starter);
         Barre.afficherPoints(data.pointsArbre);
         // Un légendaire ou un mythique vient d'entrer dans le flux : on le remonte tout de suite
-        if (["legendary", "mythic"].includes(data.espece.rarete)) rafraichirLoterie();
+        if (["legendary", "mythic", "prismatic"].includes(data.espece.rarete)) rafraichirLoterie();
       } catch {
         $("message").textContent = "Erreur réseau, réessaie.";
       } finally {
@@ -608,16 +608,17 @@
     // Le serveur fait les tirages : la page l'appelle toutes les secondes pendant que ça tourne,
     // et les autres pages font avancer l'auto-tirage via /profil. Au retour, le singe qui a
     // arrêté l'auto-tirage est montré une fois (son instant d'arrêt est retenu dans le navigateur).
-    const RARETES_AUTO = ["uncommon", "rare", "epic", "legendary", "mythic"];
+    const RARETES_AUTO = ["uncommon", "rare", "epic", "legendary", "mythic", "prismatic"];
     const CLE_ARRET_VU = "monkey-auto-arret-vu";
     const INTERVALLE_AUTO_MS = 1000;
     let autoEtat = null;
     let autoMinuteur = null;
     let autoRequete = false;
 
-    $("auto-rarete").innerHTML = RARETES_AUTO.map((r) => {
+    // La plus haute rareté n'a rien au-dessus d'elle : pas de « ou mieux »
+    $("auto-rarete").innerHTML = RARETES_AUTO.map((r, i) => {
       const label = infoRarete(r).label;
-      return `<option value="${r}">${label} ou mieux</option>`;
+      return `<option value="${r}">${label}${i < RARETES_AUTO.length - 1 ? " ou mieux" : ""}</option>`;
     }).join("");
     $("auto-rarete").value = "rare";
 
@@ -714,7 +715,7 @@
           await prechargerImages([dernier.image, infoRarete(dernier.espece.rarete).icone]);
           afficherSinge(singe, { gains: dernier.gains, titre: "Auto-tirage" });
         }
-        if (tirages.some((t) => ["legendary", "mythic"].includes(t.espece.rarete))) rafraichirLoterie();
+        if (tirages.some((t) => ["legendary", "mythic", "prismatic"].includes(t.espece.rarete))) rafraichirLoterie();
       }
       afficherQuota(data.quota);
       if (data.starter) Barre.afficherStarter(data.starter);

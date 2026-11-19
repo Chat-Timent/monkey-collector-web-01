@@ -5,7 +5,7 @@ import { effetsDuJoueur } from "./arbre-service.js";
 // Taille du flux affiché sur la page Tirage.
 const TAILLE_FLUX = 12;
 
-// Un légendaire ou un mythique vient d'être tiré : tout le monde le verra dans le flux.
+// Un légendaire, un mythique ou un prismatique vient d'être tiré : tout le monde le verra dans le flux.
 // Appelé dans la transaction du tirage (`db`), donc annulé si le tirage échoue.
 export async function enregistrerTirageNotable(userId, espece, rarete, db) {
   await db.query(
@@ -14,7 +14,7 @@ export async function enregistrerTirageNotable(userId, espece, rarete, db) {
   );
 }
 
-// Les derniers légendaires et mythiques tirés, tous joueurs confondus, du plus récent au plus ancien.
+// Les derniers légendaires, mythiques et prismatiques tirés, tous joueurs confondus, du plus récent au plus ancien.
 // Les espèces disparues du catalogue sont ignorées plutôt que d'afficher une ligne vide.
 export async function lireTiragesNotables(userId) {
   const { rows } = await pool.query(

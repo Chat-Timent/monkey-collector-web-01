@@ -63,6 +63,32 @@ function presageDeclenche(attaquant, tour) {
   return c?.id === "presage" && tour % c.tousLes === 0;
 }
 
+// Compétence Lumière rasante (passive) : quand le porteur attaque la même cible que lors de sa précédente attaque,
+// le coup gagne +`degatsPct` % de dégâts par cumul, jusqu'à `cumulMax` cumuls. Une nouvelle cible (ou la mort de la
+// précédente) remet le cumul à zéro : la première attaque sur une cible n'a aucun bonus et démarre le cumul à 1 pour
+// la suivante. État par singe : `lumiere = { cible, cumul }` ; l'ATK du porteur n'est pas modifiée (pas de conflit
+// avec Décret royal). Seule l'attaque principale compte : la seconde frappe de Chaos ne touche pas à l'état.
+// Le porteur agit forcément depuis la rotation active, vivant : la compétence ne se déclenche jamais depuis la réserve.
+// Renvoie le bonus du coup ({ cumul, pct }, pct = bonus total en %) ou null.
+function lumiereRasante(attaquant, cible) {
+  const c = attaquant.competence;
+  if (c?.id !== "lumiere_rasante") return null;
+  const etat = attaquant.lumiere;
+  if (!etat || etat.cible !== cible || !estVivant(etat.cible)) {
+    attaquant.lumiere = { cible, cumul: 1 };
+    return null;
+  }
+  const cumul = Math.min(etat.cumul, c.cumulMax);
+  etat.cumul = Math.min(etat.cumul + 1, c.cumulMax);
+  return { cumul, pct: cumul * c.degatsPct };
+}
+
+// Attaque ratée d'un porteur de Lumière rasante : sur une autre cible, le cumul retombe à zéro ;
+// sur la même cible, il est gardé tel quel (un raté ne le fait pas monter).
+function lumiereRatee(attaquant, cible) {
+  if (attaquant.competence?.id === "lumiere_rasante" && attaquant.lumiere?.cible !== cible) attaquant.lumiere = null;
+}
+
 function plusBasEnPv(camp) {
   const actifs = rotationActive(camp);
   if (actifs.length === 0) return null;
@@ -343,6 +369,7 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
 
         const touche = presage || hasard() * 100 < chanceTouche(attaquant, cible);
         if (!touche) {
+          lumiereRatee(attaquant, cible);
           journal.push({
             type: "rate", tour,
             de: attaquant.nom, deCamp: attaquant.camp, deSlot: attaquant.slot,
@@ -355,10 +382,11 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
         // 1. ATK du coup = ATK × (1 + Frénésie + Euphorie) × (1 − Malédiction de l'attaquant) ;
         // 2. DEF de la cible = DEF × part gardée (Présage, Perforant) × (1 − Malédiction) ;
         // 3. degatsDe, puis critique ou Présage ;
-        // 4. + bonus Tueurs de géant (non multiplié par le critique) ;
-        // 5. frapper : × (1 − Rempart de la cible), bouclier de la cible (absorbe d'abord), reliquat sur les PV,
+        // 4. × (1 + Lumière rasante) ;
+        // 5. + bonus Tueurs de géant (non multiplié par le critique ni par Lumière rasante) ;
+        // 6. frapper : × (1 − Rempart de la cible), bouclier de la cible (absorbe d'abord), reliquat sur les PV,
         //    Dévouement (sur les PV retirés), Second souffle, K.O., Sacrifice ;
-        // 6. jet de Chaos : seconde frappe éventuelle (passe aussi par frapper : Rempart puis bouclier de sa cible).
+        // 7. jet de Chaos : seconde frappe éventuelle (passe aussi par frapper : Rempart puis bouclier de sa cible).
         const critique = presage || hasard() * 100 < attaquant.crit;
         // Part de la DEF qui compte encore : Présage et Perforant se cumulent (35 % puis 50 % ignorés → 32,5 % restants)
         let partDef = presage ? 1 - (attaquant.competence.percePct ?? 0) / 100 : 1;
@@ -368,6 +396,8 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
         let degats = degatsDe(atk, cible.def * partDef);
         if (presage) degats = Math.round(degats * attaquant.competence.critMult);
         else if (critique) degats = Math.round(degats * (attaquant.critdmg / 100));
+        const lumiere = lumiereRasante(attaquant, cible);
+        if (lumiere) degats = Math.round(degats * (1 + lumiere.pct / 100));
 
         // Trait Tueurs de géant : + `pvMaxPct` % des PV max de la cible, au plus `plafondAtkPct` % de l'ATK du coup
         const geant = trait(attaquant, "tueurs_de_geant");
@@ -377,11 +407,12 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
         frapper(attaquant, camp, cible, adverses, degats, {
           critique,
           ...(presage && { competence: { nom: attaquant.competence.nom, icone: attaquant.competence.icone } }),
+          ...(lumiere && { lumiere }),
         }, tour, journal);
 
         // Trait Chaos : chance de seconde frappe sur un ennemi vivant au hasard de la rotation active (taunt ignoré,
-        // sans jet de toucher ni critique), de `partDegats` % des dégâts de la première, pris avant le Rempart de la
-        // première cible ; seul le Rempart de sa propre cible s'applique. Elle ne relance ni Frénésie ni Chaos,
+        // sans jet de toucher ni critique), de `partDegats` % des dégâts de la première (Lumière rasante comprise), pris
+        // avant le Rempart de la première cible ; seul le Rempart de sa propre cible s'applique. Elle ne relance ni Frénésie ni Chaos,
         // compte pour Dévouement et peut mettre K.O. (Second souffle, Sacrifice).
         const chaos = trait(attaquant, "chaos");
         if (chaos) {

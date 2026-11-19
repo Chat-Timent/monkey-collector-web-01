@@ -17,7 +17,12 @@ export const PALIER_RARETE = 0.15;
 // Croissance par niveau, en fraction de la puissance de base.
 export const CROISSANCE_PAR_NIVEAU = 0.055;
 
-function facteurRarete(rarete) {
+// Prismatique : cas particulier. La règle générale (1 + 0,15 × rang) ne lui donnerait que +8,6 % sur Mythique
+// (1,90 contre 1,75) ; on veut +15 % réels sur Mythique, soit 1,75 × 1,15 = 2,0125 (puissance 1199 au niveau 1).
+export const FACTEUR_PRISMATIQUE = (1 + PALIER_RARETE * 5) * 1.15;
+
+export function facteurRarete(rarete) {
+  if (rarete === "prismatic") return FACTEUR_PRISMATIQUE;
   const rang = RARETES.findIndex((r) => r.nom === rarete);
   return 1 + PALIER_RARETE * Math.max(0, rang);
 }

@@ -470,9 +470,9 @@ test("Flair : rare, épique, légendaire et mythique 10 % plus lourds au tirage"
   const partRare = (poids) => poids.filter((r) => estRare(r.nom)).reduce((t, r) => t + r.poids, 0) / poids.reduce((t, r) => t + r.poids, 0);
   assert.ok(Math.abs(partRare(neutre) - 0.0705) < 0.0005);
   assert.ok(Math.abs(partRare(flair) - 0.0770) < 0.0005);
-  // Le tirage suit les poids : tout en bas, commun ; tout en haut, mythique
+  // Le tirage suit les poids : tout en bas, commun ; tout en haut, prismatique
   assert.equal(tirerRarete(null, { hasard: () => 0 }), "common");
-  assert.equal(tirerRarete(null, { hasard: () => 0.9999 }), "mythic");
+  assert.equal(tirerRarete(null, { hasard: () => 0.9999 }), "prismatic");
 });
 
 test("Étincelle : après 50 tirages sans rare, le suivant est rare ou mieux", () => {
@@ -483,7 +483,7 @@ test("Étincelle : après 50 tirages sans rare, le suivant est rare ou mieux", (
   assert.equal(etincelleDeclenchee(avec, 50), true);
   assert.equal(etincelleDeclenchee(sans, 200), false);
   // Rareté forcée : seulement rare, épique, légendaire ou mythique, dans leurs proportions
-  assert.deepEqual(poidsRaretes(avec, { forcerRare: true }).map((r) => r.nom), ["rare", "epic", "legendary", "mythic"]);
+  assert.deepEqual(poidsRaretes(avec, { forcerRare: true }).map((r) => r.nom), ["rare", "epic", "legendary", "mythic", "prismatic"]);
   for (const h of [0, 0.3, 0.6, 0.9, 0.9999]) assert.ok(estRare(tirerRarete(avec, { forcerRare: true, hasard: () => h })));
   // Compteur : +1 par tirage sans rare, remis à 0 sur un rare ou mieux
   assert.equal(compteurSansRare(0, "common"), 1);
@@ -1369,10 +1369,11 @@ test("quotidien : règles validées et récompenses décrites", () => {
 });
 
 test("singe offert : rareté minimale respectée, dans les proportions des raretés gardées", () => {
-  assert.deepEqual(poidsRaretes(null, { rareteMin: "legendary" }).map((r) => r.nom), ["legendary", "mythic"]);
-  for (let i = 0; i < 50; i++) assert.ok(["legendary", "mythic"].includes(getEspece(tirer(null, { rareteMin: "legendary" })).rarete));
+  assert.deepEqual(poidsRaretes(null, { rareteMin: "legendary" }).map((r) => r.nom), ["legendary", "mythic", "prismatic"]);
+  for (let i = 0; i < 50; i++) assert.ok(["legendary", "mythic", "prismatic"].includes(getEspece(tirer(null, { rareteMin: "legendary" })).rarete));
   assert.equal(tirerRarete(null, { rareteMin: "legendary", hasard: () => 0 }), "legendary");
-  assert.equal(tirerRarete(null, { rareteMin: "legendary", hasard: () => 0.999 }), "mythic");
+  assert.equal(tirerRarete(null, { rareteMin: "legendary", hasard: () => 0.9 }), "mythic");
+  assert.equal(tirerRarete(null, { rareteMin: "legendary", hasard: () => 0.999 }), "prismatic");
   assert.throws(() => poidsRaretes(null, { rareteMin: "divin" }), /rareté inconnue/);
 });
 
@@ -1385,7 +1386,7 @@ test("objets uniques : démanteler rend de la ressource selon le tier", () => {
 
 test("auto-tirage : réglages, filtre « cette rareté ou mieux » et tirages dus", () => {
   assert.deepEqual(RYTHMES_AUTO, [1, 2, 5]);
-  assert.deepEqual(RARETES_AUTO, ["uncommon", "rare", "epic", "legendary", "mythic"]);
+  assert.deepEqual(RARETES_AUTO, ["uncommon", "rare", "epic", "legendary", "mythic", "prismatic"]);
   assert.ok(reglageAutoValide(5, "epic"));
   assert.ok(!reglageAutoValide(3, "epic"));
   assert.ok(!reglageAutoValide(10, "epic"));

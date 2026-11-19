@@ -268,5 +268,10 @@
     "id": 57, "nom": "Rainbow Monkey", "description": "Il a trouvé le trésor au bout de l'arc-en-ciel : c'était lui.", "rarete": "mythic", "traits": ["rempart"], "competence": "arc_en_ciel",
     "base": { "hp": 4162, "atk": 456, "def": 634, "spd": 118, "prec": 16, "esq": 12, "crit": 9, "critdmg": 167 },
     "croissance": { "hp": 197, "atk": 25, "def": 46, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "shiny_monkey": {
+    "id": 58, "nom": "Shiny Monkey", "description": "Une chance sur des milliers. Il te le rappelle à chaque reflet.", "rarete": "prismatic", "traits": ["chaos", "tueurs_de_geant"], "competence": "lumiere_rasante",
+    "base": { "hp": 3411, "atk": 828, "def": 336, "spd": 124, "prec": 20, "esq": 12, "crit": 13, "critdmg": 175 },
+    "croissance": { "hp": 106, "atk": 58, "def": 25, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
   }
 }

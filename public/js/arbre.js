@@ -30,7 +30,7 @@ function decrireEffet(cle, valeur, { chanceLoterie, seuilEtincelle }) {
     case "critdmg_flat": return `+${valeur} % de dégâts critiques`;
     case "slots_bonus": return `+${valeur} emplacement d'équipe`;
     case "tickets_donjon": return `+${valeur} ticket par jour dans chaque donjon (le premier offert tout de suite)`;
-    case "rarete_pct": return `Singes rares, épiques, légendaires et mythiques ${pct(valeur)} plus fréquents`;
+    case "rarete_pct": return `Singes rares et mieux ${pct(valeur)} plus fréquents`;
     case "etincelle": return `Après ${seuilEtincelle} tirages sans rare ou mieux, le suivant en est un`;
     case "elo_combats_bonus": return `+${valeur} combat classé par jour contre un même adversaire`;
     case "aventure_pct": return `+${pct(valeur)} d'XP et de coins en Aventure`;
