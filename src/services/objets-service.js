@@ -1,5 +1,5 @@
-// Objets portés par les singes (armes, équipements) : loterie payée en ressource de donjon. Chaque tirage donne
-// un exemplaire unique, sans niveau ; le joueur garde ou démantèle chacun (ressource rendue selon le tier).
+// Objets portés par les singes (armes, équipements) : loterie payée en tickets (gagnés au donjon). Chaque tirage
+// donne un exemplaire unique, sans niveau ; le joueur garde ou démantèle chacun (cristaux rendus selon le tier).
 // Un même objet peut équiper plusieurs singes, et un singe peut porter plusieurs fois le même équipement.
 // Un seul code pour tous les types.
 import { pool, transaction } from "../config/database.js";
@@ -48,8 +48,8 @@ function catalogueClient(c) {
   return Object.fromEntries(Object.entries(c.objets).map(([id, o]) => [id, { nom: o.nom, icone: o.icone, tiers: o.tiers }]));
 }
 
-// Ce qu'affiche la page d'un type d'objet : prix et ressource, stock, catalogue, et exemplaires obtenus
-// (valeurs de leur tier, porteur, ressource rendue s'ils sont démantelés).
+// Ce qu'affiche la page d'un type d'objet : prix et ressource, stock, ressource de démantèlement, catalogue,
+// et exemplaires obtenus (valeurs de leur tier, porteur, ressource rendue s'ils sont démantelés).
 export async function getObjets(userId, type) {
   const c = catalogueDe(type);
   const [obtenus, ressources] = await Promise.all([lireObjets(userId, type), lireRessources(userId)]);
@@ -58,6 +58,8 @@ export async function getObjets(userId, type) {
     prix: c.prix,
     ressource: infoRecompense(c.ressource),
     stock: ressources[c.ressource] ?? 0,
+    ressourceDemantelement: infoRecompense(c.ressourceDemantelement),
+    stockDemantelement: ressources[c.ressourceDemantelement] ?? 0,
     slots: c.slots,
     nbTiers: nbTiersObjet(c),
     catalogue: catalogueClient(c),
@@ -90,7 +92,7 @@ export async function tirerLoterieObjet(userId, type) {
   const c = catalogueDe(type);
   const tirage = await transaction(async (db) => {
     if ((await depenserRessource(userId, c.ressource, c.prix, db)) === null) {
-      throw new ErreurJeu(`il faut ${c.prix} ${infoRecompense(c.ressource).nom} pour tirer`);
+      throw new ErreurJeu(`pas assez de ${infoRecompense(c.ressource).nom} pour tirer`);
     }
     const resultat = await obtenirObjet(userId, type, db);
     await progresserQuete(userId, type, 1, db);
@@ -137,8 +139,8 @@ export async function equiperObjet(userId, type, id, espece, slot = 1) {
   return getObjets(userId, type);
 }
 
-// Démantèle l'exemplaire `id` (non équipé), dans une transaction : il disparaît et rend de la ressource
-// selon son tier. Renvoie ce qu'il a rapporté et l'état à jour de la page.
+// Démantèle l'exemplaire `id` (non équipé), dans une transaction : il disparaît et rend des cristaux
+// (ressource de démantèlement) selon son tier. Renvoie ce qu'il a rapporté et l'état à jour de la page.
 export async function demantelerObjet(userId, type, id) {
   const c = catalogueDe(type);
   const resultat = await transaction(async (db) => {
@@ -146,7 +148,7 @@ export async function demantelerObjet(userId, type, id) {
     if (exemplaire.espece) throw new ErreurJeu("retire d'abord cet objet du singe qui le porte");
     const rembourse = remboursementDemantelement(c, exemplaire.tier);
     await db.query("DELETE FROM objets_obtenus WHERE id = $1", [id]);
-    if (rembourse > 0) await ajouterRessource(userId, c.ressource, rembourse, db);
+    if (rembourse > 0) await ajouterRessource(userId, c.ressourceDemantelement, rembourse, db);
     return { objet: exemplaire.objet, tier: exemplaire.tier, rembourse };
   });
   return { demantelement: resultat, ...(await getObjets(userId, type)) };

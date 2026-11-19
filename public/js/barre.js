@@ -8,7 +8,7 @@
 //   Barre.afficherStarter()   met à jour niveau, XP et coins (ex. après un tirage)
 //   Barre.afficherQuota()     met à jour le stock de tirages
 //   Barre.afficherPoints()    met à jour la pastille des points de talents
-//   Barre.afficherRessource() met à jour une ressource (acier, étoffe, essence)
+//   Barre.afficherRessource() met à jour une ressource (tickets d'arme et d'équipement, essence, cristaux)
 // Un déblocage dans l'arbre déclenche l'événement "arbre-change" sur document,
 // une récompense du cadeau ou des quêtes l'événement "recompense-recue".
 
@@ -23,14 +23,16 @@ const ONGLETS = [
 ];
 
 // Ressources affichées en permanence. `coins` et `tirages` viennent du starter et du quota,
-// les autres de `ressources` (/profil). Icônes alignées sur donjons.json et ressources-joueur.json.
+// les autres de `ressources` (/profil). Icônes (émoji ou image) alignées sur donjons.json et ressources-joueur.json.
 const RESSOURCES_BARRE = [
   { id: "coins", icone: "💰", titre: "Coins" },
-  { id: "tirages", icone: "🎟️", titre: "Tirages disponibles" },
-  { id: "acier", icone: "🔩", titre: "Acier (armes)" },
-  { id: "etoffe", icone: "🧵", titre: "Étoffe (équipements)" },
+  { id: "tirages", icone: ICONE_TIRAGES, titre: "Tirages disponibles" },
+  { id: "ticket_arme", icone: "/images/Tickets/ticket_armes.png", titre: "Tickets d'arme" },
+  { id: "ticket_equipement", icone: "/images/Tickets/ticket_equipements.png", titre: "Tickets d'équipement" },
   { id: "essence", icone: "✨", titre: "Essence (éveil)" },
+  { id: "cristaux", icone: "💠", titre: "Cristaux de renforcement" },
 ];
+const IDS_RESSOURCES_JOUEUR = ["ticket_arme", "ticket_equipement", "essence", "cristaux"];
 
 const IMAGES_STARTERS = {
   "Fire monkey": avecVersion("/images/Starters/fire_starter.png"),
@@ -48,7 +50,7 @@ const Barre = (() => {
 
   const ressources = RESSOURCES_BARRE.map((r) => `
     <span class="ressource" id="ressource-${r.id}" title="${r.titre}">
-      <span class="icone">${r.icone}</span><span class="valeur">…</span>
+      <span class="icone">${iconeHTML(r.icone)}</span><span class="valeur">…</span>
     </span>`).join("");
 
   document.body.classList.add("avec-barre");
@@ -189,7 +191,7 @@ const Barre = (() => {
 
   function afficherRessources(ressources) {
     if (!ressources) return;
-    for (const id of ["acier", "etoffe", "essence"]) afficherRessource(id, ressources[id] ?? 0);
+    for (const id of IDS_RESSOURCES_JOUEUR) afficherRessource(id, ressources[id] ?? 0);
   }
 
   function afficherPoints(points) {
@@ -334,7 +336,7 @@ const Barre = (() => {
   // ---------- Cadeau (série de connexion) et parchemin (quêtes du jour) ----------
   // Relus toutes les minutes et à l'ouverture de leur tiroir : la pastille s'allume quand une récompense attend.
   // Après une récupération, la barre est mise à jour et l'événement "recompense-recue" prévient la page
-  // (stock de tirages, d'acier… affichés par la page elle-même).
+  // (stock de tirages, de tickets d'arme… affichés par la page elle-même).
 
   const INTERVALLE_QUOTIDIEN_MS = 60000;
 
@@ -344,7 +346,7 @@ const Barre = (() => {
       const lot = document.createElement("span");
       lot.className = "lot";
       lot.title = `${r.valeur} ${r.nom}`;
-      lot.textContent = `${r.icone} ${r.valeur}`;
+      lot.innerHTML = `${iconeHTML(r.icone)} ${echapperHTML(r.valeur)}`;
       return lot;
     });
   }
@@ -375,7 +377,7 @@ const Barre = (() => {
       ligne.className = "quete" + (q.reclamee ? " reclamee" : q.terminee ? " terminee" : "");
       const icone = document.createElement("span");
       icone.className = "icone";
-      icone.textContent = q.icone;
+      icone.innerHTML = iconeHTML(q.icone);
       const corps = document.createElement("div");
       corps.className = "corps";
       const texte = document.createElement("div");

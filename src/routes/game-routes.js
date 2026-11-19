@@ -50,7 +50,7 @@ gameRoutes.get("/loterie", authentifie, async (req, res) => {
 });
 
 // Tout ce que la barre du haut affiche : starter, stock de tirages, elo, points de talents
-// et ressources (acier, étoffe, essence). Les ressources sont servies ici plutôt que par
+// et ressources (tickets d'arme et d'équipement, essence, cristaux). Les ressources sont servies ici plutôt que par
 // /armes, /equipements et /eveil : une requête de plus au lieu de trois appels par page.
 gameRoutes.get("/profil", authentifie, async (req, res) => {
   // Auto-tirage en cours : ses tirages dus sont faits d'abord, pour que le stock affiché soit juste

@@ -1,5 +1,6 @@
 {
   "essence": { "nom": "essence", "icone": "✨" },
-  "acier": { "nom": "acier", "icone": "🔩" },
-  "etoffe": { "nom": "étoffe", "icone": "🧵" }
+  "ticket_arme": { "nom": "tickets d'arme", "icone": "/images/Tickets/ticket_armes.png" },
+  "ticket_equipement": { "nom": "tickets d'équipement", "icone": "/images/Tickets/ticket_equipements.png" },
+  "cristaux": { "nom": "cristaux de renforcement", "icone": "💠" }
 }

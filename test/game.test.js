@@ -1152,30 +1152,35 @@ test("éveil en combat : +x % de PV, ATK et DEF de base, cumulé avec l'arbre et
 
 test("récompenses de donjon lues dans le JSON : tirages, coins, XP ou ressource stockée", () => {
   assert.deepEqual(Object.fromEntries(Object.entries(RESSOURCES.donjons).map(([id, d]) => [id, d.recompense])),
-    { tirages: "tirages", coins: "coins", xp: "xp", armement: "acier", equipement: "etoffe" });
+    { tirages: "tirages", coins: "coins", xp: "xp", armement: "ticket_arme", equipement: "ticket_equipement" });
   assert.equal(DONJON_EVEIL.donjons.eveil.recompense, "essence");
-  assert.deepEqual(infoRecompense("acier"), { id: "acier", nom: "acier", icone: "🔩" });
+  assert.deepEqual(infoRecompense("ticket_arme"), { id: "ticket_arme", nom: "tickets d'arme", icone: "/images/Tickets/ticket_armes.png" });
+  assert.equal(infoRecompense("tirages").icone, "/images/Tickets/ticket_tirages.png");
+  assert.equal(infoRecompense("acier"), null);
   assert.deepEqual(infoRecompense("xp"), { id: "xp", nom: "XP", icone: "⭐" });
   assert.equal(infoRecompense("or"), null);
   assert.equal(infoRecompense("toString"), null);
-  assert.ok(estRessourceJoueur("essence") && estRessourceJoueur("acier") && !estRessourceJoueur("coins"));
+  assert.ok(estRessourceJoueur("essence") && estRessourceJoueur("ticket_arme") && estRessourceJoueur("cristaux") && !estRessourceJoueur("coins"));
   // Récompense inconnue ou balayage mal écrit : refusés au chargement
   const avec = (d) => ({ ...RESSOURCES, donjons: { x: { ...RESSOURCES.donjons.armement, ...d } } });
   assert.throws(() => validerDonjons(avec({ recompense: "or" }), "test"), /récompense inconnue/);
   assert.throws(() => validerDonjons(avec({ balayage: "oui" }), "test"), /balayage invalide/);
+  assert.throws(() => validerDonjons(avec({ gain: { base: 2, parPalier: 1, tousLes: 0 } }), "test"), /tousLes invalide/);
   assert.throws(() => validerRessourcesJoueur({ coins: { nom: "coins", icone: "x" } }), /récompense spéciale/);
 });
 
-test("donjon de l'armement : 15 acier + 1 par palier, balayage permis ; pas de balayage pour tirages, coins et XP", () => {
-  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("armement", p)), [15, 16, 24]);
+test("donjon de l'armement : 2 tickets d'arme + 1 tous les 10 paliers, balayage permis ; pas de balayage pour tirages, coins et XP", () => {
+  assert.deepEqual([1, 9, 10, 19, 20, 35].map((p) => gainDonjon("armement", p)), [2, 2, 3, 3, 4, 5]);
+  // Sans tousLes : parPalier à chaque palier
+  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("eveil", p, DONJON_EVEIL)), [30, 33, 57]);
   const ids = (l) => l.filter(Boolean).map((s) => s.id).join();
   const autres = ["tirages", "coins", "xp"].map((x) => ids(ennemisDonjon(x, 25)));
   assert.ok(!autres.includes(ids(ennemisDonjon("armement", 25))));
   const effets = agregerEffets([]);
   const ligne = { palier: 10, tickets: 2, jour: "2026-11-17" };
   const etat = (id) => etatDonjon(id, ligne, RESSOURCES, effets, "2026-11-17");
-  assert.equal(etat("armement").balayage, 23);
-  assert.deepEqual(etat("armement").recompense, { id: "acier", nom: "acier", icone: "🔩" });
+  assert.deepEqual([etat("armement").gain, etat("armement").balayage], [3, 2]);
+  assert.deepEqual(etat("armement").recompense, { id: "ticket_arme", nom: "tickets d'arme", icone: "/images/Tickets/ticket_armes.png" });
   for (const id of ["tirages", "coins", "xp"]) assert.equal(etat(id).balayage, null, id);
 });
 
@@ -1236,13 +1241,14 @@ test("armes en combat : % des stats de base, crit en points, cumulés avec l'év
   assert.deepEqual([crit.crit, crit.critdmg], [base.crit, base.critdmg + hache.critdmg]);
 });
 
-test("équipements : 6 sortes à 5 tiers, 3 emplacements, payés en étoffe", () => {
+test("équipements : 6 sortes à 5 tiers, 3 emplacements, payés en tickets d'équipement", () => {
   assert.deepEqual(Object.keys(EQUIPEMENTS.objets), ["casque", "armure", "bottes", "gants", "anneau", "amulette"]);
-  assert.deepEqual([EQUIPEMENTS.type, EQUIPEMENTS.slots, EQUIPEMENTS.prix, EQUIPEMENTS.ressource], ["equipement", 3, 10, "etoffe"]);
+  assert.deepEqual([EQUIPEMENTS.type, EQUIPEMENTS.slots, EQUIPEMENTS.prix, EQUIPEMENTS.ressource], ["equipement", 3, 1, "ticket_equipement"]);
+  assert.deepEqual([ARMES.prix, ARMES.ressource], [1, "ticket_arme"]);
   assert.equal(EQUIPEMENTS.uneSorteParSinge, undefined);
   assert.deepEqual(Object.keys(CATALOGUES), ["arme", "equipement"]);
-  assert.deepEqual(infoRecompense("etoffe"), { id: "etoffe", nom: "étoffe", icone: "🧵" });
-  assert.deepEqual([1, 2, 10].map((p) => gainDonjon("equipement", p)), [15, 16, 24]);
+  assert.deepEqual(infoRecompense("ticket_equipement"), { id: "ticket_equipement", nom: "tickets d'équipement", icone: "/images/Tickets/ticket_equipements.png" });
+  assert.deepEqual([1, 9, 10].map((p) => gainDonjon("equipement", p)), [2, 2, 3]);
   assert.equal(RESSOURCES.donjons.equipement.balayage, true);
   const ids = (l) => l.filter(Boolean).map((s) => s.id).join();
   assert.notEqual(ids(ennemisDonjon("equipement", 25)), ids(ennemisDonjon("armement", 25)));
@@ -1366,7 +1372,11 @@ test("quotidien : règles validées et récompenses décrites", () => {
   assert.throws(() => validerQuotidien(rarete), /rareté inconnue/);
 
   assert.deepEqual(decrireRecompense({ singe: "legendary" }), [{ icone: "🐒", valeur: "Légendaire+", nom: "singe légendaire ou mieux" }]);
-  assert.deepEqual(decrireRecompense({ acier: 100 })[0].icone, "🔩");
+  assert.deepEqual(decrireRecompense({ ticket_arme: 10 }), [{ icone: "/images/Tickets/ticket_armes.png", valeur: "10", nom: "tickets d'arme" }]);
+  // Plus d'acier ni d'étoffe : refusés dans les récompenses
+  const ancienne = copie();
+  ancienne.quetes.recompenses[0] = { acier: 50 };
+  assert.throws(() => validerQuotidien(ancienne), /récompense inconnue "acier"/);
   assert.equal(decrireRecompense({ objets: 3 })[0].valeur, "3 objets");
 });
 
@@ -1379,10 +1389,12 @@ test("singe offert : rareté minimale respectée, dans les proportions des raret
   assert.throws(() => poidsRaretes(null, { rareteMin: "divin" }), /rareté inconnue/);
 });
 
-test("objets uniques : démanteler rend de la ressource selon le tier", () => {
-  assert.deepEqual(ARMES.demantelement, [2, 3, 5, 8, 15]);
-  assert.deepEqual(EQUIPEMENTS.demantelement, [2, 3, 5, 8, 15]);
-  assert.deepEqual([1, 2, 3, 4, 5].map((t) => remboursementDemantelement(ARMES, t)), [2, 3, 5, 8, 15]);
+test("objets uniques : démanteler rend des cristaux de renforcement selon le tier", () => {
+  assert.deepEqual([ARMES.ressourceDemantelement, EQUIPEMENTS.ressourceDemantelement], ["cristaux", "cristaux"]);
+  assert.deepEqual(ARMES.demantelement, [5, 15, 50, 150, 300]);
+  assert.deepEqual(EQUIPEMENTS.demantelement, [5, 15, 50, 150, 300]);
+  assert.deepEqual([1, 2, 3, 4, 5].map((t) => remboursementDemantelement(ARMES, t)), [5, 15, 50, 150, 300]);
+  assert.throws(() => validerCatalogue({ ...ARMES, ressourceDemantelement: "acier" }), /ressource de démantèlement inconnue/);
   assert.equal(remboursementDemantelement(EQUIPEMENTS, 9), 0);
 });
 

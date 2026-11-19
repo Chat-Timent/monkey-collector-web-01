@@ -1,10 +1,11 @@
 {
   "type": "equipement",
   "slots": 3,
-  "prix": 10,
-  "ressource": "etoffe",
+  "prix": 1,
+  "ressource": "ticket_equipement",
   "chancesTiers": [400, 120, 40, 12, 3],
-  "demantelement": [2, 3, 5, 8, 15],
+  "ressourceDemantelement": "cristaux",
+  "demantelement": [5, 15, 50, 150, 300],
   "objets": {
     "casque": {
       "nom": "Casque",

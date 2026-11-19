@@ -82,8 +82,8 @@ CREATE TABLE donjons_progression (
 );
 
 -- Ressources gagnées dans les donjons et dépensées ailleurs (src/data/ressources-joueur.json) :
--- 'essence' (donjon d'éveil, éveil des singes), 'acier' (donjon de l'armement, loterie des armes),
--- 'etoffe' (donjon de l'équipement, loterie des équipements).
+-- 'essence' (donjon d'éveil, éveil des singes), 'ticket_arme' (donjon de l'armement, loterie des armes),
+-- 'ticket_equipement' (donjon de l'équipement, loterie des équipements), 'cristaux' (démantèlement des objets).
 CREATE TABLE ressources_joueur (
   user_id   uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   ressource text NOT NULL,

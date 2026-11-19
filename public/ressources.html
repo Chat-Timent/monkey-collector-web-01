@@ -84,10 +84,10 @@
         <span class="gain"></span>
         <span class="tickets"></span>
         <button type="button" class="combattre"></button>`;
-      div.querySelector(".icone").textContent = d.icone;
+      div.querySelector(".icone").innerHTML = iconeHTML(d.icone);
       div.querySelector(".nom").textContent = d.nom;
       div.querySelector(".palier").textContent = `Palier ${d.palier}`;
-      div.querySelector(".gain").textContent = `+${d.gain} ${d.recompense.icone}`;
+      div.querySelector(".gain").innerHTML = `+${d.gain} ${iconeHTML(d.recompense.icone)}`;
       const tickets = div.querySelector(".tickets");
       tickets.textContent = `🎫 ${d.tickets} / ${d.ticketsMax}`;
       tickets.classList.toggle("vide", d.tickets <= 0);
@@ -108,7 +108,7 @@
         const balayer = document.createElement("button");
         balayer.type = "button";
         balayer.className = "secondaire";
-        balayer.textContent = `Balayer le palier ${d.palier - 1} · +${d.balayage} ${d.recompense.icone}`;
+        balayer.innerHTML = `Balayer le palier ${d.palier - 1} · +${d.balayage} ${iconeHTML(d.recompense.icone)}`;
         balayer.disabled = d.tickets <= 0;
         balayer.addEventListener("click", () => balayerDonjon(d.id, balayer));
         div.appendChild(balayer);

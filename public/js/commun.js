@@ -32,6 +32,21 @@ function verifierVersion(reponse) {
   location.reload();
 }
 
+// ---------- Icônes de ressources ----------
+// Une icône de ressource ou de récompense est un émoji, ou le chemin d'une image ("/images/…") comme les tickets.
+const ICONE_TIRAGES = "/images/Tickets/ticket_tirages.png";
+
+function echapperHTML(texte) {
+  return String(texte ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// HTML d'une icône : une image à la taille du texte, ou l'émoji.
+function iconeHTML(icone) {
+  const t = String(icone ?? "");
+  if (t.startsWith("/")) return `<img class="icone-img" src="${echapperHTML(avecVersion(t))}" alt="">`;
+  return echapperHTML(t);
+}
+
 // Libellé, couleur et icône d'une rareté (gris neutre si la rareté est inconnue).
 function infoRarete(rarete) {
   const r = RARETES_AFFICHAGE[rarete] ?? { label: rarete, couleur: "#777" };

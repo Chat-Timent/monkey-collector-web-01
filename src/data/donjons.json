@@ -68,7 +68,7 @@
     "donjons": {
       "tirages": {
         "nom": "Donjon des tirages",
-        "icone": "🎟️",
+        "icone": "/images/Tickets/ticket_tirages.png",
         "recompense": "tirages",
         "gain": {
           "base": 20,
@@ -99,22 +99,24 @@
       "armement": {
         "nom": "Donjon de l'armement",
         "icone": "⚒️",
-        "recompense": "acier",
+        "recompense": "ticket_arme",
         "balayage": true,
         "gain": {
-          "base": 15,
-          "parPalier": 1
+          "base": 2,
+          "parPalier": 1,
+          "tousLes": 10
         },
         "graine": 505
       },
       "equipement": {
         "nom": "Donjon de l'équipement",
         "icone": "🎒",
-        "recompense": "etoffe",
+        "recompense": "ticket_equipement",
         "balayage": true,
         "gain": {
-          "base": 15,
-          "parPalier": 1
+          "base": 2,
+          "parPalier": 1,
+          "tousLes": 10
         },
         "graine": 606
       }

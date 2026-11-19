@@ -14,6 +14,9 @@
   --vert: #7fdc9a;
 }
 
+/* Icône en image (tickets) à la taille du texte qui l'entoure : l'image carrée a des marges transparentes */
+.icone-img { height: 1.6em; width: auto; margin: -0.3em -0.1em; vertical-align: middle; }
+
 /* ---------- Chat (global sur le tirage, chat de combat) ---------- */
 
 .msg {

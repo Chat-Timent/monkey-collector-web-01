@@ -3,6 +3,7 @@
 // de même forme ; chaque fonction prend en paramètre les règles du groupe de donjons voulu.
 // Chaque donjon nomme sa récompense ("recompense") : tirages, coins, XP, ou une ressource
 // de src/data/ressources-joueur.json (stockée dans ressources_joueur). "balayage": true autorise le balayage.
+// Une icône est un émoji ou le chemin d'une image ("/images/…").
 import fs from "node:fs";
 import { DONJONS, ennemisEtage } from "./aventure.js";
 import { SINGES } from "./monkeys.js";
@@ -13,7 +14,7 @@ export const DONJON_EVEIL = DONJONS.eveil;
 export const RESSOURCES_JOUEUR = JSON.parse(fs.readFileSync(new URL("../data/ressources-joueur.json", import.meta.url), "utf8"));
 // Récompenses qui ne sont pas des ressources stockées : elles ont leur propre traitement
 export const RECOMPENSES_SPECIALES = {
-  tirages: { nom: "tirages", icone: "🎟️" },
+  tirages: { nom: "tirages", icone: "/images/Tickets/ticket_tirages.png" },
   coins: { nom: "coins", icone: "💰" },
   xp: { nom: "XP", icone: "⭐" },
 };
@@ -52,6 +53,9 @@ export function validerDonjons(regles, nomGroupe, catalogue = RESSOURCES_JOUEUR)
   for (const [id, d] of donjons) {
     if (typeof d.nom !== "string" || typeof d.icone !== "string") throw new Error(`nom ou icône manquant dans le donjon ${id}`);
     if (!entierPositif(d.gain?.base) || !entierPositif(d.gain?.parPalier)) throw new Error(`gain invalide dans le donjon ${id}`);
+    if (d.gain.tousLes !== undefined && !(Number.isInteger(d.gain.tousLes) && d.gain.tousLes >= 1)) {
+      throw new Error(`gain.tousLes invalide dans le donjon ${id}`);
+    }
     if (!Number.isInteger(d.graine)) throw new Error(`graine invalide dans le donjon ${id}`);
     if (!infoRecompense(d.recompense, catalogue)) throw new Error(`récompense inconnue "${d.recompense}" dans le donjon ${id}`);
     if (d.balayage !== undefined && typeof d.balayage !== "boolean") throw new Error(`balayage invalide dans le donjon ${id}`);
@@ -79,10 +83,12 @@ export function ennemisDonjon(donjon, palier, regles = RESSOURCES) {
   return ennemisEtage(etageEquivalent(palier, regles), SINGES, undefined, regles.donjons[donjon].graine);
 }
 
-// Quantité de la ressource du donjon gagnée en battant ce palier.
+// Quantité de la ressource du donjon gagnée en battant ce palier : `base` au palier 1, puis `parPalier` de plus
+// à chaque palier, ou, avec `tousLes`, tous les `tousLes` paliers (tousLes 10 : paliers 1-9, puis 10-19…).
 export function gainDonjon(donjon, palier, regles = RESSOURCES) {
   const g = regles.donjons[donjon].gain;
-  return g.base + g.parPalier * (palier - 1);
+  const crans = g.tousLes ? Math.floor(palier / g.tousLes) : palier - 1;
+  return g.base + g.parPalier * crans;
 }
 
 // Jour courant à Paris ("AAAA-MM-JJ") : les tickets reviennent à minuit, heure de Paris,

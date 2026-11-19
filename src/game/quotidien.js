@@ -4,7 +4,7 @@
 //   et un jour sans récupérer la fait aussi repartir de J1.
 // - "quetes" : "parJour" quêtes tirées chaque jour dans "catalogue" (les mêmes pour tous les joueurs),
 //   la récompense de chaque rang ("recompenses") et le bonus quand toutes sont terminées.
-// Une récompense est un objet dont chaque clé est une quantité (tirages, coins, xp, acier, etoffe, essence,
+// Une récompense est un objet dont chaque clé est une quantité (tirages, coins, xp, ticket_arme, ticket_equipement, essence, cristaux,
 // objets = objets offerts, arme ou équipement au hasard) ou "singe" (rareté minimale du singe offert).
 // Les jours sont ceux de Paris ("AAAA-MM-JJ", voir jourParis) : tout repart à minuit, heure de Paris.
 import fs from "node:fs";
