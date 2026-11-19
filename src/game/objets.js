@@ -1,6 +1,6 @@
 // Objets portés par les singes (armes, équipements) : fonctions pures, sans base de données.
-// Un catalogue par type (src/data/armes.json…), de même forme : prix et ressource de la loterie, chances des tiers,
-// ressource rendue au démantèlement selon le tier, et valeurs de chaque tier.
+// Un catalogue par type (src/data/armes.json…), de même forme : prix et ressource de la loterie (tickets d'arme…),
+// chances des tiers, ressource rendue au démantèlement (cristaux) et quantité selon le tier, et valeurs de chaque tier.
 // Chaque objet tiré est un exemplaire unique, sans niveau : ses valeurs sont celles de son tier.
 // Un même objet peut être porté plusieurs fois (par plusieurs singes, ou plusieurs fois par un singe pour les équipements).
 // Effets possibles : hpPct, atkPct, defPct (pourcentage des stats de base, comme les perks)
@@ -17,6 +17,7 @@ export function validerCatalogue(c, nom = "catalogue") {
   if (!Number.isInteger(c.slots) || c.slots < 1) throw new Error(`nombre d'emplacements invalide (${nom})`);
   if (!Number.isInteger(c.prix) || c.prix < 1) throw new Error(`prix invalide (${nom})`);
   if (!estRessourceJoueur(c.ressource)) throw new Error(`ressource inconnue "${c.ressource}" (${nom})`);
+  if (!estRessourceJoueur(c.ressourceDemantelement)) throw new Error(`ressource de démantèlement inconnue "${c.ressourceDemantelement}" (${nom})`);
   const nbTiers = c.chancesTiers?.length ?? 0;
   if (nbTiers === 0 || !c.chancesTiers.every((p) => typeof p === "number" && p > 0)) throw new Error(`chances des tiers invalides (${nom})`);
   if (!Array.isArray(c.demantelement) || c.demantelement.length !== nbTiers || !c.demantelement.every((v) => Number.isInteger(v) && v >= 0)) {
@@ -78,7 +79,7 @@ export function tirerObjet(c, hasard = Math.random) {
   return { objet, tier: tirerPondere(c.chancesTiers, hasard) + 1 };
 }
 
-// Ressource rendue en démantelant un exemplaire de ce tier.
+// Quantité de ressource de démantèlement rendue en démantelant un exemplaire de ce tier.
 export function remboursementDemantelement(c, tier) {
   return c.demantelement[tier - 1] ?? 0;
 }

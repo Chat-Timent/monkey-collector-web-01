@@ -1,10 +1,11 @@
 {
   "type": "arme",
   "slots": 1,
-  "prix": 10,
-  "ressource": "acier",
+  "prix": 1,
+  "ressource": "ticket_arme",
   "chancesTiers": [400, 120, 40, 12, 3],
-  "demantelement": [2, 3, 5, 8, 15],
+  "ressourceDemantelement": "cristaux",
+  "demantelement": [5, 15, 50, 150, 300],
   "objets": {
     "epee": {
       "nom": "Épée",

@@ -2,8 +2,9 @@
 //   data-api="/armes"  data-tirer="Tirer une arme"  data-vide="Aucune arme pour l'instant."
 //   data-non-equipe="Non équipée"
 // Chaque objet tiré est un exemplaire unique, sans niveau : une tuile par exemplaire (émoji, tier dans le coin,
-// infobulle au survol). Un clic ouvre sa fiche, d'où le joueur peut le démanteler (ressource rendue selon le tier).
-// Script classique : utilise api, exigerConnexion, ROMAINS, nomObjet, texteEffetsObjet, tuileObjetHTML (commun.js).
+// infobulle au survol). Un clic ouvre sa fiche, d'où le joueur peut le démanteler (cristaux rendus selon le tier).
+// Script classique : utilise Barre (barre.js), api, exigerConnexion, iconeHTML, echapperHTML, ROMAINS, nomObjet, texteEffetsObjet,
+// tuileObjetHTML (commun.js).
 (() => {
   const reglages = document.body.dataset;
   const $ = (id) => document.getElementById(id);
@@ -22,9 +23,13 @@
 
   function majLoterie() {
     const r = donnees.ressource;
-    $("tirer").textContent = `🎰 ${reglages.tirer} · ${donnees.prix} ${r.icone}`;
+    $("tirer").innerHTML = `🎰 ${echapperHTML(reglages.tirer)} · ${donnees.prix} ${iconeHTML(r.icone)}`;
     $("tirer").disabled = enCours || donnees.stock < donnees.prix;
-    $("stock").textContent = `${r.icone} ${donnees.stock.toLocaleString("fr-FR")} ${r.nom}`;
+    const nom = r.nom.charAt(0).toUpperCase() + r.nom.slice(1);
+    $("stock").innerHTML = `${iconeHTML(r.icone)} ${echapperHTML(nom)} : ${donnees.stock.toLocaleString("fr-FR")}`;
+    // Barre du haut : tickets dépensés au tirage, cristaux gagnés au démantèlement
+    Barre.afficherRessource(r.id, donnees.stock);
+    Barre.afficherRessource(donnees.ressourceDemantelement.id, donnees.stockDemantelement);
   }
 
   function ouvrirDetail(id, message = "") {
@@ -61,7 +66,7 @@
       bouton.textContent = "Équipé : retire-le d'abord depuis l'onglet Équipe";
       bouton.disabled = true;
     } else {
-      bouton.textContent = `Démanteler · +${o.rembourse} ${donnees.ressource.icone}`;
+      bouton.innerHTML = `Démanteler · +${o.rembourse} ${iconeHTML(donnees.ressourceDemantelement.icone)}`;
       bouton.addEventListener("click", () => demanteler(o, bouton));
     }
     zone.querySelector(".message-detail").textContent = message;
@@ -90,7 +95,7 @@
         donnees = etat;
         $("fond").hidden = true;
         $("resultat").className = "nouveau";
-        $("resultat").textContent = `${nomObjet(donnees.catalogue, d.objet, d.tier)} démantelé : +${d.rembourse} ${donnees.ressource.nom}`;
+        $("resultat").textContent = `${nomObjet(donnees.catalogue, d.objet, d.tier)} démantelé : +${d.rembourse} ${donnees.ressourceDemantelement.nom}`;
         afficherObjets();
       } else {
         ouvrirDetail(o.id, data.erreur);

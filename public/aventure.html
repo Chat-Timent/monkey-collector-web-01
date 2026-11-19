@@ -128,7 +128,7 @@
 
       const r = data.recompenses;
       const morceaux = [`⭐ <strong>${r.xp}</strong> XP`, `💰 <strong>${r.coins}</strong>`];
-      if (r.tirages > 0) morceaux.push(`🎟️ <strong>+${r.tirages}</strong> tirage`);
+      if (r.tirages > 0) morceaux.push(`${iconeHTML(ICONE_TIRAGES)} <strong>+${r.tirages}</strong> tirage`);
       document.getElementById("recompenses").innerHTML = morceaux.join(" · ");
 
       // Un combat encore en cours de replay : on y renvoie au lieu d'en lancer un autre
