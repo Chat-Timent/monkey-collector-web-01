@@ -42,15 +42,17 @@ const principaux = (r, de) => coups(r, de, (e) => !e.doubleFrappe).map((e) => e.
 
 // ---------- Données ----------
 
-test("traits : 8 traits valides, chaque singe en porte 1 à 3, 7 porteurs par trait (8 pour Malédiction)", () => {
+test("traits : 8 traits valides, chaque singe en porte 1 à 3, 7 à 9 porteurs par trait", () => {
   assert.deepEqual(Object.keys(RESONANCES.traits), Object.keys(REGLAGES_TRAITS));
   assert.deepEqual(RESONANCES.paliers, [2, 4, 6]);
   validerResonances(RESONANCES);
   validerTraitsSinges(SINGES);
   const tous = Object.values(SINGES);
   const compte = compterTraits(tous);
-  for (const t of Object.keys(REGLAGES_TRAITS)) assert.equal(compte[t], t === "malediction" ? 8 : 7, t);
-  assert.equal(tous.filter((s) => s.traits.length === 2).length, 10);
+  // Après l'ajout des singes 51 à 57 (virus, stunned, snail, cactus, cyclope, nerd, rainbow)
+  const attendus = { chaos: 7, tueurs_de_geant: 7, euphorie: 8, sacrifice: 8, devouement: 8, renforcement: 9, rempart: 9, malediction: 9 };
+  for (const t of Object.keys(REGLAGES_TRAITS)) assert.equal(compte[t], attendus[t], t);
+  assert.equal(tous.filter((s) => s.traits.length === 2).length, 11);
   assert.ok(tous.every((s) => s.categorie === undefined && s.traits.length >= 1 && s.traits.length <= 2));
   // Chaque trait compte au moins 2 singes communs ou peu communs
   const bas = compterTraits(tous.filter((s) => s.rarete === "common" || s.rarete === "uncommon"));

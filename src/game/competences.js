@@ -3,6 +3,7 @@
 // Champ "eveil" : réglages remplacés à partir d'un niveau d'éveil ({ "3": { "critMult": 2.8 }, "6": {...} }),
 // cumulés dans l'ordre des niveaux.
 import fs from "node:fs";
+import { SINGES } from "./monkeys.js";
 
 export const COMPETENCES = JSON.parse(fs.readFileSync(new URL("../data/competences.json", import.meta.url), "utf8"));
 
@@ -27,6 +28,15 @@ export function validerCompetences(donnees) {
 }
 
 validerCompetences(COMPETENCES);
+
+// Vérifie le catalogue des singes : une compétence portée doit exister dans competences.json.
+export function validerCompetencesSinges(singes, donnees = COMPETENCES) {
+  for (const [id, s] of Object.entries(singes)) {
+    if (s.competence !== undefined && !Object.hasOwn(donnees, s.competence)) throw new Error(`${id} : compétence inconnue ${s.competence}`);
+  }
+}
+
+validerCompetencesSinges(SINGES);
 
 // Compétence active d'une espèce, prête pour le moteur de combat ({ id, nom, icone, ...réglages }), ou null.
 // `niveauEveil` : les améliorations des niveaux atteints remplacent les réglages de base.

@@ -24,5 +24,16 @@
       "3": { "atkPct": 8, "hpPct": 8, "defPct": 8 },
       "6": { "cumulMax": 6 }
     }
+  },
+  "arc_en_ciel": {
+    "nom": "Arc-en-ciel protecteur",
+    "icone": "🌈",
+    "actif": true,
+    "tousLes": 3,
+    "bouclierPct": 12,
+    "eveil": {
+      "3": { "bouclierPct": 15 },
+      "6": { "bouclierPct": 20 }
+    }
   }
 }

@@ -233,5 +233,40 @@
     "id": 50, "nom": "Mask Monkey", "description": "Personne ne sait qui se cache derrière ce masque. Pas même lui.", "rarete": "epic", "traits": ["tueurs_de_geant"],
     "base": { "hp": 2554, "atk": 552, "def": 296, "spd": 113, "prec": 14, "esq": 13, "crit": 10, "critdmg": 166 },
     "croissance": { "hp": 98, "atk": 34, "def": 23, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "virus_monkey": {
+    "id": 51, "nom": "Virus Monkey", "description": "Lave-toi les mains avant de le pull.", "rarete": "epic", "traits": ["euphorie"],
+    "base": { "hp": 2614, "atk": 563, "def": 256, "spd": 113, "prec": 11, "esq": 11, "crit": 9, "critdmg": 163 },
+    "croissance": { "hp": 112, "atk": 34, "def": 18, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "stunned_monkey": {
+    "id": 52, "nom": "Stunned Monkey", "description": "Il vient de voir le prix des tirages.", "rarete": "epic", "traits": ["renforcement"],
+    "base": { "hp": 2720, "atk": 513, "def": 328, "spd": 112, "prec": 12, "esq": 12, "crit": 9, "critdmg": 162 },
+    "croissance": { "hp": 118, "atk": 30, "def": 25, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "snail_monkey": {
+    "id": 53, "nom": "Snail Monkey", "description": "Il arrive. Laisse-lui jusqu'à la saison prochaine.", "rarete": "epic", "traits": ["rempart"],
+    "base": { "hp": 2799, "atk": 446, "def": 487, "spd": 110, "prec": 12, "esq": 10, "crit": 8, "critdmg": 161 },
+    "croissance": { "hp": 101, "atk": 27, "def": 40, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "cactus_monkey": {
+    "id": 54, "nom": "Cactus Monkey", "description": "Câlins fortement déconseillés.", "rarete": "epic", "traits": ["sacrifice"],
+    "base": { "hp": 2090, "atk": 557, "def": 458, "spd": 111, "prec": 13, "esq": 10, "crit": 9, "critdmg": 164 },
+    "croissance": { "hp": 70, "atk": 36, "def": 36, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "cyclope_monkey": {
+    "id": 55, "nom": "Cyclope Monkey", "description": "Un seul œil, zéro angle mort.", "rarete": "legendary", "traits": ["malediction"],
+    "base": { "hp": 3251, "atk": 552, "def": 325, "spd": 116, "prec": 16, "esq": 11, "crit": 9, "critdmg": 166 },
+    "croissance": { "hp": 144, "atk": 31, "def": 27, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "nerd_monkey": {
+    "id": 56, "nom": "Nerd Monkey", "description": "Il a lu les patch notes. Toutes.", "rarete": "legendary", "traits": ["devouement", "renforcement"],
+    "base": { "hp": 3261, "atk": 505, "def": 442, "spd": 114, "prec": 15, "esq": 13, "crit": 8, "critdmg": 163 },
+    "croissance": { "hp": 175, "atk": 25, "def": 35, "spd": 1, "prec": 1, "esq": 1, "crit": 0, "critdmg": 0 }
+  },
+  "rainbow_monkey": {
+    "id": 57, "nom": "Rainbow Monkey", "description": "Il a trouvé le trésor au bout de l'arc-en-ciel : c'était lui.", "rarete": "mythic", "traits": ["rempart"], "competence": "arc_en_ciel",
+    "base": { "hp": 4162, "atk": 456, "def": 634, "spd": 118, "prec": 16, "esq": 12, "crit": 9, "critdmg": 167 },
+    "croissance": { "hp": 197, "atk": 25, "def": 46, "spd": 2, "prec": 2, "esq": 1, "crit": 0, "critdmg": 0 }
   }
 }

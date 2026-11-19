@@ -96,6 +96,25 @@ function decretRoyal(camp, tour, journal) {
   }
 }
 
+// Compétence Arc-en-ciel protecteur : tous les `tousLes` tours, chaque porteur vivant de la rotation active donne à chaque singe
+// vivant de la rotation active (lui compris) un bouclier de `bouclierPct` % de ses propres PV max. Le bouclier remplace
+// l'ancien (pas de cumul) et dure jusqu'à ce qu'il soit consommé (voir frapper).
+function arcEnCiel(camp, tour, journal) {
+  for (const porteur of camp) {
+    const c = porteur?.competence;
+    if (!porteur || !estVivant(porteur) || c?.id !== "arc_en_ciel" || tour % c.tousLes !== 0 || !enRotation(camp, porteur)) continue;
+    const cibles = rotationActive(camp);
+    for (const s of cibles) s.bouclier = Math.max(0, Math.round((s.hp * c.bouclierPct) / 100));
+    journal.push({
+      type: "bouclier", tour,
+      de: porteur.nom, deCamp: porteur.camp, deSlot: porteur.slot,
+      competence: { nom: c.nom, icone: c.icone },
+      bouclierPct: c.bouclierPct,
+      cibles: cibles.map((s) => ({ slot: s.slot, bouclier: s.bouclier })),
+    });
+  }
+}
+
 // ---------- Traits (résonances d'équipe) ----------
 // Valeurs du trait `id` pour ce singe s'il le porte et que la résonance est active (voir resonances.js), sinon null.
 // Un effet de combat exige un porteur vivant et dans la rotation active ; seul Sacrifice récompense aussi la réserve.
@@ -147,7 +166,7 @@ function reductionRempart(cible) {
 
 // Trait Dévouement : chaque coup d'un porteur soigne l'allié vivant de sa rotation active qui a le plus petit ratio
 // PV / PV max (à égalité : le premier slot ; le porteur peut se soigner lui-même), de `soinPct` % des dégâts réellement
-// infligés, sans dépasser ses PV max. Le soin est rangé dans l'événement de dégâts (`devouement`) : pas de pas de replay en plus.
+// infligés aux PV (sans la part absorbée par un bouclier), sans dépasser ses PV max. Le soin est rangé dans l'événement de dégâts (`devouement`) : pas de pas de replay en plus.
 function devouement(attaquant, campAttaquant, inflige) {
   const t = trait(attaquant, "devouement");
   if (!t || inflige <= 0) return null;
@@ -188,13 +207,16 @@ function sacrifice(mort, camp, tour, journal) {
 }
 
 // Effets qui se déclenchent entre les tours, avant les attaques, toujours dans le même ordre :
-// 1. buffs des singes (passifs des mythiques, ex. Décret royal), camp A puis camp B ;
+// 1. buffs des singes (passifs des mythiques) : Décret royal (camp A puis B), puis Arc-en-ciel protecteur (camp A puis B),
+//    pour que le bouclier se base sur les PV max déjà augmentés par le Décret ;
 // 2. traits : Euphorie (camp A puis B), puis Malédiction (camp A puis B) ;
 // 3. perks (Floraison, tous les 2 tours), camp A puis camp B.
 // Chaque effet écrit son propre événement dans le journal : aucun n'en masque un autre.
 function effetsEntreTours(A, B, tour, journal) {
   decretRoyal(A, tour, journal);
   decretRoyal(B, tour, journal);
+  arcEnCiel(A, tour, journal);
+  arcEnCiel(B, tour, journal);
   euphorie(A);
   euphorie(B);
   malediction(A, B, tour, journal);
@@ -260,13 +282,19 @@ export function degatsDe(atk, def) {
   return Math.max(1, Math.round((atk * atk) / (atk + def)));
 }
 
-// Applique un coup déjà calculé (`degats` avant Rempart) : Rempart de la cible, PV, soin de Dévouement,
+// Applique un coup déjà calculé (`degats` avant Rempart) : Rempart de la cible, bouclier, PV, soin de Dévouement,
 // événement de dégâts (`extra` : critique, compétence, seconde frappe), Second souffle, K.O. puis Sacrifice.
+// Bouclier (Arc-en-ciel protecteur) : il absorbe les dégâts restant après Rempart, seul le reliquat retire des PV.
+// L'événement garde `degats` = dégâts après Rempart (bouclier compris) ; s'il a absorbé quelque chose,
+// il porte aussi `absorbe` (part prise par le bouclier) et `bouclierRestant`.
 function frapper(attaquant, campAttaquant, cible, campCible, degats, extra, tour, journal) {
   const reduction = reductionRempart(cible);
   const finaux = reduction ? Math.max(1, Math.round(degats * (1 - reduction / 100))) : Math.max(1, degats);
+  const absorbe = Math.min(cible.bouclier ?? 0, finaux);
+  if (absorbe > 0) cible.bouclier -= absorbe;
   const avant = cible.pv;
-  cible.pv = Math.max(0, cible.pv - finaux);
+  cible.pv = Math.max(0, cible.pv - (finaux - absorbe));
+  // Dévouement : seuls les PV réellement retirés comptent (pas la part absorbée par le bouclier)
   const soin = devouement(attaquant, campAttaquant, avant - cible.pv);
   const { critique, ...reste } = extra;
   journal.push({
@@ -275,6 +303,7 @@ function frapper(attaquant, campAttaquant, cible, campCible, degats, extra, tour
     sur: cible.nom, surCamp: cible.camp, surSlot: cible.slot,
     degats: finaux, critique, pvRestants: cible.pv,
     ...reste,
+    ...(absorbe > 0 && { absorbe, bouclierRestant: cible.bouclier }),
     ...(soin && { devouement: soin }),
   });
 
@@ -287,7 +316,7 @@ function frapper(attaquant, campAttaquant, cible, campCible, degats, extra, tour
 
 export function combat(equipeA, equipeB, hasard = Math.random) {
   const preparer = (equipe, camp) =>
-    equipe.map((s, slot) => (s ? { ...s, camp, slot, pv: s.hp, atkDepart: s.atk, defDepart: s.def, hpDepart: s.hp } : null));
+    equipe.map((s, slot) => (s ? { ...s, camp, slot, pv: s.hp, bouclier: 0, atkDepart: s.atk, defDepart: s.def, hpDepart: s.hp } : null));
 
   const A = preparer(equipeA, "A");
   const B = preparer(equipeB, "B");
@@ -327,8 +356,9 @@ export function combat(equipeA, equipeB, hasard = Math.random) {
         // 2. DEF de la cible = DEF × part gardée (Présage, Perforant) × (1 − Malédiction) ;
         // 3. degatsDe, puis critique ou Présage ;
         // 4. + bonus Tueurs de géant (non multiplié par le critique) ;
-        // 5. frapper : × (1 − Rempart de la cible), PV, Dévouement, Second souffle, K.O., Sacrifice ;
-        // 6. jet de Chaos : seconde frappe éventuelle.
+        // 5. frapper : × (1 − Rempart de la cible), bouclier de la cible (absorbe d'abord), reliquat sur les PV,
+        //    Dévouement (sur les PV retirés), Second souffle, K.O., Sacrifice ;
+        // 6. jet de Chaos : seconde frappe éventuelle (passe aussi par frapper : Rempart puis bouclier de sa cible).
         const critique = presage || hasard() * 100 < attaquant.crit;
         // Part de la DEF qui compte encore : Présage et Perforant se cumulent (35 % puis 50 % ignorés → 32,5 % restants)
         let partDef = presage ? 1 - (attaquant.competence.percePct ?? 0) / 100 : 1;
